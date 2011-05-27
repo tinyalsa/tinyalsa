@@ -236,6 +236,26 @@ static int int_to_percent(struct snd_ctl_elem_info *ei, int value)
 
 int mixer_ctl_get_percent(struct mixer_ctl *ctl)
 {
+    if (ctl->info->type != SNDRV_CTL_ELEM_TYPE_INTEGER) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return int_to_percent(ctl->info, mixer_ctl_get_int(ctl));
+}
+
+int mixer_ctl_set_percent(struct mixer_ctl *ctl, int percent)
+{
+    if (ctl->info->type != SNDRV_CTL_ELEM_TYPE_INTEGER) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return mixer_ctl_set_int(ctl, percent_to_int(ctl->info, percent));
+}
+
+int mixer_ctl_get_int(struct mixer_ctl *ctl)
+{
     struct snd_ctl_elem_value ev;
 
     memset(&ev, 0, sizeof(ev));
@@ -247,10 +267,11 @@ int mixer_ctl_get_percent(struct mixer_ctl *ctl)
     case SNDRV_CTL_ELEM_TYPE_BOOLEAN:
         return !!ev.value.integer.value[0]; /* TODO: handle multiple return values */
         break;
-    case SNDRV_CTL_ELEM_TYPE_INTEGER: {
-        return int_to_percent(ctl->info, ev.value.integer.value[0]);
+
+    case SNDRV_CTL_ELEM_TYPE_INTEGER:
+        return ev.value.integer.value[0]; /* TODO: handle multiple return values */
         break;
-    }
+
     default:
         errno = EINVAL;
         return -1;
@@ -259,31 +280,30 @@ int mixer_ctl_get_percent(struct mixer_ctl *ctl)
     return 0;
 }
 
-int mixer_ctl_set_percent(struct mixer_ctl *ctl, int percent)
+int mixer_ctl_set_int(struct mixer_ctl *ctl, int value)
 {
     struct snd_ctl_elem_value ev;
     unsigned int n;
 
     memset(&ev, 0, sizeof(ev));
     ev.id.numid = ctl->info->id.numid;
+
     switch (ctl->info->type) {
     case SNDRV_CTL_ELEM_TYPE_BOOLEAN:
         for (n = 0; n < ctl->info->count; n++)
-            ev.value.integer.value[n] = !!percent; /* TODO: handle multiple set values */
+            ev.value.integer.value[n] = !!value;
         break;
 
-    case SNDRV_CTL_ELEM_TYPE_INTEGER: {
-        int value = percent_to_int(ctl->info, percent);
+    case SNDRV_CTL_ELEM_TYPE_INTEGER:
         for (n = 0; n < ctl->info->count; n++)
             ev.value.integer.value[n] = value;
         break;
-    }
 
     default:
         errno = EINVAL;
         return -1;
     }
-    
+
     return ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
 }
 
