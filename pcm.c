@@ -138,7 +138,7 @@ struct pcm {
     struct pcm_config config;
 };
 
-unsigned int pcm_buffer_size(struct pcm *pcm)
+unsigned int pcm_get_buffer_size(struct pcm *pcm)
 {
     return pcm->buffer_size;
 }
@@ -289,12 +289,12 @@ struct pcm *pcm_open(unsigned int device, unsigned int flags, struct pcm_config 
     pcm->flags = flags;
     pcm->fd = open(dname, O_RDWR);
     if (pcm->fd < 0) {
-        oops(pcm, errno, "cannot open device '%s'");
+        oops(pcm, errno, "cannot open device '%s'", dname);
         return pcm;
     }
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_INFO, &info)) {
-        oops(pcm, errno, "cannot get info - %s");
+        oops(pcm, errno, "cannot get info");
         goto fail;
     }
 
