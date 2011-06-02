@@ -111,7 +111,7 @@ void mixer_close(struct mixer *mixer)
     /* TODO: verify frees */
 }
 
-struct mixer *mixer_open(unsigned int device)
+struct mixer *mixer_open(unsigned int card)
 {
     struct snd_ctl_elem_list elist;
     struct snd_ctl_elem_info tmp;
@@ -119,8 +119,10 @@ struct mixer *mixer_open(unsigned int device)
     struct mixer *mixer = NULL;
     unsigned int n, m;
     int fd;
+    char fn[256];
 
-    fd = open("/dev/snd/controlC0", O_RDWR);
+    snprintf(fn, sizeof(fn), "/dev/snd/controlC%u", card);
+    fd = open(fn, O_RDWR);
     if (fd < 0)
         return 0;
 

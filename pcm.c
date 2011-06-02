@@ -266,13 +266,14 @@ static unsigned int pcm_format_to_bits(enum pcm_format format)
     };
 }
 
-struct pcm *pcm_open(unsigned int device, unsigned int flags, struct pcm_config *config)
+struct pcm *pcm_open(unsigned int card, unsigned int device,
+                     unsigned int flags, struct pcm_config *config)
 {
-    const char *dname;
     struct pcm *pcm;
     struct snd_pcm_info info;
     struct snd_pcm_hw_params params;
     struct snd_pcm_sw_params sparams;
+    char fn[256];
 
     pcm = calloc(1, sizeof(struct pcm));
     if (!pcm || !config)
@@ -280,16 +281,13 @@ struct pcm *pcm_open(unsigned int device, unsigned int flags, struct pcm_config 
 
     pcm->config = *config;
 
-    if (flags & PCM_IN) {
-        dname = "/dev/snd/pcmC0D0c";
-    } else {
-        dname = "/dev/snd/pcmC0D0p";
-    }
+    snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,
+             flags & PCM_IN ? 'c' : 'p');
 
     pcm->flags = flags;
-    pcm->fd = open(dname, O_RDWR);
+    pcm->fd = open(fn, O_RDWR);
     if (pcm->fd < 0) {
-        oops(pcm, errno, "cannot open device '%s'", dname);
+        oops(pcm, errno, "cannot open device '%s'", fn);
         return pcm;
     }
 

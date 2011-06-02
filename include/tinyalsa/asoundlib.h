@@ -57,7 +57,8 @@ struct pcm_config {
 };
 
 /* Open and close a stream */
-struct pcm *pcm_open(unsigned int device, unsigned int flags, struct pcm_config *config);
+struct pcm *pcm_open(unsigned int card, unsigned int device,
+                     unsigned int flags, struct pcm_config *config);
 int pcm_close(struct pcm *pcm);
 int pcm_is_ready(struct pcm *pcm);
 
@@ -92,7 +93,7 @@ struct mixer;
 struct mixer_ctl;
 
 /* Open and close a mixer */
-struct mixer *mixer_open(unsigned int device);
+struct mixer *mixer_open(unsigned int card);
 void mixer_close(struct mixer *mixer);
 
 /* Obtain mixer controls */
