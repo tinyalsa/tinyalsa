@@ -56,6 +56,19 @@ struct pcm_config {
     enum pcm_format format;
 };
 
+/* Mixer control types */
+enum mixer_ctl_type {
+    MIXER_CTL_TYPE_BOOL,
+    MIXER_CTL_TYPE_INT,
+    MIXER_CTL_TYPE_ENUM,
+    MIXER_CTL_TYPE_BYTE,
+    MIXER_CTL_TYPE_IEC958,
+    MIXER_CTL_TYPE_INT64,
+    MIXER_CTL_TYPE_UNKNOWN,
+
+    MIXER_CTL_TYPE_MAX,
+};
+
 /* Open and close a stream */
 struct pcm *pcm_open(unsigned int card, unsigned int device,
                      unsigned int flags, struct pcm_config *config);
@@ -97,20 +110,25 @@ struct mixer *mixer_open(unsigned int card);
 void mixer_close(struct mixer *mixer);
 
 /* Obtain mixer controls */
-int mixer_get_num_ctls(struct mixer *mixer);
+unsigned int mixer_get_num_ctls(struct mixer *mixer);
 struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id);
 struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name);
 
-/* Set and get mixer controls */
-int mixer_ctl_get_percent(struct mixer_ctl *ctl);
-int mixer_ctl_set_percent(struct mixer_ctl *ctl, int percent);
+/* Get info about mixer controls */
+int mixer_ctl_get_name(struct mixer_ctl *ctl, char *name, unsigned int size);
+enum mixer_ctl_type mixer_ctl_get_type(struct mixer_ctl *ctl);
+const char *mixer_ctl_get_type_string(struct mixer_ctl *ctl);
+unsigned int mixer_ctl_get_num_values(struct mixer_ctl *ctl);
 
-int mixer_ctl_get_int(struct mixer_ctl *ctl);
-int mixer_ctl_set_int(struct mixer_ctl *ctl, int);
-int mixer_ctl_get_step(struct mixer_ctl *ctl);
+/* Set and get mixer controls */
+int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id);
+int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent);
+
+int mixer_ctl_get_int(struct mixer_ctl *ctl, unsigned int id);
+int mixer_ctl_set_int(struct mixer_ctl *ctl, unsigned int id, int value);
 
 int mixer_ctl_get_enum(struct mixer_ctl *ctl, const char *string, unsigned int size);
-int mixer_ctl_set_enum(struct mixer_ctl *ctl, unsigned int id);
+int mixer_ctl_set_enum(struct mixer_ctl *ctl, unsigned int value);
 int mixer_ctl_set_enum_by_name(struct mixer_ctl *ctl, const char *string);
 
 #endif
