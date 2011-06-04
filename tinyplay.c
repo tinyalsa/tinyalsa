@@ -62,6 +62,11 @@ int main(int argc, char **argv)
     FILE *file;
     struct wav_header header;
 
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <file.wav>\n", argv[0]);
+        return 1;
+    }
+
     file = fopen(argv[1], "rb");
     if (!file) {
         fprintf(stderr, "Unable to open file '%s'\n", argv[1]);
@@ -108,7 +113,8 @@ void play_sample(FILE *file, unsigned int channels, unsigned int rate,
 
     pcm = pcm_open(0, 0, PCM_OUT, &config);
     if (!pcm || !pcm_is_ready(pcm)) {
-        fprintf(stderr, "%s\n", pcm_get_error(pcm));
+        fprintf(stderr, "Unable to open PCM device (%s)\n",
+                pcm_get_error(pcm));
         return;
     }
 
@@ -122,13 +128,6 @@ void play_sample(FILE *file, unsigned int channels, unsigned int rate,
     }
 
     printf("Playing sample: %u ch, %u hz, %u bit\n", channels, rate, bits);
-
-    while (fread(buffer, 1, size, file) == size) {
-        if (pcm_write(pcm, buffer, size)) {
-            fprintf(stderr, "Error playing sample\n");
-            break;
-        }
-    }
 
     do {
         num_read = fread(buffer, 1, size, file);
