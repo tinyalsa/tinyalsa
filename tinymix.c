@@ -28,17 +28,37 @@
 
 #include <tinyalsa/asoundlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+static void tinymix_list_controls(struct mixer *mixer);
+static void tinymix_detail_control(struct mixer *mixer, unsigned int id);
 
 int main(int argc, char **argv)
 {
     struct mixer *mixer;
+
+    mixer = mixer_open(0);
+
+    if (argc == 1)
+        tinymix_list_controls(mixer);
+    else if (argc == 2)
+        tinymix_detail_control(mixer, atoi(argv[1]));
+    else
+        printf("Usage: tinymix [control id]\n");
+
+    mixer_close(mixer);
+
+    return 0;
+}
+
+static void tinymix_list_controls(struct mixer *mixer)
+{
     struct mixer_ctl *ctl;
     const char *type;
     unsigned int num_ctls, num_values;
     char buffer[256];
     unsigned int i;
 
-    mixer = mixer_open(0);
     num_ctls = mixer_get_num_ctls(mixer);
 
     printf("Number of controls: %d\n", num_ctls);
@@ -53,9 +73,59 @@ int main(int argc, char **argv)
 
         printf("%d\t%s\t%d\t%s\n", i, type, num_values, buffer);
     }
+}
 
-    mixer_close(mixer);
+static void tinymix_print_enum(struct mixer_ctl *ctl)
+{
+    unsigned int num_enums;
+    char buffer[256];
+    unsigned int i;
 
-    return 0;
+    num_enums = mixer_ctl_get_num_enums(ctl);
+
+    for (i = 0; i < num_enums; i++) {
+        mixer_ctl_get_enum_string(ctl, i, buffer, sizeof(buffer));
+        printf("\t%s%s", mixer_ctl_get_value(ctl, 0) == i ? ">" : "", buffer);
+    }
+}
+
+static void tinymix_detail_control(struct mixer *mixer, unsigned int id)
+{
+    struct mixer_ctl *ctl;
+    enum mixer_ctl_type type;
+    unsigned int num_values;
+    char buffer[256];
+    unsigned int i;
+
+    if (id >= mixer_get_num_ctls(mixer)) {
+        fprintf(stderr, "Invalid mixer control\n");
+        return;
+    }
+
+    ctl = mixer_get_ctl(mixer, id);
+
+    mixer_ctl_get_name(ctl, buffer, sizeof(buffer));
+    type = mixer_ctl_get_type(ctl);
+    num_values = mixer_ctl_get_num_values(ctl);
+
+    printf("%s:", buffer);
+    for (i = 0; i < num_values; i++) {
+        switch (type)
+        {
+        case MIXER_CTL_TYPE_INT:
+            printf("\t%d", mixer_ctl_get_value(ctl, i));
+            break;
+        case MIXER_CTL_TYPE_BOOL:
+            printf("\t%s", mixer_ctl_get_value(ctl, i) ? "On" : "Off");
+            break;
+        case MIXER_CTL_TYPE_ENUM:
+            tinymix_print_enum(ctl);
+            break;
+        default:
+            printf("\tunknown");
+            break;
+        };
+    }
+    printf("\n");
 }
 

@@ -119,16 +119,15 @@ int mixer_ctl_get_name(struct mixer_ctl *ctl, char *name, unsigned int size);
 enum mixer_ctl_type mixer_ctl_get_type(struct mixer_ctl *ctl);
 const char *mixer_ctl_get_type_string(struct mixer_ctl *ctl);
 unsigned int mixer_ctl_get_num_values(struct mixer_ctl *ctl);
+unsigned int mixer_ctl_get_num_enums(struct mixer_ctl *ctl);
+int mixer_ctl_get_enum_string(struct mixer_ctl *ctl, unsigned int enum_id,
+                              char *string, unsigned int size);
 
 /* Set and get mixer controls */
 int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id);
 int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent);
 
-int mixer_ctl_get_int(struct mixer_ctl *ctl, unsigned int id);
-int mixer_ctl_set_int(struct mixer_ctl *ctl, unsigned int id, int value);
-
-int mixer_ctl_get_enum(struct mixer_ctl *ctl, const char *string, unsigned int size);
-int mixer_ctl_set_enum(struct mixer_ctl *ctl, unsigned int value);
-int mixer_ctl_set_enum_by_name(struct mixer_ctl *ctl, const char *string);
+int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id);
+int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value);
 
 #endif
