@@ -29,6 +29,7 @@
 #include <tinyalsa/asoundlib.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 static void tinymix_list_controls(struct mixer *mixer);
 static void tinymix_detail_control(struct mixer *mixer, unsigned int id);
@@ -89,7 +90,8 @@ static void tinymix_print_enum(struct mixer_ctl *ctl)
 
     for (i = 0; i < num_enums; i++) {
         mixer_ctl_get_enum_string(ctl, i, buffer, sizeof(buffer));
-        printf("\t%s%s", mixer_ctl_get_value(ctl, 0) == i ? ">" : "", buffer);
+        printf("\t%s%s", mixer_ctl_get_value(ctl, 0) == (int)i ? ">" : "",
+               buffer);
     }
 }
 
