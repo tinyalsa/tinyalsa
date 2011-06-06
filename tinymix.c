@@ -102,6 +102,7 @@ static void tinymix_detail_control(struct mixer *mixer, unsigned int id)
     unsigned int num_values;
     char buffer[256];
     unsigned int i;
+    int min, max;
 
     if (id >= mixer_get_num_ctls(mixer)) {
         fprintf(stderr, "Invalid mixer control\n");
@@ -119,18 +120,23 @@ static void tinymix_detail_control(struct mixer *mixer, unsigned int id)
         switch (type)
         {
         case MIXER_CTL_TYPE_INT:
-            printf("\t%d", mixer_ctl_get_value(ctl, i));
+            printf(" %d", mixer_ctl_get_value(ctl, i));
             break;
         case MIXER_CTL_TYPE_BOOL:
-            printf("\t%s", mixer_ctl_get_value(ctl, i) ? "On" : "Off");
+            printf(" %s", mixer_ctl_get_value(ctl, i) ? "On" : "Off");
             break;
         case MIXER_CTL_TYPE_ENUM:
             tinymix_print_enum(ctl);
             break;
         default:
-            printf("\tunknown");
+            printf(" unknown");
             break;
         };
+    }
+    if (type == MIXER_CTL_TYPE_INT) {
+        min = mixer_ctl_get_range_min(ctl);
+        max = mixer_ctl_get_range_max(ctl);
+        printf(" (range %d->%d)", min, max);
     }
     printf("\n");
 }

@@ -372,6 +372,40 @@ int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
     return ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
 }
 
+int mixer_ctl_get_range_min(struct mixer_ctl *ctl)
+{
+    struct snd_ctl_elem_value ev;
+
+    if (!ctl || (ctl->info->type != SNDRV_CTL_ELEM_TYPE_INTEGER)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    memset(&ev, 0, sizeof(ev));
+    ev.id.numid = ctl->info->id.numid;
+    if (ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_READ, &ev))
+        return -1;
+
+    return ctl->info->value.integer.min;
+}
+
+int mixer_ctl_get_range_max(struct mixer_ctl *ctl)
+{
+    struct snd_ctl_elem_value ev;
+
+    if (!ctl || (ctl->info->type != SNDRV_CTL_ELEM_TYPE_INTEGER)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    memset(&ev, 0, sizeof(ev));
+    ev.id.numid = ctl->info->id.numid;
+    if (ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_READ, &ev))
+        return -1;
+
+    return ctl->info->value.integer.max;
+}
+
 unsigned int mixer_ctl_get_num_enums(struct mixer_ctl *ctl)
 {
     if (!ctl) {
