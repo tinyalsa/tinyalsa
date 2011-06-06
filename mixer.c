@@ -348,6 +348,8 @@ int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
 
     memset(&ev, 0, sizeof(ev));
     ev.id.numid = ctl->info->id.numid;
+    if (ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_READ, &ev))
+        return -1;
 
     switch (ctl->info->type) {
     case SNDRV_CTL_ELEM_TYPE_BOOLEAN:
@@ -398,5 +400,31 @@ int mixer_ctl_get_enum_string(struct mixer_ctl *ctl, unsigned int enum_id,
     strncpy(string, (char *)ctl->ename[enum_id], size);
 
     return 0;
+}
+
+int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string)
+{
+    unsigned int i, num_enums;
+    struct snd_ctl_elem_value ev;
+
+    if (!ctl || (ctl->info->type != SNDRV_CTL_ELEM_TYPE_ENUMERATED)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    num_enums = ctl->info->value.enumerated.items;
+    for (i = 0; i < num_enums; i++) {
+        if (!strcmp(string, ctl->ename[i])) {
+            memset(&ev, 0, sizeof(ev));
+            ev.value.enumerated.item[0] = i;
+            ev.id.numid = ctl->info->id.numid;
+            if (ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev) < 0)
+                return -1;
+            return 0;
+        }
+    }
+
+    errno = EINVAL;
+    return -1;
 }
 
