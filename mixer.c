@@ -169,7 +169,7 @@ unsigned int mixer_get_num_ctls(struct mixer *mixer)
 {
     if (!mixer) {
         errno = EINVAL;
-        return -1;
+        return 0;
     }
 
     return mixer->count;
@@ -177,14 +177,10 @@ unsigned int mixer_get_num_ctls(struct mixer *mixer)
 
 struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id)
 {
-    if (!mixer) {
-        errno = EINVAL;
-        return NULL;
-    }
-
-    if (id < mixer->count)
+    if (mixer && (id < mixer->count))
         return mixer->ctl + id;
 
+    errno = EINVAL;
     return NULL;
 }
 
@@ -192,15 +188,15 @@ struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name)
 {
     unsigned int n;
 
-    if (!mixer) {
-        errno = EINVAL;
-        return NULL;
-    }
+    if (!mixer)
+        goto error;
 
     for (n = 0; n < mixer->count; n++)
         if (!strcmp(name, (char*) mixer->info[n].id.name))
             return mixer->ctl + n;
 
+error:
+    errno = EINVAL;
     return NULL;
 }
 
@@ -264,24 +260,24 @@ unsigned int mixer_ctl_get_num_values(struct mixer_ctl *ctl)
 static int percent_to_int(struct snd_ctl_elem_info *ei, int percent)
 {
     int range;
-    
+
     if (percent > 100)
         percent = 100;
     else if (percent < 0)
         percent = 0;
-    
+
     range = (ei->value.integer.max - ei->value.integer.min);
-    
+
     return ei->value.integer.min + (range * percent) / 100;
 }
 
 static int int_to_percent(struct snd_ctl_elem_info *ei, int value)
 {
     int range = (ei->value.integer.max - ei->value.integer.min);
-    
+
     if (range == 0)
         return 0;
-    
+
     return ((value - ei->value.integer.min) / range) * 100;
 }
 

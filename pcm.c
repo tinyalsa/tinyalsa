@@ -111,6 +111,7 @@ static void param_set_int(struct snd_pcm_hw_params *p, int n, unsigned int val)
 static void param_init(struct snd_pcm_hw_params *p)
 {
     int n;
+
     memset(p, 0, sizeof(*p));
     for (n = SNDRV_PCM_HW_PARAM_FIRST_MASK;
          n <= SNDRV_PCM_HW_PARAM_LAST_MASK; n++) {
