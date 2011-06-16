@@ -165,6 +165,28 @@ static int oops(struct pcm *pcm, int e, const char *fmt, ...)
     return -1;
 }
 
+static unsigned int pcm_format_to_alsa(enum pcm_format format)
+{
+    switch (format) {
+    case PCM_FORMAT_S32_LE:
+        return SNDRV_PCM_FORMAT_S32_LE;
+    default:
+    case PCM_FORMAT_S16_LE:
+        return SNDRV_PCM_FORMAT_S16_LE;
+    };
+}
+
+static unsigned int pcm_format_to_bits(enum pcm_format format)
+{
+    switch (format) {
+    case PCM_FORMAT_S32_LE:
+        return 32;
+    default:
+    case PCM_FORMAT_S16_LE:
+        return 16;
+    };
+}
+
 int pcm_write(struct pcm *pcm, void *data, unsigned int count)
 {
     struct snd_xferi x;
@@ -173,7 +195,8 @@ int pcm_write(struct pcm *pcm, void *data, unsigned int count)
         return -EINVAL;
 
     x.buf = data;
-    x.frames = count / (pcm->config.channels * 2); /* TODO: handle 32bit */
+    x.frames = count / (pcm->config.channels *
+                        pcm_format_to_bits(pcm->config.format) / 8);
 
     for (;;) {
         if (!pcm->running) {
@@ -205,7 +228,8 @@ int pcm_read(struct pcm *pcm, void *data, unsigned int count)
         return -EINVAL;
 
     x.buf = data;
-    x.frames = count / (pcm->config.channels * 2); /* TODO: handle 32bit */
+    x.frames = count / (pcm->config.channels *
+                        pcm_format_to_bits(pcm->config.format) / 8);
 
     for (;;) {
         if (!pcm->running) {
@@ -243,28 +267,6 @@ int pcm_close(struct pcm *pcm)
     pcm->buffer_size = 0;
     pcm->fd = -1;
     return 0;
-}
-
-static unsigned int pcm_format_to_alsa(enum pcm_format format)
-{
-    switch (format) {
-    case PCM_FORMAT_S32_LE:
-        return SNDRV_PCM_FORMAT_S32_LE;
-    default:
-    case PCM_FORMAT_S16_LE:
-        return SNDRV_PCM_FORMAT_S16_LE;
-    };
-}
-
-static unsigned int pcm_format_to_bits(enum pcm_format format)
-{
-    switch (format) {
-    case PCM_FORMAT_S32_LE:
-        return 32;
-    default:
-    case PCM_FORMAT_S16_LE:
-        return 16;
-    };
 }
 
 struct pcm *pcm_open(unsigned int card, unsigned int device,
