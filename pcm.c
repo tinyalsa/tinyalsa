@@ -137,6 +137,9 @@ struct pcm {
     unsigned int buffer_size;
     char error[PCM_ERROR_MAX];
     struct pcm_config config;
+    struct snd_pcm_mmap_status *mmap_status;
+    struct snd_pcm_mmap_control *mmap_control;
+    struct snd_pcm_sync_ptr *sync_ptr;
 };
 
 unsigned int pcm_get_buffer_size(struct pcm *pcm)
@@ -185,6 +188,101 @@ static unsigned int pcm_format_to_bits(enum pcm_format format)
     case PCM_FORMAT_S16_LE:
         return 16;
     };
+}
+
+static int pcm_sync_ptr(struct pcm *pcm, int flags) {
+    if (pcm->sync_ptr) {
+        pcm->sync_ptr->flags = flags;
+        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SYNC_PTR, pcm->sync_ptr) < 0)
+            return -1;
+    }
+    return 0;
+}
+
+static int pcm_hw_mmap_status(struct pcm *pcm) {
+
+    if (pcm->sync_ptr)
+        return 0;
+
+    int page_size = sysconf(_SC_PAGE_SIZE);
+    pcm->mmap_status = mmap(NULL, page_size, PROT_READ, MAP_FILE | MAP_SHARED,
+                            pcm->fd, SNDRV_PCM_MMAP_OFFSET_STATUS);
+    if (pcm->mmap_status == MAP_FAILED)
+        pcm->mmap_status = NULL;
+    if (!pcm->mmap_status)
+        goto mmap_error;
+
+    pcm->mmap_control = mmap(NULL, page_size, PROT_READ | PROT_WRITE,
+                             MAP_FILE | MAP_SHARED, pcm->fd, SNDRV_PCM_MMAP_OFFSET_CONTROL);
+    if (pcm->mmap_control == MAP_FAILED)
+        pcm->mmap_control = NULL;
+    if (!pcm->mmap_control) {
+        munmap(pcm->mmap_status, page_size);
+        pcm->mmap_status = NULL;
+        goto mmap_error;
+    }
+    pcm->mmap_control->avail_min = 1;
+
+    return 0;
+
+mmap_error:
+
+    pcm->sync_ptr = calloc(1, sizeof(*pcm->sync_ptr));
+    if (!pcm->sync_ptr)
+        return -ENOMEM;
+    pcm->mmap_status = &pcm->sync_ptr->s.status;
+    pcm->mmap_control = &pcm->sync_ptr->c.control;
+    pcm->mmap_control->avail_min = 1;
+    pcm_sync_ptr(pcm, 0);
+
+    return 0;
+}
+
+static void pcm_hw_munmap_status(struct pcm *pcm) {
+    if (pcm->sync_ptr) {
+        free(pcm->sync_ptr);
+        pcm->sync_ptr = NULL;
+    } else {
+        int page_size = sysconf(_SC_PAGE_SIZE);
+        if (pcm->mmap_status)
+            munmap(pcm->mmap_status, page_size);
+        if (pcm->mmap_control)
+            munmap(pcm->mmap_control, page_size);
+    }
+    pcm->mmap_status = NULL;
+    pcm->mmap_control = NULL;
+}
+
+int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
+                       struct timespec *tstamp)
+{
+    int frames;
+    int rc;
+    snd_pcm_uframes_t hw_ptr;
+
+    if (!pcm_is_ready(pcm))
+        return -1;
+
+    rc = pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_APPL|SNDRV_PCM_SYNC_PTR_HWSYNC);
+    if (rc < 0)
+        return -1;
+
+    *tstamp = pcm->mmap_status->tstamp;
+    if (tstamp->tv_sec == 0 && tstamp->tv_nsec == 0)
+        return -1;
+
+    hw_ptr = pcm->mmap_status->hw_ptr;
+    if (pcm->flags & PCM_IN)
+        frames = hw_ptr - pcm->mmap_control->appl_ptr;
+    else
+        frames = hw_ptr + pcm->buffer_size - pcm->mmap_control->appl_ptr;
+
+    if (frames < 0)
+        return -1;
+
+    *avail = (unsigned int)frames;
+
+    return 0;
 }
 
 int pcm_write(struct pcm *pcm, void *data, unsigned int count)
@@ -261,11 +359,14 @@ int pcm_close(struct pcm *pcm)
     if (pcm == &bad_pcm)
         return 0;
 
+    pcm_hw_munmap_status(pcm);
+
     if (pcm->fd >= 0)
         close(pcm->fd);
     pcm->running = 0;
     pcm->buffer_size = 0;
     pcm->fd = -1;
+    free(pcm);
     return 0;
 }
 
@@ -277,6 +378,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     struct snd_pcm_hw_params params;
     struct snd_pcm_sw_params sparams;
     char fn[256];
+    int rc;
 
     pcm = calloc(1, sizeof(struct pcm));
     if (!pcm || !config)
@@ -322,7 +424,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     }
 
     memset(&sparams, 0, sizeof(sparams));
-    sparams.tstamp_mode = SNDRV_PCM_TSTAMP_NONE;
+    sparams.tstamp_mode = SNDRV_PCM_TSTAMP_ENABLE;
     sparams.period_step = 1;
     sparams.avail_min = 1;
     sparams.start_threshold = config->period_count * config->period_size;
@@ -333,6 +435,12 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
         oops(pcm, errno, "cannot set sw params");
+        goto fail;
+    }
+
+    rc = pcm_hw_mmap_status(pcm);
+    if (rc < 0) {
+        oops(pcm, rc, "mmap status failed");
         goto fail;
     }
 
