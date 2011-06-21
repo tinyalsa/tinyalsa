@@ -350,3 +350,22 @@ int pcm_is_ready(struct pcm *pcm)
 {
     return pcm->fd >= 0;
 }
+
+int pcm_start(struct pcm *pcm)
+{
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_PREPARE) < 0)
+        return oops(pcm, errno, "cannot prepare channel");
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_START) < 0)
+        return oops(pcm, errno, "cannot start channel");
+
+    return 0;
+}
+
+int pcm_stop(struct pcm *pcm)
+{
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DROP) < 0)
+        return oops(pcm, errno, "cannot stop channel");
+
+    return 0;
+}
+
