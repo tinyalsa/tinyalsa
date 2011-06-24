@@ -97,6 +97,10 @@ unsigned int pcm_get_latency(struct pcm *pcm);
 int pcm_write(struct pcm *pcm, void *data, unsigned int count);
 int pcm_read(struct pcm *pcm, void *data, unsigned int count);
 
+/* Start and stop a PCM channel that doesn't transfer data */
+int pcm_start(struct pcm *pcm);
+int pcm_stop(struct pcm *pcm);
+
 
 /*
  * MIXER API
