@@ -427,11 +427,21 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     sparams.tstamp_mode = SNDRV_PCM_TSTAMP_ENABLE;
     sparams.period_step = 1;
     sparams.avail_min = 1;
-    sparams.start_threshold = config->period_count * config->period_size;
-    sparams.stop_threshold = config->period_count * config->period_size;
+
+    if (!config->start_threshold)
+        sparams.start_threshold = config->period_count * config->period_size;
+    else
+        sparams.start_threshold = config->start_threshold;
+
+    if (!config->stop_threshold)
+        sparams.stop_threshold = config->period_count * config->period_size;
+    else
+        sparams.stop_threshold = config->stop_threshold;
+
     sparams.xfer_align = config->period_size / 2; /* needed for old kernels */
     sparams.silence_size = 0;
-    sparams.silence_threshold = 0;
+    sparams.silence_threshold = config->silence_threshold;
+
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
         oops(pcm, errno, "cannot set sw params");
