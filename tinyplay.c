@@ -54,16 +54,17 @@ struct wav_header {
     uint32_t data_sz;
 };
 
-void play_sample(FILE *file, unsigned int channels, unsigned int rate,
-                 unsigned int bits);
+void play_sample(FILE *file, unsigned int device, unsigned int channels,
+                 unsigned int rate, unsigned int bits);
 
 int main(int argc, char **argv)
 {
     FILE *file;
     struct wav_header header;
+    unsigned int device = 0;
 
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s <file.wav>\n", argv[0]);
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s file.wav [-d device]\n", argv[0]);
         return 1;
     }
 
@@ -71,6 +72,13 @@ int main(int argc, char **argv)
     if (!file) {
         fprintf(stderr, "Unable to open file '%s'\n", argv[1]);
         return 1;
+    }
+
+    /* parse command line arguments */
+    argv += 2;
+    if (strcmp(*argv, "-d") == 0) {
+        argv++;
+        device = atoi(*argv);
     }
 
     fread(&header, sizeof(struct wav_header), 1, file);
@@ -85,7 +93,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    play_sample(file, header.num_channels, header.sample_rate,
+    play_sample(file, device, header.num_channels, header.sample_rate,
                 header.bits_per_sample);
 
     fclose(file);
@@ -93,8 +101,8 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void play_sample(FILE *file, unsigned int channels, unsigned int rate,
-                 unsigned int bits)
+void play_sample(FILE *file, unsigned int device, unsigned int channels,
+                 unsigned int rate, unsigned int bits)
 {
     struct pcm_config config;
     struct pcm *pcm;
@@ -114,10 +122,10 @@ void play_sample(FILE *file, unsigned int channels, unsigned int rate,
     config.stop_threshold = 0;
     config.silence_threshold = 0;
 
-    pcm = pcm_open(0, 0, PCM_OUT, &config);
+    pcm = pcm_open(0, device, PCM_OUT, &config);
     if (!pcm || !pcm_is_ready(pcm)) {
-        fprintf(stderr, "Unable to open PCM device (%s)\n",
-                pcm_get_error(pcm));
+        fprintf(stderr, "Unable to open PCM device %u (%s)\n",
+                device, pcm_get_error(pcm));
         return;
     }
 
