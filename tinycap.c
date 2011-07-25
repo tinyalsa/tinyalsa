@@ -91,16 +91,16 @@ int main(int argc, char **argv)
     /* parse command line arguments */
     argv += 2;
     while (*argv) {
-        if (strncmp(*argv, "-d", 2) == 0) {
+        if (strcmp(*argv, "-d") == 0) {
             argv++;
             device = atoi(*argv);
-        } else if (strncmp(*argv, "-c", 2) == 0) {
+        } else if (strcmp(*argv, "-c") == 0) {
             argv++;
             channels = atoi(*argv);
-        } else if (strncmp(*argv, "-r", 2) == 0) {
+        } else if (strcmp(*argv, "-r") == 0) {
             argv++;
             rate = atoi(*argv);
-        } else if (strncmp(*argv, "-b", 2) == 0) {
+        } else if (strcmp(*argv, "-b") == 0) {
             argv++;
             bits = atoi(*argv);
         }

@@ -29,6 +29,7 @@
 #ifndef ASOUNDLIB_H
 #define ASOUNDLIB_H
 
+#include <sys/time.h>
 
 /*
  * PCM API
@@ -89,6 +90,15 @@ unsigned int pcm_get_buffer_size(struct pcm *pcm);
 
 /* Returns the pcm latency in ms */
 unsigned int pcm_get_latency(struct pcm *pcm);
+
+/* Returns available frames in pcm buffer and corresponding time stamp.
+ * For an input stream, frames available are frames ready for the
+ * application to read.
+ * For an output stream, frames available are the number of empty frames available
+ * for the application to write.
+ */
+int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
+                       struct timespec *tstamp);
 
 /* Write data to the fifo.
  * Will start playback on the first write or on a write that
