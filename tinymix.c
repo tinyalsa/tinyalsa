@@ -32,9 +32,11 @@
 #include <ctype.h>
 
 static void tinymix_list_controls(struct mixer *mixer);
-static void tinymix_detail_control(struct mixer *mixer, unsigned int id);
+static void tinymix_detail_control(struct mixer *mixer, unsigned int id,
+                                   int print_all);
 static void tinymix_set_value(struct mixer *mixer, unsigned int id,
                               char *value);
+static void tinymix_print_enum(struct mixer_ctl *ctl, int print_all);
 
 int main(int argc, char **argv)
 {
@@ -49,7 +51,7 @@ int main(int argc, char **argv)
     if (argc == 1)
         tinymix_list_controls(mixer);
     else if (argc == 2)
-        tinymix_detail_control(mixer, atoi(argv[1]));
+        tinymix_detail_control(mixer, atoi(argv[1]), 1);
     else if (argc == 3)
         tinymix_set_value(mixer, atoi(argv[1]), argv[2]);
     else
@@ -72,19 +74,19 @@ static void tinymix_list_controls(struct mixer *mixer)
 
     printf("Number of controls: %d\n", num_ctls);
 
-    printf("ctl\ttype\tnum\tname\n");
+    printf("ctl\ttype\tnum\t%-40s value\n", "name");
     for (i = 0; i < num_ctls; i++) {
         ctl = mixer_get_ctl(mixer, i);
 
         mixer_ctl_get_name(ctl, buffer, sizeof(buffer));
         type = mixer_ctl_get_type_string(ctl);
         num_values = mixer_ctl_get_num_values(ctl);
-
-        printf("%d\t%s\t%d\t%s\n", i, type, num_values, buffer);
+        printf("%d\t%s\t%d\t%-40s", i, type, num_values, buffer);
+        tinymix_detail_control(mixer, i, 0);
     }
 }
 
-static void tinymix_print_enum(struct mixer_ctl *ctl)
+static void tinymix_print_enum(struct mixer_ctl *ctl, int print_all)
 {
     unsigned int num_enums;
     char buffer[256];
@@ -94,12 +96,16 @@ static void tinymix_print_enum(struct mixer_ctl *ctl)
 
     for (i = 0; i < num_enums; i++) {
         mixer_ctl_get_enum_string(ctl, i, buffer, sizeof(buffer));
-        printf("\t%s%s", mixer_ctl_get_value(ctl, 0) == (int)i ? ">" : "",
-               buffer);
+        if (print_all)
+            printf("\t%s%s", mixer_ctl_get_value(ctl, 0) == (int)i ? ">" : "",
+                   buffer);
+        else if (mixer_ctl_get_value(ctl, 0) == (int)i)
+            printf(" %-s", buffer);
     }
 }
 
-static void tinymix_detail_control(struct mixer *mixer, unsigned int id)
+static void tinymix_detail_control(struct mixer *mixer, unsigned int id,
+                                   int print_all)
 {
     struct mixer_ctl *ctl;
     enum mixer_ctl_type type;
@@ -119,7 +125,9 @@ static void tinymix_detail_control(struct mixer *mixer, unsigned int id)
     type = mixer_ctl_get_type(ctl);
     num_values = mixer_ctl_get_num_values(ctl);
 
-    printf("%s:", buffer);
+    if (print_all)
+        printf("%s:", buffer);
+
     for (i = 0; i < num_values; i++) {
         switch (type)
         {
@@ -130,17 +138,20 @@ static void tinymix_detail_control(struct mixer *mixer, unsigned int id)
             printf(" %s", mixer_ctl_get_value(ctl, i) ? "On" : "Off");
             break;
         case MIXER_CTL_TYPE_ENUM:
-            tinymix_print_enum(ctl);
+            tinymix_print_enum(ctl, print_all);
             break;
         default:
             printf(" unknown");
             break;
         };
     }
-    if (type == MIXER_CTL_TYPE_INT) {
-        min = mixer_ctl_get_range_min(ctl);
-        max = mixer_ctl_get_range_max(ctl);
-        printf(" (range %d->%d)", min, max);
+
+    if (print_all) {
+        if (type == MIXER_CTL_TYPE_INT) {
+            min = mixer_ctl_get_range_min(ctl);
+            max = mixer_ctl_get_range_max(ctl);
+            printf(" (range %d->%d)", min, max);
+        }
     }
     printf("\n");
 }
