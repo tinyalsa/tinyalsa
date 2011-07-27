@@ -21,5 +21,5 @@ $(LIB): $(OBJECTS)
 	gcc $(CFLAGS) $< -I$(INC)
 	
 clean:
-	rm $(LIB) $(OBJECTS) tinyplay.o tinyplay tinycap.o tinycap \
+	-rm $(LIB) $(OBJECTS) tinyplay.o tinyplay tinycap.o tinycap \
 	tinymix.o tinymix
