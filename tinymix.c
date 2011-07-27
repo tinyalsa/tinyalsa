@@ -41,6 +41,10 @@ int main(int argc, char **argv)
     struct mixer *mixer;
 
     mixer = mixer_open(0);
+    if (!mixer) {
+        fprintf(stderr, "Failed to open mixer\n");
+        return EXIT_FAILURE;
+    }
 
     if (argc == 1)
         tinymix_list_controls(mixer);

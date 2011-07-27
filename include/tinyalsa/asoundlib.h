@@ -31,6 +31,10 @@
 
 #include <sys/time.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 /*
  * PCM API
  */
@@ -55,6 +59,18 @@ struct pcm_config {
     unsigned int period_size;
     unsigned int period_count;
     enum pcm_format format;
+
+    /* Values to use for the ALSA start, stop and silence thresholds.  Setting
+     * any one of these values to 0 will cause the default tinyalsa values to be
+     * used instead.  Tinyalsa defaults are as follows.
+     *
+     * start_threshold   : period_count * period_size
+     * stop_threshold    : period_count * period_size
+     * silence_threshold : 0
+     */
+    unsigned int start_threshold;
+    unsigned int stop_threshold;
+    unsigned int silence_threshold;
 };
 
 /* Mixer control types */
@@ -148,5 +164,9 @@ int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string);
 /* Determe range of integer mixer controls */
 int mixer_ctl_get_range_min(struct mixer_ctl *ctl);
 int mixer_ctl_get_range_max(struct mixer_ctl *ctl);
+
+#if defined(__cplusplus)
+}  /* extern "C" */
+#endif
 
 #endif
