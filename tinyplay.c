@@ -110,6 +110,9 @@ void play_sample(FILE *file, unsigned int channels, unsigned int rate,
         config.format = PCM_FORMAT_S32_LE;
     else if (bits == 16)
         config.format = PCM_FORMAT_S16_LE;
+    config.start_threshold = 0;
+    config.stop_threshold = 0;
+    config.silence_threshold = 0;
 
     pcm = pcm_open(0, 0, PCM_OUT, &config);
     if (!pcm || !pcm_is_ready(pcm)) {
