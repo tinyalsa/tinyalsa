@@ -76,9 +76,12 @@ int main(int argc, char **argv)
 
     /* parse command line arguments */
     argv += 2;
-    if (strcmp(*argv, "-d") == 0) {
+    while (*argv) {
+        if (strcmp(*argv, "-d") == 0) {
+            argv++;
+            device = atoi(*argv);
+        }
         argv++;
-        device = atoi(*argv);
     }
 
     fread(&header, sizeof(struct wav_header), 1, file);
