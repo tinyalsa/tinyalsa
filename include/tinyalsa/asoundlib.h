@@ -127,6 +127,8 @@ int pcm_read(struct pcm *pcm, void *data, unsigned int count);
 int pcm_start(struct pcm *pcm);
 int pcm_stop(struct pcm *pcm);
 
+/* Configure an off CPU PCM channel (eg, baseband<->CODEC link) */
+int pcm_prepare(struct pcm *pcm);
 
 /*
  * MIXER API
