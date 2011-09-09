@@ -135,6 +135,8 @@ void play_sample(FILE *file, unsigned int card, unsigned int device,
     if (!pcm || !pcm_is_ready(pcm)) {
         fprintf(stderr, "Unable to open PCM device %u (%s)\n",
                 device, pcm_get_error(pcm));
+        fprintf(stderr, "Hint: the WAV file properties must match"
+                " the capabilities of the hardware.\n");
         return;
     }
 
