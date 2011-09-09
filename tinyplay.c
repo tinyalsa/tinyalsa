@@ -63,15 +63,17 @@ int main(int argc, char **argv)
     struct wav_header header;
     unsigned int device = 0;
     unsigned int card = 0;
+    const char* filename = 0;
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s file.wav [-d device] [-c card]\n", argv[0]);
         return 1;
     }
 
-    file = fopen(argv[1], "rb");
+    filename = argv[1];
+    file = fopen(filename, "rb");
     if (!file) {
-        fprintf(stderr, "Unable to open file '%s'\n", argv[1]);
+        fprintf(stderr, "Unable to open file '%s'\n", filename);
         return 1;
     }
 
@@ -97,7 +99,7 @@ int main(int argc, char **argv)
         (header.fmt_id != ID_FMT) ||
         (header.audio_format != FORMAT_PCM) ||
         (header.fmt_sz != 16)) {
-        fprintf(stderr, "Error: '%s' is not a PCM riff/wave file\n", argv[1]);
+        fprintf(stderr, "Error: '%s' is not a PCM riff/wave file\n", filename);
         fclose(file);
         return 1;
     }
