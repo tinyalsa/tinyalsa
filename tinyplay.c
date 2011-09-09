@@ -77,16 +77,17 @@ int main(int argc, char **argv)
 
     /* parse command line arguments */
     argv += 2;
-    while (*argv) {
+    for( ; *argv ; argv++ ) {
         if (strcmp(*argv, "-c") == 0) {
             argv++;
+            if(!(*argv)) break;
             card = atoi(*argv);
         }
         if (strcmp(*argv, "-d") == 0) {
             argv++;
+            if(!(*argv)) break;
             device = atoi(*argv);
         }
-        argv++;
     }
 
     fread(&header, sizeof(struct wav_header), 1, file);
