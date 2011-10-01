@@ -171,6 +171,8 @@ static int oops(struct pcm *pcm, int e, const char *fmt, ...)
 static unsigned int pcm_format_to_alsa(enum pcm_format format)
 {
     switch (format) {
+    case PCM_FORMAT_S24_LE:
+        return SNDRV_PCM_FORMAT_S24_LE;
     case PCM_FORMAT_S32_LE:
         return SNDRV_PCM_FORMAT_S32_LE;
     default:
@@ -199,7 +201,7 @@ static int pcm_sync_ptr(struct pcm *pcm, int flags) {
     return 0;
 }
 
-static int pcm_hw_mmap_status(struct pcm *pcm) {
+static int pcm_hw_mmap_status(struct pcm *pcm, struct pcm_config *config) {
 
     if (pcm->sync_ptr)
         return 0;
@@ -221,7 +223,7 @@ static int pcm_hw_mmap_status(struct pcm *pcm) {
         pcm->mmap_status = NULL;
         goto mmap_error;
     }
-    pcm->mmap_control->avail_min = 1;
+    pcm->mmap_control->avail_min = config->avail_min;
 
     return 0;
 
@@ -232,7 +234,7 @@ mmap_error:
         return -ENOMEM;
     pcm->mmap_status = &pcm->sync_ptr->s.status;
     pcm->mmap_control = &pcm->sync_ptr->c.control;
-    pcm->mmap_control->avail_min = 1;
+    pcm->mmap_control->avail_min = config->avail_min;
     pcm_sync_ptr(pcm, 0);
 
     return 0;
@@ -426,7 +428,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     memset(&sparams, 0, sizeof(sparams));
     sparams.tstamp_mode = SNDRV_PCM_TSTAMP_ENABLE;
     sparams.period_step = 1;
-    sparams.avail_min = 1;
+    sparams.avail_min = config->avail_min;
 
     if (!config->start_threshold)
         sparams.start_threshold = config->period_count * config->period_size;
@@ -448,7 +450,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
         goto fail;
     }
 
-    rc = pcm_hw_mmap_status(pcm);
+    rc = pcm_hw_mmap_status(pcm, config);
     if (rc < 0) {
         oops(pcm, rc, "mmap status failed");
         goto fail;

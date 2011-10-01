@@ -47,6 +47,7 @@ struct pcm;
 /* Bit formats */
 enum pcm_format {
     PCM_FORMAT_S16_LE = 0,
+    PCM_FORMAT_S24_LE,
     PCM_FORMAT_S32_LE,
 
     PCM_FORMAT_MAX,
@@ -56,7 +57,7 @@ enum pcm_format {
 struct pcm_config {
     unsigned int channels;
     unsigned int rate;
-    unsigned int period_size;
+    unsigned int period_size; /* frames */
     unsigned int period_count;
     enum pcm_format format;
 
@@ -67,10 +68,13 @@ struct pcm_config {
      * start_threshold   : period_count * period_size
      * stop_threshold    : period_count * period_size
      * silence_threshold : 0
+     *
+     * All values in frames.
      */
     unsigned int start_threshold;
     unsigned int stop_threshold;
     unsigned int silence_threshold;
+    unsigned int avail_min;
 };
 
 /* Mixer control types */
