@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <errno.h>
 
 #define ID_RIFF 0x46464952
 #define ID_WAVE 0x45564157
@@ -37,6 +38,8 @@
 #define ID_DATA 0x61746164
 
 #define FORMAT_PCM 1
+
+static int (*_pcm_write)(struct pcm *, void *, unsigned int );
 
 struct wav_header {
     uint32_t riff_id;
@@ -54,7 +57,7 @@ struct wav_header {
     uint32_t data_sz;
 };
 
-void play_sample(FILE *file, unsigned int device,
+void play_sample(FILE *file, unsigned int device, unsigned int mmap,
                  struct pcm_config *config, unsigned int bits);
 void init_pcm_config(struct pcm_config *config, unsigned int channels,
                      unsigned int rate, unsigned int bits,
@@ -66,7 +69,7 @@ static void usage(char *name)
 {
      fprintf(stderr, "Usage: %s file.wav [-d device] [-r rate] [-c channels]"
          " [-f format 16/24/32] [-raw] [-ps period-size] [-pc period-count]"
-         " [-av avail-min] [-start] [-stop] [-silence]\n", name);
+         " [-av avail-min] [-start] [-stop] [-silence] [-m]\n", name);
      exit(1);
 }
 
@@ -83,6 +86,7 @@ int main(int argc, char **argv)
     FILE *file;
     struct wav_header header;
     unsigned int device = 0;
+    unsigned int mmap = 0;
     unsigned int raw = 0;
     unsigned int rate = 48000;
     unsigned int channels = 2;
@@ -109,9 +113,11 @@ int main(int argc, char **argv)
     for (i = 2; i < argc; i++) {
         if (strcmp(argv[i], "-d") == 0) {
             device = get_int(argc, argv, &i);
+        if (strcmp(argv[i], "-m") == 0) {
+            mmap = 1;
             continue;
         }
-        if (strcmp(argv[i], "-raw") == 0) {
+        if (strcmp(argv[i], "-raw") == 0)
             raw = 1;
             continue;
         }
@@ -172,7 +178,7 @@ int main(int argc, char **argv)
 
     init_pcm_config(&config, channels, rate, bits, period_size, period_count,
         start_threshold, stop_threshold, avail_min, silence);
-    play_sample(file, device, &config, bits);
+    play_sample(file, device, mmap, &config, bits);
 
     fclose(file);
 
@@ -207,8 +213,8 @@ void init_pcm_config(struct pcm_config *config, unsigned int channels,
     config->silence_threshold = silence;
 }
 
-void play_sample(FILE *file, unsigned int device, struct pcm_config *config,
-                 unsigned int bits)
+void play_sample(FILE *file, unsigned int device, unsigned int mmap,
+                 struct pcm_config *config, unsigned int bits)
 {
     struct pcm *pcm;
     char *buffer;
@@ -216,6 +222,13 @@ void play_sample(FILE *file, unsigned int device, struct pcm_config *config,
     int num_read;
     int flags = PCM_OUT;
 
+    if (mmap) {
+        flags |= PCM_MMAP;
+        _pcm_write = pcm_mmap_write;
+        if (config->avail_min == 1)
+            config->avail_min = config->period_size;
+    } else
+        _pcm_write = pcm_write;
     pcm = pcm_open(0, device, flags, config);
     if (!pcm || !pcm_is_ready(pcm)) {
         fprintf(stderr, "Unable to open PCM device %u (%s)\n",

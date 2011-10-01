@@ -43,6 +43,19 @@ struct pcm;
 
 #define PCM_OUT        0x00000000
 #define PCM_IN         0x10000000
+#define PCM_MMAP       0x00000001
+#define PCM_NOIRQ      0x00000002
+
+/* PCM runtime states */
+#define	PCM_STATE_OPEN		0
+#define	PCM_STATE_SETUP		1
+#define	PCM_STATE_PREPARED	2
+#define	PCM_STATE_RUNNING		3
+#define	PCM_STATE_XRUN		4
+#define	PCM_STATE_DRAINING	5
+#define	PCM_STATE_PAUSED		6
+#define	PCM_STATE_SUSPENDED	7
+#define	PCM_STATE_DISCONNECTED	8
 
 /* Bit formats */
 enum pcm_format {
@@ -128,6 +141,14 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
  */
 int pcm_write(struct pcm *pcm, void *data, unsigned int count);
 int pcm_read(struct pcm *pcm, void *data, unsigned int count);
+
+/*
+ * mmap() support.
+ */
+int pcm_mmap_write(struct pcm *pcm, void *data, unsigned int count);
+int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset,
+                   unsigned int *frames);
+int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
 
 /* Start and stop a PCM channel that doesn't transfer data */
 int pcm_start(struct pcm *pcm);
