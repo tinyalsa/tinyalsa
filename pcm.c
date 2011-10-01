@@ -192,6 +192,18 @@ static unsigned int pcm_format_to_bits(enum pcm_format format)
     };
 }
 
+unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes)
+{
+    return bytes / (pcm->config.channels *
+        (pcm_format_to_bits(pcm->config.format) >> 3));
+}
+
+unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames)
+{
+    return frames * pcm->config.channels *
+        (pcm_format_to_bits(pcm->config.format) >> 3);
+}
+
 static int pcm_sync_ptr(struct pcm *pcm, int flags) {
     if (pcm->sync_ptr) {
         pcm->sync_ptr->flags = flags;
