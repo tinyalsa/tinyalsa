@@ -58,7 +58,8 @@ struct wav_header {
 };
 
 void play_sample(FILE *file, unsigned int device, unsigned int mmap,
-                 struct pcm_config *config, unsigned int bits);
+                 unsigned int noirq, struct pcm_config *config,
+                 unsigned int bits);
 void init_pcm_config(struct pcm_config *config, unsigned int channels,
                      unsigned int rate, unsigned int bits,
                      unsigned int period_size, unsigned int period_count,
@@ -69,7 +70,7 @@ static void usage(char *name)
 {
      fprintf(stderr, "Usage: %s file.wav [-d device] [-r rate] [-c channels]"
          " [-f format 16/24/32] [-raw] [-ps period-size] [-pc period-count]"
-         " [-av avail-min] [-start] [-stop] [-silence] [-m]\n", name);
+         " [-av avail-min] [-start] [-stop] [-silence] [-m] [-noirq]\n", name);
      exit(1);
 }
 
@@ -97,6 +98,7 @@ int main(int argc, char **argv)
     unsigned int stop_threshold = 0;
     unsigned int avail_min = 1;
     unsigned int silence = 0;
+    unsigned int noirq = 0;
     struct pcm_config config;
     int i;
 
@@ -119,6 +121,10 @@ int main(int argc, char **argv)
         }
         if (strcmp(argv[i], "-raw") == 0)
             raw = 1;
+            continue;
+        }
+        if (strcmp(argv[i], "-noirq") == 0) {
+            noirq = 1;
             continue;
         }
         if (strcmp(argv[i], "-r") == 0) {
@@ -178,7 +184,7 @@ int main(int argc, char **argv)
 
     init_pcm_config(&config, channels, rate, bits, period_size, period_count,
         start_threshold, stop_threshold, avail_min, silence);
-    play_sample(file, device, mmap, &config, bits);
+    play_sample(file, device, mmap, noirq, &config, bits);
 
     fclose(file);
 
@@ -214,7 +220,8 @@ void init_pcm_config(struct pcm_config *config, unsigned int channels,
 }
 
 void play_sample(FILE *file, unsigned int device, unsigned int mmap,
-                 struct pcm_config *config, unsigned int bits)
+                 unsigned int noirq, struct pcm_config *config,
+                 unsigned int bits)
 {
     struct pcm *pcm;
     char *buffer;
@@ -230,6 +237,9 @@ void play_sample(FILE *file, unsigned int device, unsigned int mmap,
     } else
         _pcm_write = pcm_write;
     pcm = pcm_open(0, device, flags, config);
+    if (noirq)
+        flags |= PCM_NOIRQ;
+
     if (!pcm || !pcm_is_ready(pcm)) {
         fprintf(stderr, "Unable to open PCM device %u (%s)\n",
                 device, pcm_get_error(pcm));
@@ -250,10 +260,11 @@ void play_sample(FILE *file, unsigned int device, unsigned int mmap,
            config->period_size);
 
     do {
+        int err;
         num_read = fread(buffer, 1, size, file);
         if (num_read > 0) {
-            if (pcm_write(pcm, buffer, num_read)) {
-                fprintf(stderr, "Error playing sample\n");
+            if ((err = _pcm_write(pcm, buffer, num_read)) != 0) {
+                fprintf(stderr, "Error playing sample %d\n", err);
                 break;
             }
         }
