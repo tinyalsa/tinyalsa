@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <errno.h>
+#include <signal.h>
 
 #define ID_RIFF 0x46464952
 #define ID_WAVE 0x45564157
@@ -57,6 +58,8 @@ struct wav_header {
     uint32_t data_sz;
 };
 
+static int close = 0;
+
 void play_sample(FILE *file, unsigned int device, unsigned int mmap,
                  unsigned int noirq, struct pcm_config *config,
                  unsigned int bits);
@@ -65,6 +68,13 @@ void init_pcm_config(struct pcm_config *config, unsigned int channels,
                      unsigned int period_size, unsigned int period_count,
                      unsigned int start_threshold, unsigned int stop_threshold,
                      unsigned int avail_min, unsigned int silence);
+
+void stream_close(int sig)
+{
+    /* allow the stream to be closed gracefully */
+    signal(sig, SIG_IGN);
+    close = 1;
+}
 
 static void usage(char *name)
 {
@@ -246,7 +256,7 @@ void play_sample(FILE *file, unsigned int device, unsigned int mmap,
         return;
     }
 
-    size = pcm_get_buffer_size(pcm);
+    size = pcm_frames_to_bytes(pcm, pcm_get_buffer_size(pcm));
     buffer = malloc(size);
     if (!buffer) {
         fprintf(stderr, "Unable to allocate %d bytes\n", size);
@@ -259,6 +269,9 @@ void play_sample(FILE *file, unsigned int device, unsigned int mmap,
            config->channels, config->rate, bits, config->period_count,
            config->period_size);
 
+    /* catch ctrl-c to shutdown cleanly */
+    signal(SIGINT, stream_close);
+
     do {
         int err;
         num_read = fread(buffer, 1, size, file);
@@ -268,7 +281,7 @@ void play_sample(FILE *file, unsigned int device, unsigned int mmap,
                 break;
             }
         }
-    } while (num_read > 0);
+    } while (!close && num_read > 0);
 
     free(buffer);
     pcm_close(pcm);
