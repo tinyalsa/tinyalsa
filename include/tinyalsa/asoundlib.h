@@ -154,6 +154,8 @@ int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
 int pcm_start(struct pcm *pcm);
 int pcm_stop(struct pcm *pcm);
 
+/* drain the PCM channel - i.e. wait for buffer to be emptied */
+int pcm_drain(struct pcm *pcm);
 
 /*
  * MIXER API

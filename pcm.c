@@ -606,6 +606,15 @@ int pcm_stop(struct pcm *pcm)
     return 0;
 }
 
+int pcm_drain(struct pcm *pcm)
+{
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DRAIN) < 0)
+        return oops(pcm, errno, "cannot drain channel");
+
+    pcm->running = 0;
+    return 0;
+}
+
 static inline int pcm_mmap_playback_avail(struct pcm *pcm)
 {
     int avail;
