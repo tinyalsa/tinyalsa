@@ -161,6 +161,12 @@ int pcm_drain(struct pcm *pcm);
 int pcm_pause(struct pcm *pcm);
 int pcm_resume(struct pcm *pcm);
 
+/* hw and sw params.
+ * called internally by open, but can also be called to change config.
+ */
+int pcm_hw_params(struct pcm *pcm, struct pcm_config *config);
+int pcm_sw_params(struct pcm *pcm, struct pcm_config *config);
+
 /*
  * MIXER API
  */
