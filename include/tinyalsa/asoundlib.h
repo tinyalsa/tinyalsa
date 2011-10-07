@@ -157,6 +157,10 @@ int pcm_stop(struct pcm *pcm);
 /* drain the PCM channel - i.e. wait for buffer to be emptied */
 int pcm_drain(struct pcm *pcm);
 
+/* pause and resume */
+int pcm_pause(struct pcm *pcm);
+int pcm_resume(struct pcm *pcm);
+
 /*
  * MIXER API
  */

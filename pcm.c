@@ -615,6 +615,24 @@ int pcm_drain(struct pcm *pcm)
     return 0;
 }
 
+int pcm_pause(struct pcm *pcm)
+{
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_PAUSE) < 0)
+        return oops(pcm, errno, "cannot pause channel");
+
+    pcm->running = 0;
+    return 0;
+}
+
+int pcm_resume(struct pcm *pcm)
+{
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_RESUME) < 0)
+        return oops(pcm, errno, "cannot resume channel");
+
+    pcm->running = 1;
+    return 0;
+}
+
 static inline int pcm_mmap_playback_avail(struct pcm *pcm)
 {
     int avail;
