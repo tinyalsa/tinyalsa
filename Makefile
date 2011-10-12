@@ -1,4 +1,4 @@
-CFLAGS = -c -fPIC
+CFLAGS = -c -fPIC -Wall
 INC = include
 OBJECTS = mixer.o pcm.o
 LIB = libtinyalsa.so

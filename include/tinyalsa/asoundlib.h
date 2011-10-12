@@ -43,10 +43,24 @@ struct pcm;
 
 #define PCM_OUT        0x00000000
 #define PCM_IN         0x10000000
+#define PCM_MMAP       0x00000001
+#define PCM_NOIRQ      0x00000002
+
+/* PCM runtime states */
+#define	PCM_STATE_OPEN		0
+#define	PCM_STATE_SETUP		1
+#define	PCM_STATE_PREPARED	2
+#define	PCM_STATE_RUNNING		3
+#define	PCM_STATE_XRUN		4
+#define	PCM_STATE_DRAINING	5
+#define	PCM_STATE_PAUSED		6
+#define	PCM_STATE_SUSPENDED	7
+#define	PCM_STATE_DISCONNECTED	8
 
 /* Bit formats */
 enum pcm_format {
     PCM_FORMAT_S16_LE = 0,
+    PCM_FORMAT_S24_LE,
     PCM_FORMAT_S32_LE,
 
     PCM_FORMAT_MAX,
@@ -56,7 +70,7 @@ enum pcm_format {
 struct pcm_config {
     unsigned int channels;
     unsigned int rate;
-    unsigned int period_size;
+    unsigned int period_size; /* frames */
     unsigned int period_count;
     enum pcm_format format;
 
@@ -67,10 +81,13 @@ struct pcm_config {
      * start_threshold   : period_count * period_size
      * stop_threshold    : period_count * period_size
      * silence_threshold : 0
+     *
+     * All values in frames.
      */
     unsigned int start_threshold;
     unsigned int stop_threshold;
     unsigned int silence_threshold;
+    unsigned int avail_min;
 };
 
 /* Mixer control types */
@@ -99,10 +116,12 @@ int pcm_set_config(struct pcm *pcm, struct pcm_config *config);
 /* Returns a human readable reason for the last error */
 const char *pcm_get_error(struct pcm *pcm);
 
-/* Returns the buffer size (int bytes) that should be used for pcm_write.
- * This will be 1/2 of the actual fifo size.
+/* Returns the buffer size (int frames) that should be used for pcm_write.
+ * This will be 1/2 of the actual fifo size. ???
  */
 unsigned int pcm_get_buffer_size(struct pcm *pcm);
+unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames);
+unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int frames);
 
 /* Returns the pcm latency in ms */
 unsigned int pcm_get_latency(struct pcm *pcm);
@@ -123,10 +142,30 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
 int pcm_write(struct pcm *pcm, void *data, unsigned int count);
 int pcm_read(struct pcm *pcm, void *data, unsigned int count);
 
+/*
+ * mmap() support.
+ */
+int pcm_mmap_write(struct pcm *pcm, void *data, unsigned int count);
+int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset,
+                   unsigned int *frames);
+int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
+
 /* Start and stop a PCM channel that doesn't transfer data */
 int pcm_start(struct pcm *pcm);
 int pcm_stop(struct pcm *pcm);
 
+/* drain the PCM channel - i.e. wait for buffer to be emptied */
+int pcm_drain(struct pcm *pcm);
+
+/* pause and resume */
+int pcm_pause(struct pcm *pcm);
+int pcm_resume(struct pcm *pcm);
+
+/* hw and sw params.
+ * called internally by open, but can also be called to change config.
+ */
+int pcm_hw_params(struct pcm *pcm, struct pcm_config *config);
+int pcm_sw_params(struct pcm *pcm, struct pcm_config *config);
 
 /*
  * MIXER API
