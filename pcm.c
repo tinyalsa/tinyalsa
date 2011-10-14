@@ -156,6 +156,7 @@ struct pcm {
     struct snd_pcm_sync_ptr *sync_ptr;
     void *mmap_buffer;
     unsigned int noirq_frames_per_msec;
+    int wait_for_avail_min;
 };
 
 unsigned int pcm_get_buffer_size(struct pcm *pcm)
@@ -249,7 +250,10 @@ static int pcm_hw_mmap_status(struct pcm *pcm) {
         pcm->mmap_status = NULL;
         goto mmap_error;
     }
-    pcm->mmap_control->avail_min = 1;
+    if (pcm->flags & PCM_MMAP)
+        pcm->mmap_control->avail_min = pcm->config.avail_min;
+    else
+        pcm->mmap_control->avail_min = 1;
 
     return 0;
 
@@ -260,7 +264,11 @@ mmap_error:
         return -ENOMEM;
     pcm->mmap_status = &pcm->sync_ptr->s.status;
     pcm->mmap_control = &pcm->sync_ptr->c.control;
-    pcm->mmap_control->avail_min = 1;
+    if (pcm->flags & PCM_MMAP)
+        pcm->mmap_control->avail_min = pcm->config.avail_min;
+    else
+        pcm->mmap_control->avail_min = 1;
+
     pcm_sync_ptr(pcm, 0);
 
     return 0;
@@ -344,7 +352,9 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
         frames = hw_ptr + pcm->buffer_size - pcm->mmap_control->appl_ptr;
 
     if (frames < 0)
-        return -1;
+        frames += pcm->boundary;
+    else if (frames > (int)pcm->boundary)
+        frames -= pcm->boundary;
 
     *avail = (unsigned int)frames;
 
@@ -529,7 +539,6 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     memset(&sparams, 0, sizeof(sparams));
     sparams.tstamp_mode = SNDRV_PCM_TSTAMP_ENABLE;
     sparams.period_step = 1;
-    sparams.avail_min = 1;
 
     if (!config->start_threshold)
         pcm->config.start_threshold = sparams.start_threshold =
@@ -543,6 +552,14 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
             config->period_count * config->period_size * 10;
     else
         sparams.stop_threshold = config->stop_threshold;
+
+    if (!pcm->config.avail_min) {
+        if (pcm->flags & PCM_MMAP)
+            pcm->config.avail_min = sparams.avail_min = pcm->config.period_size;
+        else
+            pcm->config.avail_min = sparams.avail_min = 1;
+    } else
+        sparams.avail_min = config->avail_min;
 
     sparams.xfer_align = config->period_size / 2; /* needed for old kernels */
     sparams.silence_size = 0;
@@ -697,6 +714,15 @@ int pcm_state(struct pcm *pcm)
     return pcm->mmap_status->state;
 }
 
+int pcm_set_avail_min(struct pcm *pcm, int avail_min)
+{
+    if ((~pcm->flags) & (PCM_MMAP | PCM_NOIRQ))
+        return -ENOSYS;
+
+    pcm->config.avail_min = avail_min;
+    return 0;
+}
+
 int pcm_wait(struct pcm *pcm, int timeout)
 {
     struct pollfd pfd;
@@ -768,28 +794,38 @@ int pcm_mmap_write(struct pcm *pcm, void *buffer, unsigned int bytes)
                     avail);
                 return -errno;
             }
+            pcm->wait_for_avail_min = 0;
         }
 
         /* sleep until we have space to write new frames */
-        if (pcm->running &&
-            (unsigned int)avail < pcm->mmap_control->avail_min) {
-            int time = -1;
+        if (pcm->running) {
+            /* enable waiting for avail_min threshold when less frames than we have to write
+             * are available. */
+            if (!pcm->wait_for_avail_min && (count > (unsigned int)avail))
+                pcm->wait_for_avail_min = 1;
 
-            if (pcm->flags & PCM_NOIRQ)
-                time = (pcm->buffer_size - avail - pcm->mmap_control->avail_min)
-                        / pcm->noirq_frames_per_msec;
+            if (pcm->wait_for_avail_min && (avail < pcm->config.avail_min)) {
+                int time = -1;
 
-            err = pcm_wait(pcm, time);
-            if (err < 0) {
-                pcm->running = 0;
-                fprintf(stderr, "wait error: hw 0x%x app 0x%x avail 0x%x\n",
-                    (unsigned int)pcm->mmap_status->hw_ptr,
-                    (unsigned int)pcm->mmap_control->appl_ptr,
-                    avail);
-                pcm->mmap_control->appl_ptr = 0;
-                return err;
+                /* disable waiting for avail_min threshold to allow small amounts of data to be
+                 * written without waiting as long as there is enough room in buffer. */
+                pcm->wait_for_avail_min = 0;
+
+                if (pcm->flags & PCM_NOIRQ)
+                    time = (pcm->config.avail_min - avail) / pcm->noirq_frames_per_msec;
+
+                err = pcm_wait(pcm, time);
+                if (err < 0) {
+                    pcm->running = 0;
+                    oops(pcm, err, "wait error: hw 0x%x app 0x%x avail 0x%x\n",
+                        (unsigned int)pcm->mmap_status->hw_ptr,
+                        (unsigned int)pcm->mmap_control->appl_ptr,
+                        avail);
+                    pcm->mmap_control->appl_ptr = 0;
+                    return err;
+                }
+                continue;
             }
-            continue;
         }
 
         frames = count;
