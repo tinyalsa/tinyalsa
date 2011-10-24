@@ -306,6 +306,9 @@ int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id)
     case SNDRV_CTL_ELEM_TYPE_ENUMERATED:
         return ev.value.enumerated.item[id];
 
+    case SNDRV_CTL_ELEM_TYPE_BYTES:
+        return ev.value.bytes.data[id];
+
     default:
         return -EINVAL;
     }
