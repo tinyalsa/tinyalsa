@@ -341,6 +341,9 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
     if (rc < 0)
         return -1;
 
+    if (pcm->mmap_status->state == PCM_STATE_XRUN)
+        return -1;
+
     *tstamp = pcm->mmap_status->tstamp;
     if (tstamp->tv_sec == 0 && tstamp->tv_nsec == 0)
         return -1;
@@ -549,7 +552,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     /* pick a high stop threshold - todo: does this need further tuning */
     if (!config->stop_threshold)
         pcm->config.stop_threshold = sparams.stop_threshold =
-            config->period_count * config->period_size * 10;
+            config->period_count * config->period_size;
     else
         sparams.stop_threshold = config->stop_threshold;
 
