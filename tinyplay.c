@@ -54,34 +54,42 @@ struct wav_header {
     uint32_t data_sz;
 };
 
-void play_sample(FILE *file, unsigned int device, unsigned int channels,
-                 unsigned int rate, unsigned int bits);
+void play_sample(FILE *file, unsigned int card, unsigned int device,
+                 unsigned int channels, unsigned int rate, unsigned int bits);
 
 int main(int argc, char **argv)
 {
     FILE *file;
     struct wav_header header;
     unsigned int device = 0;
+    unsigned int card = 0;
+    const char* filename = 0;
 
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s file.wav [-d device]\n", argv[0]);
+        fprintf(stderr, "Usage: %s file.wav [-d device] [-c card]\n", argv[0]);
         return 1;
     }
 
-    file = fopen(argv[1], "rb");
+    filename = argv[1];
+    file = fopen(filename, "rb");
     if (!file) {
-        fprintf(stderr, "Unable to open file '%s'\n", argv[1]);
+        fprintf(stderr, "Unable to open file '%s'\n", filename);
         return 1;
     }
 
     /* parse command line arguments */
     argv += 2;
-    while (*argv) {
+    for( ; *argv ; argv++ ) {
+        if (strcmp(*argv, "-c") == 0) {
+            argv++;
+            if(!(*argv)) break;
+            card = atoi(*argv);
+        }
         if (strcmp(*argv, "-d") == 0) {
             argv++;
+            if(!(*argv)) break;
             device = atoi(*argv);
         }
-        argv++;
     }
 
     fread(&header, sizeof(struct wav_header), 1, file);
@@ -91,12 +99,12 @@ int main(int argc, char **argv)
         (header.fmt_id != ID_FMT) ||
         (header.audio_format != FORMAT_PCM) ||
         (header.fmt_sz != 16)) {
-        fprintf(stderr, "Error: '%s' is not a PCM riff/wave file\n", argv[1]);
+        fprintf(stderr, "Error: '%s' is not a PCM riff/wave file\n", filename);
         fclose(file);
         return 1;
     }
 
-    play_sample(file, device, header.num_channels, header.sample_rate,
+    play_sample(file, card, device, header.num_channels, header.sample_rate,
                 header.bits_per_sample);
 
     fclose(file);
@@ -104,8 +112,8 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void play_sample(FILE *file, unsigned int device, unsigned int channels,
-                 unsigned int rate, unsigned int bits)
+void play_sample(FILE *file, unsigned int card, unsigned int device,
+                 unsigned int channels, unsigned int rate, unsigned int bits)
 {
     struct pcm_config config;
     struct pcm *pcm;
@@ -125,10 +133,12 @@ void play_sample(FILE *file, unsigned int device, unsigned int channels,
     config.stop_threshold = 0;
     config.silence_threshold = 0;
 
-    pcm = pcm_open(0, device, PCM_OUT, &config);
+    pcm = pcm_open(card, device, PCM_OUT, &config);
     if (!pcm || !pcm_is_ready(pcm)) {
         fprintf(stderr, "Unable to open PCM device %u (%s)\n",
                 device, pcm_get_error(pcm));
+        fprintf(stderr, "Hint: the WAV file properties must match"
+                " the capabilities of the hardware.\n");
         return;
     }
 
