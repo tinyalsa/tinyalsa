@@ -333,7 +333,8 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
     if (rc < 0)
         return -1;
 
-    if (pcm->mmap_status->state == PCM_STATE_XRUN)
+    if ((pcm->mmap_status->state != PCM_STATE_RUNNING) &&
+            (pcm->mmap_status->state != PCM_STATE_DRAINING))
         return -1;
 
     *tstamp = pcm->mmap_status->tstamp;
