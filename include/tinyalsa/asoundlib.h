@@ -113,12 +113,10 @@ int pcm_set_config(struct pcm *pcm, struct pcm_config *config);
 /* Returns a human readable reason for the last error */
 const char *pcm_get_error(struct pcm *pcm);
 
-/* Returns the buffer size (int frames) that should be used for pcm_write.
- * This will be 1/2 of the actual fifo size.
- */
+/* Returns the buffer size (int frames) that should be used for pcm_write. */
 unsigned int pcm_get_buffer_size(struct pcm *pcm);
 unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames);
-unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int frames);
+unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes);
 
 /* Returns the pcm latency in ms */
 unsigned int pcm_get_latency(struct pcm *pcm);

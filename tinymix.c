@@ -140,6 +140,9 @@ static void tinymix_detail_control(struct mixer *mixer, unsigned int id,
         case MIXER_CTL_TYPE_ENUM:
             tinymix_print_enum(ctl, print_all);
             break;
+         case MIXER_CTL_TYPE_BYTE:
+            printf(" 0x%02x", mixer_ctl_get_value(ctl, i));
+            break;
         default:
             printf(" unknown");
             break;
