@@ -93,18 +93,23 @@ int main(int argc, char **argv)
     while (*argv) {
         if (strcmp(*argv, "-d") == 0) {
             argv++;
-            device = atoi(*argv);
+            if (*argv)
+                device = atoi(*argv);
         } else if (strcmp(*argv, "-c") == 0) {
             argv++;
-            channels = atoi(*argv);
+            if (*argv)
+                channels = atoi(*argv);
         } else if (strcmp(*argv, "-r") == 0) {
             argv++;
-            rate = atoi(*argv);
+            if (*argv)
+                rate = atoi(*argv);
         } else if (strcmp(*argv, "-b") == 0) {
             argv++;
-            bits = atoi(*argv);
+            if (*argv)
+                bits = atoi(*argv);
         }
-        argv++;
+        if (*argv)
+            argv++;
     }
 
     header.riff_id = ID_RIFF;
