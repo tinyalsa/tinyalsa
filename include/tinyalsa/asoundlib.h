@@ -84,6 +84,11 @@ struct pcm_config {
     unsigned int start_threshold;
     unsigned int stop_threshold;
     unsigned int silence_threshold;
+
+    /* Minimum number of frames available before pcm_mmap_write() will actually
+     * write into the kernel buffer. Only used if the stream is opened in mmap mode
+     * (pcm_open() called with PCM_MMAP flag set).   Use 0 for default.
+     */
     int avail_min;
 };
 
