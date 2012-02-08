@@ -41,8 +41,20 @@ static void tinymix_print_enum(struct mixer_ctl *ctl, int print_all);
 int main(int argc, char **argv)
 {
     struct mixer *mixer;
+    int card = 0;
 
-    mixer = mixer_open(0);
+    if ((argc > 2) && (strcmp(argv[1], "-D") == 0)) {
+        argv++;
+        if (argv[1]) {
+            card = atoi(argv[1]);
+            argv++;
+            argc -= 2;
+        } else {
+            argc -= 1;
+        }
+    }
+
+    mixer = mixer_open(card);
     if (!mixer) {
         fprintf(stderr, "Failed to open mixer\n");
         return EXIT_FAILURE;
@@ -55,7 +67,7 @@ int main(int argc, char **argv)
     else if (argc == 3)
         tinymix_set_value(mixer, atoi(argv[1]), argv[2]);
     else
-        printf("Usage: tinymix [control id] [value to set]\n");
+        printf("Usage: tinymix [-D card] [control id] [value to set]\n");
 
     mixer_close(mixer);
 

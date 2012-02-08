@@ -57,9 +57,10 @@ struct wav_header {
 
 int capturing = 1;
 
-unsigned int capture_sample(FILE *file, unsigned int device,
+unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
                             unsigned int channels, unsigned int rate,
-                            unsigned int bits);
+                            unsigned int bits, unsigned int period_size,
+                            unsigned int period_count);
 
 void sigint_handler(int sig)
 {
@@ -70,14 +71,17 @@ int main(int argc, char **argv)
 {
     FILE *file;
     struct wav_header header;
+    unsigned int card = 0;
     unsigned int device = 0;
     unsigned int channels = 2;
     unsigned int rate = 44100;
     unsigned int bits = 16;
     unsigned int frames;
+    unsigned int period_size = 1024;
+    unsigned int period_count = 4;
 
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s file.wav [-d device] [-c channels] "
+        fprintf(stderr, "Usage: %s file.wav [-D card] [-d device] [-c channels] "
                 "[-r rate] [-b bits]\n", argv[0]);
         return 1;
     }
@@ -93,18 +97,35 @@ int main(int argc, char **argv)
     while (*argv) {
         if (strcmp(*argv, "-d") == 0) {
             argv++;
-            device = atoi(*argv);
+            if (*argv)
+                device = atoi(*argv);
         } else if (strcmp(*argv, "-c") == 0) {
             argv++;
-            channels = atoi(*argv);
+            if (*argv)
+                channels = atoi(*argv);
         } else if (strcmp(*argv, "-r") == 0) {
             argv++;
-            rate = atoi(*argv);
+            if (*argv)
+                rate = atoi(*argv);
         } else if (strcmp(*argv, "-b") == 0) {
             argv++;
-            bits = atoi(*argv);
+            if (*argv)
+                bits = atoi(*argv);
+        } else if (strcmp(*argv, "-D") == 0) {
+            argv++;
+            if (*argv)
+                card = atoi(*argv);
+        } else if (strcmp(*argv, "-p") == 0) {
+            argv++;
+            if (*argv)
+                period_size = atoi(*argv);
+        } else if (strcmp(*argv, "-n") == 0) {
+            argv++;
+            if (*argv)
+                period_count = atoi(*argv);
         }
-        argv++;
+        if (*argv)
+            argv++;
     }
 
     header.riff_id = ID_RIFF;
@@ -125,8 +146,9 @@ int main(int argc, char **argv)
 
     /* install signal handler and begin capturing */
     signal(SIGINT, sigint_handler);
-    frames = capture_sample(file, device, header.num_channels,
-                            header.sample_rate, header.bits_per_sample);
+    frames = capture_sample(file, card, device, header.num_channels,
+                            header.sample_rate, header.bits_per_sample,
+                            period_size, period_count);
     printf("Captured %d frames\n", frames);
 
     /* write header now all information is known */
@@ -139,9 +161,10 @@ int main(int argc, char **argv)
     return 0;
 }
 
-unsigned int capture_sample(FILE *file, unsigned int device,
+unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
                             unsigned int channels, unsigned int rate,
-                            unsigned int bits)
+                            unsigned int bits, unsigned int period_size,
+                            unsigned int period_count)
 {
     struct pcm_config config;
     struct pcm *pcm;
@@ -151,8 +174,8 @@ unsigned int capture_sample(FILE *file, unsigned int device,
 
     config.channels = channels;
     config.rate = rate;
-    config.period_size = 1024;
-    config.period_count = 4;
+    config.period_size = period_size;
+    config.period_count = period_count;
     if (bits == 32)
         config.format = PCM_FORMAT_S32_LE;
     else if (bits == 16)
@@ -161,7 +184,7 @@ unsigned int capture_sample(FILE *file, unsigned int device,
     config.stop_threshold = 0;
     config.silence_threshold = 0;
 
-    pcm = pcm_open(0, device, PCM_IN, &config);
+    pcm = pcm_open(card, device, PCM_IN, &config);
     if (!pcm || !pcm_is_ready(pcm)) {
         fprintf(stderr, "Unable to open PCM device (%s)\n",
                 pcm_get_error(pcm));
