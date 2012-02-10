@@ -133,7 +133,7 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
  * Will start playback on the first write or on a write that
  * occurs after a fifo underrun.
  */
-int pcm_write(struct pcm *pcm, void *data, unsigned int count);
+int pcm_write(struct pcm *pcm, const void *data, unsigned int count);
 int pcm_read(struct pcm *pcm, void *data, unsigned int count);
 
 /*

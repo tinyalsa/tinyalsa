@@ -355,14 +355,14 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
     return 0;
 }
 
-int pcm_write(struct pcm *pcm, void *data, unsigned int count)
+int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
 {
     struct snd_xferi x;
 
     if (pcm->flags & PCM_IN)
         return -EINVAL;
 
-    x.buf = data;
+    x.buf = (void *)data;
     x.frames = count / (pcm->config.channels *
                         pcm_format_to_bits(pcm->config.format) / 8);
 
