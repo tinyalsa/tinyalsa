@@ -133,13 +133,13 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
  * Will start playback on the first write or on a write that
  * occurs after a fifo underrun.
  */
-int pcm_write(struct pcm *pcm, void *data, unsigned int count);
+int pcm_write(struct pcm *pcm, const void *data, unsigned int count);
 int pcm_read(struct pcm *pcm, void *data, unsigned int count);
 
 /*
  * mmap() support.
  */
-int pcm_mmap_write(struct pcm *pcm, void *data, unsigned int count);
+int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count);
 int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset,
                    unsigned int *frames);
 int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
