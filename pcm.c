@@ -558,7 +558,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     sparams.silence_threshold = config->silence_threshold;
     pcm->boundary = sparams.boundary = pcm->buffer_size;
 
-    while (pcm->boundary * 2 <= LONG_MAX - pcm->buffer_size)
+    while (pcm->boundary * 2 <= INT_MAX - pcm->buffer_size)
 		pcm->boundary *= 2;
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
