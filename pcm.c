@@ -401,11 +401,7 @@ int pcm_read(struct pcm *pcm, void *data, unsigned int count)
 
     for (;;) {
         if (!pcm->running) {
-            if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_PREPARE))
-                return oops(pcm, errno, "cannot prepare channel");
-            if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_START))
-                return oops(pcm, errno, "cannot start channel");
-            pcm->running = 1;
+            pcm_start(pcm);
         }
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_READI_FRAMES, &x)) {
             pcm->running = 0;
