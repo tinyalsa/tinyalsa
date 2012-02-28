@@ -303,7 +303,7 @@ static int pcm_areas_copy(struct pcm *pcm, unsigned int pcm_offset,
     return 0;
 }
 
-static int pcm_mmap_write_areas(struct pcm *pcm, char *src,
+static int pcm_mmap_write_areas(struct pcm *pcm, const char *src,
                                 unsigned int offset, unsigned int size)
 {
     void *pcm_areas;
@@ -365,14 +365,14 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
     return 0;
 }
 
-int pcm_write(struct pcm *pcm, void *data, unsigned int count)
+int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
 {
     struct snd_xferi x;
 
     if (pcm->flags & PCM_IN)
         return -EINVAL;
 
-    x.buf = data;
+    x.buf = (void*)data;
     x.frames = count / (pcm->config.channels *
                         pcm_format_to_bits(pcm->config.format) / 8);
 
@@ -411,11 +411,7 @@ int pcm_read(struct pcm *pcm, void *data, unsigned int count)
 
     for (;;) {
         if (!pcm->running) {
-            if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_PREPARE))
-                return oops(pcm, errno, "cannot prepare channel");
-            if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_START))
-                return oops(pcm, errno, "cannot start channel");
-            pcm->running = 1;
+            pcm_start(pcm);
         }
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_READI_FRAMES, &x)) {
             pcm->running = 0;
@@ -575,7 +571,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     sparams.silence_threshold = config->silence_threshold;
     pcm->boundary = sparams.boundary = pcm->buffer_size;
 
-    while (pcm->boundary * 2 <= LONG_MAX - pcm->buffer_size)
+    while (pcm->boundary * 2 <= INT_MAX - pcm->buffer_size)
 		pcm->boundary *= 2;
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
@@ -774,7 +770,7 @@ int pcm_wait(struct pcm *pcm, int timeout)
     return 1;
 }
 
-int pcm_mmap_write(struct pcm *pcm, void *buffer, unsigned int bytes)
+int pcm_mmap_write(struct pcm *pcm, const void *buffer, unsigned int bytes)
 {
     int err = 0, frames, avail;
     unsigned int offset = 0, count;
