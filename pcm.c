@@ -121,6 +121,25 @@ static unsigned int param_get_int(struct snd_pcm_hw_params *p, int n)
     return 0;
 }
 
+static unsigned int param_get_min(struct snd_pcm_hw_params *p, int n)
+{
+    if (param_is_interval(n)) {
+        struct snd_interval *i = param_to_interval(p, n);
+        return i->min;
+    }
+    return 0;
+}
+
+static unsigned int param_get_max(struct snd_pcm_hw_params *p, int n)
+{
+    if (param_is_interval(n)) {
+        struct snd_interval *i = param_to_interval(p, n);
+        return i->max;
+    }
+    return 0;
+}
+
+
 static void param_init(struct snd_pcm_hw_params *p)
 {
     int n;
@@ -138,6 +157,9 @@ static void param_init(struct snd_pcm_hw_params *p)
             i->min = 0;
             i->max = ~0;
     }
+    p->rmask = ~0U;
+    p->cmask = 0;
+    p->info = ~0U;
 }
 
 #define PCM_ERROR_MAX 128
@@ -473,6 +495,16 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     }
 
     param_init(&params);
+
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_HW_REFINE, &params)) {
+        oops(pcm, errno, "cannot get hardware parameters");
+         goto fail_close;
+    }
+    config->rate_max = param_get_max(&params, SNDRV_PCM_HW_PARAM_RATE);
+    config->rate_min = param_get_min(&params, SNDRV_PCM_HW_PARAM_RATE);
+    config->channels_max = param_get_max(&params, SNDRV_PCM_HW_PARAM_CHANNELS);
+    config->channels_min = param_get_min(&params, SNDRV_PCM_HW_PARAM_CHANNELS);
+
     param_set_mask(&params, SNDRV_PCM_HW_PARAM_FORMAT,
                    pcm_format_to_alsa(config->format));
     param_set_mask(&params, SNDRV_PCM_HW_PARAM_SUBFORMAT,
