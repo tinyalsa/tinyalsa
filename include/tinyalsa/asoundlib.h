@@ -67,10 +67,6 @@ enum pcm_format {
 
 /* Configuration for a stream */
 struct pcm_config {
-    unsigned int channels_min;
-    unsigned int channels_max;
-    unsigned int rate_max;
-    unsigned int rate_min;
     unsigned int channels;
     unsigned int rate;
     unsigned int period_size;
@@ -108,10 +104,6 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
                      unsigned int flags, struct pcm_config *config);
 int pcm_close(struct pcm *pcm);
 int pcm_is_ready(struct pcm *pcm);
-
-/*Query hardware parameters */
-struct pcm *pcm_hwinfo(unsigned int card, unsigned int device,
-                     unsigned int flags, struct pcm_config *config);
 
 /* Set and get config */
 int pcm_get_config(struct pcm *pcm, struct pcm_config *config);

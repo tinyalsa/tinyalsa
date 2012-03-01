@@ -121,25 +121,6 @@ static unsigned int param_get_int(struct snd_pcm_hw_params *p, int n)
     return 0;
 }
 
-static unsigned int param_get_min(struct snd_pcm_hw_params *p, int n)
-{
-    if (param_is_interval(n)) {
-        struct snd_interval *i = param_to_interval(p, n);
-        return i->min;
-    }
-    return 0;
-}
-
-static unsigned int param_get_max(struct snd_pcm_hw_params *p, int n)
-{
-    if (param_is_interval(n)) {
-        struct snd_interval *i = param_to_interval(p, n);
-        return i->max;
-    }
-    return 0;
-}
-
-
 static void param_init(struct snd_pcm_hw_params *p)
 {
     int n;
@@ -157,10 +138,6 @@ static void param_init(struct snd_pcm_hw_params *p)
             i->min = 0;
             i->max = ~0;
     }
-    p->rmask = ~0U;
-    p->cmask = 0;
-    p->info = ~0U;
-
 }
 
 #define PCM_ERROR_MAX 128
@@ -463,52 +440,6 @@ int pcm_close(struct pcm *pcm)
     free(pcm);
     return 0;
 }
-
-struct pcm *pcm_hwinfo(unsigned int card, unsigned int device,
-                     unsigned int flags, struct pcm_config *config)
-{
-    struct pcm *pcm;
-    struct snd_pcm_hw_params params;
-    char fn[256];
-    int rc;
-
-    pcm = calloc(1, sizeof(struct pcm));
-    if (!pcm || !config)
-        return &bad_pcm; /* TODO: could support default config here */
-
-    pcm->config = *config;
-
-    snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,
-             flags & PCM_IN ? 'c' : 'p');
-
-    pcm->flags = flags;
-    pcm->fd = open(fn, O_RDWR);
-    if (pcm->fd < 0) {
-        oops(pcm, errno, "cannot open device '%s'", fn);
-        return pcm;
-    }
-
-    param_init(&params);
-
-    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_HW_REFINE, &params)) {
-        oops(pcm, errno, "cannot get hardware parameters");
-         goto fail_close;
-    }
-
-    config->rate_max = param_get_max(&params, SNDRV_PCM_HW_PARAM_RATE);
-    config->rate_min = param_get_min(&params, SNDRV_PCM_HW_PARAM_RATE);
-    config->channels_max = param_get_max(&params, SNDRV_PCM_HW_PARAM_CHANNELS);
-    config->channels_min = param_get_min(&params, SNDRV_PCM_HW_PARAM_CHANNELS);
-
-    return pcm;
-
-fail_close:
-    close(pcm->fd);
-    pcm->fd = -1;
-    return pcm;
-
-}
-
 
 struct pcm *pcm_open(unsigned int card, unsigned int device,
                      unsigned int flags, struct pcm_config *config)
