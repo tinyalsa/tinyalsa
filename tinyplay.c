@@ -148,21 +148,6 @@ void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned in
     config.stop_threshold = 0;
     config.silence_threshold = 0;
 
-    pcm = pcm_hwinfo(card, device, PCM_OUT, &config);
-    if (!pcm || !pcm_is_ready(pcm)) {
-      fprintf(stderr, "Unable to get Hardware information %u (%s)\n",
-              device, pcm_get_error(pcm));
-      return;
-    }
-
-    if (!(config.rate >= config.rate_min &&
-      config.rate <= config.rate_max)) {
-        printf("Requested %dHz using supported value %dHz\n",config.rate, config.rate_max);
-        config.rate = config.rate_max;
-    }
-    pcm_close(pcm);
-
-
     pcm = pcm_open(card, device, PCM_OUT, &config);
     if (!pcm || !pcm_is_ready(pcm)) {
         fprintf(stderr, "Unable to open PCM device %u (%s)\n",
