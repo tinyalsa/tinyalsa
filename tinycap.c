@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s file.wav [-D card] [-d device] [-c channels] "
-                "[-r rate] [-b bits]\n", argv[0]);
+                "[-r rate] [-b bits] [-p period_size] [-n n_periods]\n", argv[0]);
         return 1;
     }
 
