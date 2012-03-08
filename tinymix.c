@@ -77,9 +77,8 @@ int main(int argc, char **argv)
 static void tinymix_list_controls(struct mixer *mixer)
 {
     struct mixer_ctl *ctl;
-    const char *type;
+    const char *name, *type;
     unsigned int num_ctls, num_values;
-    char buffer[256];
     unsigned int i;
 
     num_ctls = mixer_get_num_ctls(mixer);
@@ -90,10 +89,10 @@ static void tinymix_list_controls(struct mixer *mixer)
     for (i = 0; i < num_ctls; i++) {
         ctl = mixer_get_ctl(mixer, i);
 
-        mixer_ctl_get_name(ctl, buffer, sizeof(buffer));
+        name = mixer_ctl_get_name(ctl);
         type = mixer_ctl_get_type_string(ctl);
         num_values = mixer_ctl_get_num_values(ctl);
-        printf("%d\t%s\t%d\t%-40s", i, type, num_values, buffer);
+        printf("%d\t%s\t%d\t%-40s", i, type, num_values, name);
         tinymix_detail_control(mixer, i, 0);
     }
 }
@@ -101,18 +100,18 @@ static void tinymix_list_controls(struct mixer *mixer)
 static void tinymix_print_enum(struct mixer_ctl *ctl, int print_all)
 {
     unsigned int num_enums;
-    char buffer[256];
     unsigned int i;
+    const char *string;
 
     num_enums = mixer_ctl_get_num_enums(ctl);
 
     for (i = 0; i < num_enums; i++) {
-        mixer_ctl_get_enum_string(ctl, i, buffer, sizeof(buffer));
+        string = mixer_ctl_get_enum_string(ctl, i);
         if (print_all)
             printf("\t%s%s", mixer_ctl_get_value(ctl, 0) == (int)i ? ">" : "",
-                   buffer);
+                   string);
         else if (mixer_ctl_get_value(ctl, 0) == (int)i)
-            printf(" %-s", buffer);
+            printf(" %-s", string);
     }
 }
 
@@ -122,7 +121,6 @@ static void tinymix_detail_control(struct mixer *mixer, unsigned int id,
     struct mixer_ctl *ctl;
     enum mixer_ctl_type type;
     unsigned int num_values;
-    char buffer[256];
     unsigned int i;
     int min, max;
 
@@ -133,12 +131,11 @@ static void tinymix_detail_control(struct mixer *mixer, unsigned int id,
 
     ctl = mixer_get_ctl(mixer, id);
 
-    mixer_ctl_get_name(ctl, buffer, sizeof(buffer));
     type = mixer_ctl_get_type(ctl);
     num_values = mixer_ctl_get_num_values(ctl);
 
     if (print_all)
-        printf("%s:", buffer);
+        printf("%s:", mixer_ctl_get_name(ctl));
 
     for (i = 0; i < num_values; i++) {
         switch (type)
