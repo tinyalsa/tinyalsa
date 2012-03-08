@@ -166,13 +166,13 @@ struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id);
 struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name);
 
 /* Get info about mixer controls */
-int mixer_ctl_get_name(struct mixer_ctl *ctl, char *name, unsigned int size);
+const char *mixer_ctl_get_name(struct mixer_ctl *ctl);
 enum mixer_ctl_type mixer_ctl_get_type(struct mixer_ctl *ctl);
 const char *mixer_ctl_get_type_string(struct mixer_ctl *ctl);
 unsigned int mixer_ctl_get_num_values(struct mixer_ctl *ctl);
 unsigned int mixer_ctl_get_num_enums(struct mixer_ctl *ctl);
-int mixer_ctl_get_enum_string(struct mixer_ctl *ctl, unsigned int enum_id,
-                              char *string, unsigned int size);
+const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl,
+                                      unsigned int enum_id);
 
 /* Set and get mixer controls */
 int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id);
