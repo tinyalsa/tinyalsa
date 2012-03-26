@@ -10,6 +10,15 @@ LOCAL_PRELINK_MODULE := false
 
 include $(BUILD_SHARED_LIBRARY)
 
+ifeq ($(HOST_OS), linux)
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES:= external/tinyalsa/include
+LOCAL_SRC_FILES:= mixer.c pcm.c
+LOCAL_MODULE := libtinyalsa
+LOCAL_STATIC_LIBRARIES:= libcutils libutils
+include $(BUILD_HOST_STATIC_LIBRARY)
+endif
+
 include $(CLEAR_VARS)
 LOCAL_C_INCLUDES:= external/tinyalsa/include
 LOCAL_SRC_FILES:= tinyplay.c
