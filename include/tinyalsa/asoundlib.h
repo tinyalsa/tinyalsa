@@ -45,6 +45,15 @@ struct pcm;
 #define PCM_IN         0x10000000
 #define PCM_MMAP       0x00000001
 #define PCM_NOIRQ      0x00000002
+#define PCM_NORESTART  0x00000004 /* PCM_NORESTART - when set, calls to
+                                   * pcm_write for a playback stream will not
+                                   * attempt to restart the stream in the case
+                                   * of an underflow, but will return -EPIPE
+                                   * instead.  After the first -EPIPE error, the
+                                   * stream is considered to be stopped, and a
+                                   * second call to pcm_write will attempt to
+                                   * restart the stream.
+                                   */
 
 /* PCM runtime states */
 #define	PCM_STATE_OPEN		0
