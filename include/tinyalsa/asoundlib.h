@@ -159,6 +159,9 @@ int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
 int pcm_start(struct pcm *pcm);
 int pcm_stop(struct pcm *pcm);
 
+/* Interrupt driven API */
+int pcm_wait(struct pcm *pcm, int timeout);
+
 
 /*
  * MIXER API
