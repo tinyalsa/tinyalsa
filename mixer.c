@@ -353,8 +353,6 @@ int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
 
 int mixer_ctl_get_range_min(struct mixer_ctl *ctl)
 {
-    int ret;
-
     if (!ctl || (ctl->info->type != SNDRV_CTL_ELEM_TYPE_INTEGER))
         return -EINVAL;
 
@@ -363,8 +361,6 @@ int mixer_ctl_get_range_min(struct mixer_ctl *ctl)
 
 int mixer_ctl_get_range_max(struct mixer_ctl *ctl)
 {
-    int ret;
-
     if (!ctl || (ctl->info->type != SNDRV_CTL_ELEM_TYPE_INTEGER))
         return -EINVAL;
 
@@ -382,8 +378,6 @@ unsigned int mixer_ctl_get_num_enums(struct mixer_ctl *ctl)
 const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl,
                                       unsigned int enum_id)
 {
-    int ret;
-
     if (!ctl || (ctl->info->type != SNDRV_CTL_ELEM_TYPE_ENUMERATED) ||
         (enum_id >= ctl->info->value.enumerated.items))
         return NULL;
