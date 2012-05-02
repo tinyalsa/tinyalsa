@@ -189,6 +189,10 @@ static unsigned int pcm_format_to_alsa(enum pcm_format format)
     switch (format) {
     case PCM_FORMAT_S32_LE:
         return SNDRV_PCM_FORMAT_S32_LE;
+    case PCM_FORMAT_S8:
+        return SNDRV_PCM_FORMAT_S8;
+    case PCM_FORMAT_S24_LE:
+        return SNDRV_PCM_FORMAT_S24_LE;
     default:
     case PCM_FORMAT_S16_LE:
         return SNDRV_PCM_FORMAT_S16_LE;
