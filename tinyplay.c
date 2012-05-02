@@ -36,22 +36,24 @@
 #define ID_FMT  0x20746d66
 #define ID_DATA 0x61746164
 
-#define FORMAT_PCM 1
-
-struct wav_header {
+struct riff_wave_header {
     uint32_t riff_id;
     uint32_t riff_sz;
-    uint32_t riff_fmt;
-    uint32_t fmt_id;
-    uint32_t fmt_sz;
+    uint32_t wave_id;
+};
+
+struct chunk_header {
+    uint32_t id;
+    uint32_t sz;
+};
+
+struct chunk_fmt {
     uint16_t audio_format;
     uint16_t num_channels;
     uint32_t sample_rate;
     uint32_t byte_rate;
     uint16_t block_align;
     uint16_t bits_per_sample;
-    uint32_t data_id;
-    uint32_t data_sz;
 };
 
 void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned int channels,
@@ -61,11 +63,15 @@ void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned in
 int main(int argc, char **argv)
 {
     FILE *file;
-    struct wav_header header;
+    struct riff_wave_header riff_wave_header;
+    struct chunk_header chunk_header;
+    struct chunk_fmt chunk_fmt;
     unsigned int device = 0;
     unsigned int card = 0;
     unsigned int period_size = 1024;
     unsigned int period_count = 4;
+    char *filename;
+    int more_chunks = 1;
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s file.wav [-D card] [-d device] [-p period_size]"
@@ -73,11 +79,40 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    file = fopen(argv[1], "rb");
+    filename = argv[1];
+    file = fopen(filename, "rb");
     if (!file) {
-        fprintf(stderr, "Unable to open file '%s'\n", argv[1]);
+        fprintf(stderr, "Unable to open file '%s'\n", filename);
         return 1;
     }
+
+    fread(&riff_wave_header, sizeof(riff_wave_header), 1, file);
+    if ((riff_wave_header.riff_id != ID_RIFF) ||
+        (riff_wave_header.wave_id != ID_WAVE)) {
+        fprintf(stderr, "Error: '%s' is not a riff/wave file\n", filename);
+        fclose(file);
+        return 1;
+    }
+
+    do {
+        fread(&chunk_header, sizeof(chunk_header), 1, file);
+
+        switch (chunk_header.id) {
+        case ID_FMT:
+            fread(&chunk_fmt, sizeof(chunk_fmt), 1, file);
+            /* If the format header is larger, skip the rest */
+            if (chunk_header.sz > sizeof(chunk_fmt))
+                fseek(file, chunk_header.sz - sizeof(chunk_fmt), SEEK_CUR);
+            break;
+        case ID_DATA:
+            /* Stop looking for chunks */
+            more_chunks = 0;
+            break;
+        default:
+            /* Unknown chunk, skip bytes */
+            fseek(file, chunk_header.sz, SEEK_CUR);
+        }
+    } while (more_chunks);
 
     /* parse command line arguments */
     argv += 2;
@@ -106,20 +141,8 @@ int main(int argc, char **argv)
             argv++;
     }
 
-    fread(&header, sizeof(struct wav_header), 1, file);
-
-    if ((header.riff_id != ID_RIFF) ||
-        (header.riff_fmt != ID_WAVE) ||
-        (header.fmt_id != ID_FMT) ||
-        (header.audio_format != FORMAT_PCM) ||
-        (header.fmt_sz != 16)) {
-        fprintf(stderr, "Error: '%s' is not a PCM riff/wave file\n", argv[1]);
-        fclose(file);
-        return 1;
-    }
-
-    play_sample(file, card, device, header.num_channels, header.sample_rate,
-                header.bits_per_sample, period_size, period_count);
+    play_sample(file, card, device, chunk_fmt.num_channels, chunk_fmt.sample_rate,
+                chunk_fmt.bits_per_sample, period_size, period_count);
 
     fclose(file);
 
