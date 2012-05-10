@@ -405,7 +405,10 @@ int pcm_read(struct pcm *pcm, void *data, unsigned int count)
 
     for (;;) {
         if (!pcm->running) {
-            pcm_start(pcm);
+            if (pcm_start(pcm) < 0) {
+                fprintf(stderr, "start error");
+                return -errno;
+            }
         }
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_READI_FRAMES, &x)) {
             pcm->running = 0;
