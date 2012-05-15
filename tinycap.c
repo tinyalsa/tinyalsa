@@ -136,9 +136,9 @@ int main(int argc, char **argv)
     header.audio_format = FORMAT_PCM;
     header.num_channels = channels;
     header.sample_rate = rate;
+    header.bits_per_sample = bits;
     header.byte_rate = (header.bits_per_sample / 8) * channels * rate;
     header.block_align = channels * (header.bits_per_sample / 8);
-    header.bits_per_sample = bits;
     header.data_id = ID_DATA;
 
     /* leave enough room for header */
