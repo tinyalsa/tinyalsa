@@ -34,6 +34,8 @@
 #include <errno.h>
 #include <ctype.h>
 
+#include <sys/ioctl.h>
+
 #include <linux/ioctl.h>
 #define __force
 #define __bitwise
