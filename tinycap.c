@@ -153,6 +153,7 @@ int main(int argc, char **argv)
 
     /* write header now all information is known */
     header.data_sz = frames * header.block_align;
+    header.riff_sz = header.data_sz + sizeof(header) - 8;
     fseek(file, 0, SEEK_SET);
     fwrite(&header, sizeof(struct wav_header), 1, file);
 
