@@ -538,10 +538,13 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     sparams.period_step = 1;
     sparams.avail_min = 1;
 
-    if (!config->start_threshold)
-        pcm->config.start_threshold = sparams.start_threshold =
-            config->period_count * config->period_size / 2;
-    else
+    if (!config->start_threshold) {
+        if (pcm->flags & PCM_IN)
+            pcm->config.start_threshold = sparams.start_threshold = 1;
+        else
+            pcm->config.start_threshold = sparams.start_threshold =
+                config->period_count * config->period_size / 2;
+    } else
         sparams.start_threshold = config->start_threshold;
 
     /* pick a high stop threshold - todo: does this need further tuning */
