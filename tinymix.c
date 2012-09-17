@@ -35,7 +35,7 @@ static void tinymix_list_controls(struct mixer *mixer);
 static void tinymix_detail_control(struct mixer *mixer, unsigned int id,
                                    int print_all);
 static void tinymix_set_value(struct mixer *mixer, unsigned int id,
-                              char *value);
+                              char **values, unsigned int num_values);
 static void tinymix_print_enum(struct mixer_ctl *ctl, int print_all);
 
 int main(int argc, char **argv)
@@ -64,8 +64,8 @@ int main(int argc, char **argv)
         tinymix_list_controls(mixer);
     else if (argc == 2)
         tinymix_detail_control(mixer, atoi(argv[1]), 1);
-    else if (argc == 3)
-        tinymix_set_value(mixer, atoi(argv[1]), argv[2]);
+    else if (argc >= 3)
+        tinymix_set_value(mixer, atoi(argv[1]), &argv[2], argc - 2);
     else
         printf("Usage: tinymix [-D card] [control id] [value to set]\n");
 
@@ -169,29 +169,50 @@ static void tinymix_detail_control(struct mixer *mixer, unsigned int id,
 }
 
 static void tinymix_set_value(struct mixer *mixer, unsigned int id,
-                              char *string)
+                              char **values, unsigned int num_values)
 {
     struct mixer_ctl *ctl;
     enum mixer_ctl_type type;
-    unsigned int num_values;
+    unsigned int num_ctl_values;
     unsigned int i;
 
     ctl = mixer_get_ctl(mixer, id);
     type = mixer_ctl_get_type(ctl);
-    num_values = mixer_ctl_get_num_values(ctl);
+    num_ctl_values = mixer_ctl_get_num_values(ctl);
 
-    if (isdigit(string[0])) {
-        int value = atoi(string);
+    if (isdigit(values[0][0])) {
+        if (num_values == 1) {
+            /* Set all values the same */
+            int value = atoi(values[0]);
 
-        for (i = 0; i < num_values; i++) {
-            if (mixer_ctl_set_value(ctl, i, value)) {
-                fprintf(stderr, "Error: invalid value\n");
+            for (i = 0; i < num_ctl_values; i++) {
+                if (mixer_ctl_set_value(ctl, i, value)) {
+                    fprintf(stderr, "Error: invalid value\n");
+                    return;
+                }
+            }
+        } else {
+            /* Set multiple values */
+            if (num_values > num_ctl_values) {
+                fprintf(stderr,
+                        "Error: %d values given, but control only takes %d\n",
+                        num_values, num_ctl_values);
                 return;
+            }
+            for (i = 0; i < num_values; i++) {
+                if (mixer_ctl_set_value(ctl, i, atoi(values[i]))) {
+                    fprintf(stderr, "Error: invalid value for index %d\n", i);
+                    return;
+                }
             }
         }
     } else {
         if (type == MIXER_CTL_TYPE_ENUM) {
-            if (mixer_ctl_set_enum_by_string(ctl, string))
+            if (num_values != 1) {
+                fprintf(stderr, "Enclose strings in quotes and try again\n");
+                return;
+            }
+            if (mixer_ctl_set_enum_by_string(ctl, values[0]))
                 fprintf(stderr, "Error: invalid enum value\n");
         } else {
             fprintf(stderr, "Error: only enum types can be set with strings\n");
