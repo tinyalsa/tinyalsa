@@ -200,6 +200,9 @@ int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string);
 int mixer_ctl_get_range_min(struct mixer_ctl *ctl);
 int mixer_ctl_get_range_max(struct mixer_ctl *ctl);
 
+/* Interrupt driven API */
+int pcm_wait(struct pcm *pcm, int timeout);
+
 #if defined(__cplusplus)
 }  /* extern "C" */
 #endif
