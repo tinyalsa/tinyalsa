@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <signal.h>
+#include <string.h>
 
 #define ID_RIFF 0x46464952
 #define ID_WAVE 0x45564157
