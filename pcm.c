@@ -93,14 +93,6 @@ static void param_set_min(struct snd_pcm_hw_params *p, int n, unsigned int val)
     }
 }
 
-static void param_set_max(struct snd_pcm_hw_params *p, int n, unsigned int val)
-{
-    if (param_is_interval(n)) {
-        struct snd_interval *i = param_to_interval(p, n);
-        i->max = val;
-    }
-}
-
 static void param_set_int(struct snd_pcm_hw_params *p, int n, unsigned int val)
 {
     if (param_is_interval(n)) {
@@ -190,6 +182,10 @@ static unsigned int pcm_format_to_alsa(enum pcm_format format)
     switch (format) {
     case PCM_FORMAT_S32_LE:
         return SNDRV_PCM_FORMAT_S32_LE;
+    case PCM_FORMAT_S8:
+        return SNDRV_PCM_FORMAT_S8;
+    case PCM_FORMAT_S24_LE:
+        return SNDRV_PCM_FORMAT_S24_LE;
     default:
     case PCM_FORMAT_S16_LE:
         return SNDRV_PCM_FORMAT_S16_LE;
@@ -741,7 +737,6 @@ int pcm_set_avail_min(struct pcm *pcm, int avail_min)
 int pcm_wait(struct pcm *pcm, int timeout)
 {
     struct pollfd pfd;
-    unsigned short revents = 0;
     int err;
 
     pfd.fd = pcm->fd;
@@ -864,6 +859,5 @@ int pcm_mmap_write(struct pcm *pcm, const void *buffer, unsigned int bytes)
         count -= frames;
     }
 
-_end:
     return 0;
 }

@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <signal.h>
+#include <string.h>
 
 #define ID_RIFF 0x46464952
 #define ID_WAVE 0x45564157
@@ -153,6 +154,7 @@ int main(int argc, char **argv)
 
     /* write header now all information is known */
     header.data_sz = frames * header.block_align;
+    header.riff_sz = header.data_sz + sizeof(header) - 8;
     fseek(file, 0, SEEK_SET);
     fwrite(&header, sizeof(struct wav_header), 1, file);
 

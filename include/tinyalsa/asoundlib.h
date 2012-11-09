@@ -30,6 +30,7 @@
 #define ASOUNDLIB_H
 
 #include <sys/time.h>
+#include <stddef.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -70,6 +71,8 @@ struct pcm;
 enum pcm_format {
     PCM_FORMAT_S16_LE = 0,
     PCM_FORMAT_S32_LE,
+    PCM_FORMAT_S8,
+    PCM_FORMAT_S24_LE,
 
     PCM_FORMAT_MAX,
 };
@@ -163,6 +166,9 @@ int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
 int pcm_start(struct pcm *pcm);
 int pcm_stop(struct pcm *pcm);
 
+/* Interrupt driven API */
+int pcm_wait(struct pcm *pcm, int timeout);
+
 /* Change avail_min after the stream has been opened with no need to stop the stream.
  * Only accepted if opened with PCM_MMAP and PCM_NOIRQ flags
  */
@@ -198,7 +204,9 @@ int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id);
 int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent);
 
 int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id);
+int mixer_ctl_get_bytes(struct mixer_ctl *ctl, void *data, size_t len);
 int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value);
+int mixer_ctl_set_bytes(struct mixer_ctl *ctl, const void *data, size_t len);
 int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string);
 
 /* Determe range of integer mixer controls */

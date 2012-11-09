@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+#include <signal.h>
 
 #define ID_RIFF 0x46464952
 #define ID_WAVE 0x45564157
@@ -56,9 +58,18 @@ struct chunk_fmt {
     uint16_t bits_per_sample;
 };
 
+static int close = 0;
+
 void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned int channels,
                  unsigned int rate, unsigned int bits, unsigned int period_size,
                  unsigned int period_count);
+
+void stream_close(int sig)
+{
+    /* allow the stream to be closed gracefully */
+    signal(sig, SIG_IGN);
+    close = 1;
+}
 
 int main(int argc, char **argv)
 {
@@ -189,6 +200,9 @@ void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned in
 
     printf("Playing sample: %u ch, %u hz, %u bit\n", channels, rate, bits);
 
+    /* catch ctrl-c to shutdown cleanly */
+    signal(SIGINT, stream_close);
+
     do {
         num_read = fread(buffer, 1, size, file);
         if (num_read > 0) {
@@ -197,7 +211,7 @@ void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned in
                 break;
             }
         }
-    } while (num_read > 0);
+    } while (!close && num_read > 0);
 
     free(buffer);
     pcm_close(pcm);

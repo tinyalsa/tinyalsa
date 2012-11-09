@@ -317,6 +317,27 @@ int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id)
     return 0;
 }
 
+int mixer_ctl_get_bytes(struct mixer_ctl *ctl, void *data, size_t len)
+{
+    struct snd_ctl_elem_value ev;
+    int ret;
+
+    if (!ctl || (len > ctl->info->count) || !len || !data ||
+        (ctl->info->type != SNDRV_CTL_ELEM_TYPE_BYTES))
+        return -EINVAL;
+
+    memset(&ev, 0, sizeof(ev));
+    ev.id.numid = ctl->info->id.numid;
+
+    ret = ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_READ, &ev);
+    if (ret < 0)
+        return ret;
+
+    memcpy(data, ev.value.bytes.data, len);
+
+    return 0;
+}
+
 int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
 {
     struct snd_ctl_elem_value ev;
@@ -351,10 +372,24 @@ int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
     return ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
 }
 
+int mixer_ctl_set_bytes(struct mixer_ctl *ctl, const void *data, size_t len)
+{
+    struct snd_ctl_elem_value ev;
+
+    if (!ctl || (len > ctl->info->count) || !len || !data ||
+        (ctl->info->type != SNDRV_CTL_ELEM_TYPE_BYTES))
+        return -EINVAL;
+
+    memset(&ev, 0, sizeof(ev));
+    ev.id.numid = ctl->info->id.numid;
+
+    memcpy(ev.value.bytes.data, data, len);
+
+    return ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
+}
+
 int mixer_ctl_get_range_min(struct mixer_ctl *ctl)
 {
-    int ret;
-
     if (!ctl || (ctl->info->type != SNDRV_CTL_ELEM_TYPE_INTEGER))
         return -EINVAL;
 
@@ -363,8 +398,6 @@ int mixer_ctl_get_range_min(struct mixer_ctl *ctl)
 
 int mixer_ctl_get_range_max(struct mixer_ctl *ctl)
 {
-    int ret;
-
     if (!ctl || (ctl->info->type != SNDRV_CTL_ELEM_TYPE_INTEGER))
         return -EINVAL;
 
@@ -382,8 +415,6 @@ unsigned int mixer_ctl_get_num_enums(struct mixer_ctl *ctl)
 const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl,
                                       unsigned int enum_id)
 {
-    int ret;
-
     if (!ctl || (ctl->info->type != SNDRV_CTL_ELEM_TYPE_ENUMERATED) ||
         (enum_id >= ctl->info->value.enumerated.items))
         return NULL;
