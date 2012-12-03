@@ -4,7 +4,7 @@ OBJECTS = mixer.o pcm.o
 LIB = libtinyalsa.so
 CROSS_COMPILE =
 
-all: $(LIB) tinyplay tinycap tinymix
+all: $(LIB) tinyplay tinycap tinymix tinypcminfo
 
 tinyplay: $(LIB) tinyplay.o
 	$(CROSS_COMPILE)gcc tinyplay.o -L. -ltinyalsa -o tinyplay
@@ -14,6 +14,9 @@ tinycap: $(LIB) tinycap.o
 
 tinymix: $(LIB) tinymix.o
 	$(CROSS_COMPILE)gcc tinymix.o -L. -ltinyalsa -o tinymix
+
+tinypcminfo: $(LIB) tinypcminfo.o
+	$(CROSS_COMPILE)gcc tinypcminfo.o -L. -ltinyalsa -o tinypcminfo
 
 $(LIB): $(OBJECTS)
 	$(CROSS_COMPILE)gcc -shared $(OBJECTS) -o $(LIB)
