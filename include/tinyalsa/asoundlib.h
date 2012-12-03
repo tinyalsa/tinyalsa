@@ -79,6 +79,10 @@ enum pcm_format {
 
 /* Configuration for a stream */
 struct pcm_config {
+    unsigned int channels_min;
+    unsigned int channels_max;
+    unsigned int rate_max;
+    unsigned int rate_min;
     unsigned int channels;
     unsigned int rate;
     unsigned int period_size;
