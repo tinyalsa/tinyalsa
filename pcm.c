@@ -93,6 +93,24 @@ static void param_set_min(struct snd_pcm_hw_params *p, int n, unsigned int val)
     }
 }
 
+static unsigned int param_get_min(struct snd_pcm_hw_params *p, int n)
+{
+    if (param_is_interval(n)) {
+        struct snd_interval *i = param_to_interval(p, n);
+        return i->min;
+    }
+    return 0;
+}
+
+static unsigned int param_get_max(struct snd_pcm_hw_params *p, int n)
+{
+    if (param_is_interval(n)) {
+        struct snd_interval *i = param_to_interval(p, n);
+        return i->max;
+    }
+    return 0;
+}
+
 static void param_set_int(struct snd_pcm_hw_params *p, int n, unsigned int val)
 {
     if (param_is_interval(n)) {
@@ -130,6 +148,9 @@ static void param_init(struct snd_pcm_hw_params *p)
             i->min = 0;
             i->max = ~0;
     }
+    p->rmask = ~0U;
+    p->cmask = 0;
+    p->info = ~0U;
 }
 
 #define PCM_ERROR_MAX 128
@@ -432,6 +453,129 @@ int pcm_read(struct pcm *pcm, void *data, unsigned int count)
 static struct pcm bad_pcm = {
     .fd = -1,
 };
+
+struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
+                                  unsigned int flags)
+{
+    struct snd_pcm_hw_params *params;
+    char fn[256];
+    int fd;
+
+    snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,
+             flags & PCM_IN ? 'c' : 'p');
+
+    fd = open(fn, O_RDWR);
+    if (fd < 0) {
+        fprintf(stderr, "cannot open device '%s'\n", fn);
+        goto err_open;
+    }
+
+    params = calloc(1, sizeof(struct snd_pcm_hw_params));
+    if (!params)
+        goto err_calloc;
+
+    param_init(params);
+    if (ioctl(fd, SNDRV_PCM_IOCTL_HW_REFINE, params)) {
+        fprintf(stderr, "SNDRV_PCM_IOCTL_HW_REFINE error (%d)\n", errno);
+        goto err_hw_refine;
+    }
+
+    close(fd);
+
+    return (struct pcm_params *)params;
+
+err_hw_refine:
+    free(params);
+err_calloc:
+    close(fd);
+err_open:
+    return NULL;
+}
+
+void pcm_params_free(struct pcm_params *pcm_params)
+{
+    struct snd_pcm_hw_params *params = (struct snd_pcm_hw_params *)pcm_params;
+
+    if (params)
+        free(params);
+}
+
+static int pcm_param_to_alsa(enum pcm_param param)
+{
+    switch (param) {
+    case PCM_PARAM_SAMPLE_BITS:
+        return SNDRV_PCM_HW_PARAM_SAMPLE_BITS;
+        break;
+    case PCM_PARAM_FRAME_BITS:
+        return SNDRV_PCM_HW_PARAM_FRAME_BITS;
+        break;
+    case PCM_PARAM_CHANNELS:
+        return SNDRV_PCM_HW_PARAM_CHANNELS;
+        break;
+    case PCM_PARAM_RATE:
+        return SNDRV_PCM_HW_PARAM_RATE;
+        break;
+    case PCM_PARAM_PERIOD_TIME:
+        return SNDRV_PCM_HW_PARAM_PERIOD_TIME;
+        break;
+    case PCM_PARAM_PERIOD_SIZE:
+        return SNDRV_PCM_HW_PARAM_PERIOD_SIZE;
+        break;
+    case PCM_PARAM_PERIOD_BYTES:
+        return SNDRV_PCM_HW_PARAM_PERIOD_BYTES;
+        break;
+    case PCM_PARAM_PERIODS:
+        return SNDRV_PCM_HW_PARAM_PERIODS;
+        break;
+    case PCM_PARAM_BUFFER_TIME:
+        return SNDRV_PCM_HW_PARAM_BUFFER_TIME;
+        break;
+    case PCM_PARAM_BUFFER_SIZE:
+        return SNDRV_PCM_HW_PARAM_BUFFER_SIZE;
+        break;
+    case PCM_PARAM_BUFFER_BYTES:
+        return SNDRV_PCM_HW_PARAM_BUFFER_BYTES;
+        break;
+    case PCM_PARAM_TICK_TIME:
+        return SNDRV_PCM_HW_PARAM_TICK_TIME;
+        break;
+
+    default:
+        return -1;
+    }
+}
+
+unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
+                                enum pcm_param param)
+{
+    struct snd_pcm_hw_params *params = (struct snd_pcm_hw_params *)pcm_params;
+    int p;
+
+    if (!params)
+        return 0;
+
+    p = pcm_param_to_alsa(param);
+    if (p < 0)
+        return 0;
+
+    return param_get_min(params, p);
+}
+
+unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
+                                enum pcm_param param)
+{
+    struct snd_pcm_hw_params *params = (struct snd_pcm_hw_params *)pcm_params;
+    int p;
+
+    if (!params)
+        return 0;
+
+    p = pcm_param_to_alsa(param);
+    if (p < 0)
+        return 0;
+
+    return param_get_max(params, p);
+}
 
 int pcm_close(struct pcm *pcm)
 {

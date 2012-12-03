@@ -104,6 +104,23 @@ struct pcm_config {
     int avail_min;
 };
 
+/* PCM parameters */
+enum pcm_param
+{
+    PCM_PARAM_SAMPLE_BITS,
+    PCM_PARAM_FRAME_BITS,
+    PCM_PARAM_CHANNELS,
+    PCM_PARAM_RATE,
+    PCM_PARAM_PERIOD_TIME,
+    PCM_PARAM_PERIOD_SIZE,
+    PCM_PARAM_PERIOD_BYTES,
+    PCM_PARAM_PERIODS,
+    PCM_PARAM_BUFFER_TIME,
+    PCM_PARAM_BUFFER_SIZE,
+    PCM_PARAM_BUFFER_BYTES,
+    PCM_PARAM_TICK_TIME,
+};
+
 /* Mixer control types */
 enum mixer_ctl_type {
     MIXER_CTL_TYPE_BOOL,
@@ -122,6 +139,15 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
                      unsigned int flags, struct pcm_config *config);
 int pcm_close(struct pcm *pcm);
 int pcm_is_ready(struct pcm *pcm);
+
+/* Obtain the parameters for a PCM */
+struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
+                                  unsigned int flags);
+void pcm_params_free(struct pcm_params *pcm_params);
+unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
+                                enum pcm_param param);
+unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
+                                enum pcm_param param);
 
 /* Set and get config */
 int pcm_get_config(struct pcm *pcm, struct pcm_config *config);
