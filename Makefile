@@ -26,4 +26,4 @@ $(LIB): $(OBJECTS)
 
 clean:
 	-rm $(LIB) $(OBJECTS) tinyplay.o tinyplay tinycap.o tinycap \
-	tinymix.o tinymix
+	tinymix.o tinymix tinypcminfo.o tinypcminfo
