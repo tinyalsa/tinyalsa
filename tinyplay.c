@@ -160,6 +160,54 @@ int main(int argc, char **argv)
     return 0;
 }
 
+int check_param(struct pcm_params *params, unsigned int param, unsigned int value,
+                 char *param_name, char *param_unit)
+{
+    unsigned int min;
+    unsigned int max;
+    int is_within_bounds = 1;
+
+    min = pcm_params_get_min(params, param);
+    if (value < min) {
+        fprintf(stderr, "%s is %u%s, device only supports >= %u%s\n", param_name, value,
+                param_unit, min, param_unit);
+        is_within_bounds = 0;
+    }
+
+    max = pcm_params_get_max(params, param);
+    if (value > max) {
+        fprintf(stderr, "%s is %u%s, device only supports <= %u%s\n", param_name, value,
+                param_unit, max, param_unit);
+        is_within_bounds = 0;
+    }
+
+    return is_within_bounds;
+}
+
+int sample_is_playable(unsigned int card, unsigned int device, unsigned int channels,
+                        unsigned int rate, unsigned int bits, unsigned int period_size,
+                        unsigned int period_count)
+{
+    struct pcm_params *params;
+    int can_play;
+
+    params = pcm_params_get(card, device, PCM_OUT);
+    if (params == NULL) {
+        fprintf(stderr, "Unable to open PCM device %u.\n", device);
+        return 0;
+    }
+
+    can_play = check_param(params, PCM_PARAM_RATE, rate, "Sample rate", "Hz");
+    can_play &= check_param(params, PCM_PARAM_CHANNELS, channels, "Sample", " channels");
+    can_play &= check_param(params, PCM_PARAM_SAMPLE_BITS, bits, "Bitrate", " bits");
+    can_play &= check_param(params, PCM_PARAM_PERIOD_SIZE, period_size, "Period size", "Hz");
+    can_play &= check_param(params, PCM_PARAM_PERIODS, period_count, "Period count", "Hz");
+
+    pcm_params_free(params);
+
+    return can_play;
+}
+
 void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned int channels,
                  unsigned int rate, unsigned int bits, unsigned int period_size,
                  unsigned int period_count)
@@ -181,6 +229,10 @@ void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned in
     config.start_threshold = 0;
     config.stop_threshold = 0;
     config.silence_threshold = 0;
+
+    if (!sample_is_playable(card, device, channels, rate, bits, period_size, period_count)) {
+        return;
+    }
 
     pcm = pcm_open(card, device, PCM_OUT, &config);
     if (!pcm || !pcm_is_ready(pcm)) {
