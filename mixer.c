@@ -264,7 +264,7 @@ static int int_to_percent(struct snd_ctl_elem_info *ei, int value)
     if (range == 0)
         return 0;
 
-    return ((value - ei->value.integer.min) / range) * 100;
+    return (int) ((double) ((value - ei->value.integer.min) * 100) / (double) range);
 }
 
 int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id)
