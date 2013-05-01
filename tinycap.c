@@ -193,7 +193,7 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
         return 0;
     }
 
-    size = pcm_get_buffer_size(pcm);
+    size = pcm_frames_to_bytes(pcm, pcm_get_buffer_size(pcm));
     buffer = malloc(size);
     if (!buffer) {
         fprintf(stderr, "Unable to allocate %d bytes\n", size);
