@@ -194,14 +194,31 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
     num_ctl_values = mixer_ctl_get_num_values(ctl);
 
     if (isdigit(values[0][0])) {
+        char* pourcentage;
+        pourcentage = strstr (values[0],"%");                                       
+                                       
         if (num_values == 1) {
             /* Set all values the same */
             int value = atoi(values[0]);
 
-            for (i = 0; i < num_ctl_values; i++) {
-                if (mixer_ctl_set_value(ctl, i, value)) {
-                    fprintf(stderr, "Error: invalid value\n");
-                    return;
+            if (pourcentage != NULL) {
+                for (i = 0; i < num_ctl_values; i++) {
+                    if (mixer_ctl_set_percent(ctl, i, value)) {
+                        fprintf(stderr, "Error: invalid value\n");
+                        return;
+                    }
+                }
+            } else {
+                if((value <= mixer_ctl_get_range_max(ctl)) && (value >= mixer_ctl_get_range_min(ctl))) {
+                    for (i = 0; i < num_ctl_values; i++) {
+                        if (mixer_ctl_set_value(ctl, i, value)) {
+                            fprintf(stderr, "Error: invalid value\n");
+                            return;
+                        }
+                    }
+                } else {
+                    fprintf(stderr, "Error: value out of range\n");
+                    return; 
                 }
             }
         } else {
@@ -213,9 +230,21 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
                 return;
             }
             for (i = 0; i < num_values; i++) {
-                if (mixer_ctl_set_value(ctl, i, atoi(values[i]))) {
-                    fprintf(stderr, "Error: invalid value for index %d\n", i);
-                    return;
+                if (pourcentage != NULL) {
+                    if (mixer_ctl_set_percent(ctl, i, atoi(values[i]))) {
+                        fprintf(stderr, "Error: invalid value for index %d\n", i);
+                        return;
+                    }
+                } else {
+                    if((atoi(values[i]) <= mixer_ctl_get_range_max(ctl)) && (atoi(values[i]) >= mixer_ctl_get_range_min(ctl))) {
+                        if (mixer_ctl_set_value(ctl, i, atoi(values[i]))) {
+                            fprintf(stderr, "Error: invalid value for index %d\n", i);
+                            return;
+                        }
+                    } else {
+                        fprintf(stderr, "Error: value out of range\n");
+                        return; 
+                    } 
                 }
             }
         }
