@@ -404,6 +404,10 @@ int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
         ev.value.enumerated.item[id] = value;
         break;
 
+    case SNDRV_CTL_ELEM_TYPE_BYTES:
+        ev.value.bytes.data[id] = value;
+        break;
+
     default:
         return -EINVAL;
     }
