@@ -215,6 +215,9 @@ static unsigned int pcm_format_to_alsa(enum pcm_format format)
 static unsigned int pcm_format_to_bits(enum pcm_format format)
 {
     switch (format) {
+    case PCM_FORMAT_S8:
+        return 8;
+    case PCM_FORMAT_S24_LE:
     case PCM_FORMAT_S32_LE:
         return 32;
     default:
