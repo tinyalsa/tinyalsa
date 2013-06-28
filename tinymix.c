@@ -61,6 +61,8 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    printf("Mixer name: '%s'\n", mixer_get_name(mixer));
+
     if (argc == 1)
         tinymix_list_controls(mixer);
     else if (argc == 2)
