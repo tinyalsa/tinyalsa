@@ -201,6 +201,9 @@ struct mixer_ctl;
 struct mixer *mixer_open(unsigned int card);
 void mixer_close(struct mixer *mixer);
 
+/* Get info about a mixer */
+const char *mixer_get_name(struct mixer *mixer);
+
 /* Obtain mixer controls */
 unsigned int mixer_get_num_ctls(struct mixer *mixer);
 struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id);

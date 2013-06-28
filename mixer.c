@@ -52,7 +52,8 @@ struct mixer_ctl {
 
 struct mixer {
     int fd;
-    struct snd_ctl_elem_info *info;
+    struct snd_ctl_card_info card_info;
+    struct snd_ctl_elem_info *elem_info;
     struct mixer_ctl *ctl;
     unsigned int count;
 };
@@ -79,8 +80,8 @@ void mixer_close(struct mixer *mixer)
         free(mixer->ctl);
     }
 
-    if (mixer->info)
-        free(mixer->info);
+    if (mixer->elem_info)
+        free(mixer->elem_info);
 
     free(mixer);
 
@@ -111,8 +112,11 @@ struct mixer *mixer_open(unsigned int card)
         goto fail;
 
     mixer->ctl = calloc(elist.count, sizeof(struct mixer_ctl));
-    mixer->info = calloc(elist.count, sizeof(struct snd_ctl_elem_info));
-    if (!mixer->ctl || !mixer->info)
+    mixer->elem_info = calloc(elist.count, sizeof(struct snd_ctl_elem_info));
+    if (!mixer->ctl || !mixer->elem_info)
+        goto fail;
+
+    if (ioctl(fd, SNDRV_CTL_IOCTL_CARD_INFO, &mixer->card_info) < 0)
         goto fail;
 
     eid = calloc(elist.count, sizeof(struct snd_ctl_elem_id));
@@ -127,7 +131,7 @@ struct mixer *mixer_open(unsigned int card)
         goto fail;
 
     for (n = 0; n < mixer->count; n++) {
-        struct snd_ctl_elem_info *ei = mixer->info + n;
+        struct snd_ctl_elem_info *ei = mixer->elem_info + n;
         ei->id.numid = eid[n].numid;
         if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_INFO, ei) < 0)
             goto fail;
@@ -165,6 +169,11 @@ fail:
     return 0;
 }
 
+const char *mixer_get_name(struct mixer *mixer)
+{
+    return (const char *)mixer->card_info.name;
+}
+
 unsigned int mixer_get_num_ctls(struct mixer *mixer)
 {
     if (!mixer)
@@ -189,7 +198,7 @@ struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name)
         return NULL;
 
     for (n = 0; n < mixer->count; n++)
-        if (!strcmp(name, (char*) mixer->info[n].id.name))
+        if (!strcmp(name, (char*) mixer->elem_info[n].id.name))
             return mixer->ctl + n;
 
     return NULL;
