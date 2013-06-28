@@ -215,6 +215,12 @@ unsigned int mixer_ctl_get_num_enums(struct mixer_ctl *ctl);
 const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl,
                                       unsigned int enum_id);
 
+/* Some sound cards update their controls due to external events,
+ * such as HDMI EDID byte data changing when an HDMI cable is
+ * connected. This API allows the count of elements to be updated.
+ */
+void mixer_ctl_update(struct mixer_ctl *ctl);
+
 /* Set and get mixer controls */
 int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id);
 int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent);

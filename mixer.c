@@ -195,6 +195,11 @@ struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name)
     return NULL;
 }
 
+void mixer_ctl_update(struct mixer_ctl *ctl)
+{
+    ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_INFO, ctl->info);
+}
+
 const char *mixer_ctl_get_name(struct mixer_ctl *ctl)
 {
     if (!ctl)
