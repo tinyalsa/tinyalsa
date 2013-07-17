@@ -156,6 +156,13 @@ int pcm_set_config(struct pcm *pcm, struct pcm_config *config);
 /* Returns a human readable reason for the last error */
 const char *pcm_get_error(struct pcm *pcm);
 
+/* Returns the sample size in bits for a PCM format.
+ * As with ALSA formats, this is the storage size for the format, whereas the
+ * format represents the number of significant bits. For example,
+ * PCM_FORMAT_S24_LE uses 32 bits of storage.
+ */
+unsigned int pcm_format_to_bits(enum pcm_format format);
+
 /* Returns the buffer size (int frames) that should be used for pcm_write. */
 unsigned int pcm_get_buffer_size(struct pcm *pcm);
 unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames);

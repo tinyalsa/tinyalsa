@@ -61,16 +61,17 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    printf("Mixer name: '%s'\n", mixer_get_name(mixer));
 
-    if (argc == 1)
+    if (argc == 1) {
+        printf("Mixer name: '%s'\n", mixer_get_name(mixer));
         tinymix_list_controls(mixer);
-    else if (argc == 2)
+    } else if (argc == 2) {
         tinymix_detail_control(mixer, argv[1], 1);
-    else if (argc >= 3)
+    } else if (argc >= 3) {
         tinymix_set_value(mixer, argv[1], &argv[2], argc - 2);
-    else
+    } else {
         printf("Usage: tinymix [-D card] [control id] [value to set]\n");
+    }
 
     mixer_close(mixer);
 

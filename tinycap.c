@@ -60,7 +60,7 @@ int capturing = 1;
 
 unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
                             unsigned int channels, unsigned int rate,
-                            unsigned int bits, unsigned int period_size,
+                            enum pcm_format format, unsigned int period_size,
                             unsigned int period_count);
 
 void sigint_handler(int sig)
@@ -80,6 +80,7 @@ int main(int argc, char **argv)
     unsigned int frames;
     unsigned int period_size = 1024;
     unsigned int period_count = 4;
+    enum pcm_format format;
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s file.wav [-D card] [-d device] [-c channels] "
@@ -137,7 +138,23 @@ int main(int argc, char **argv)
     header.audio_format = FORMAT_PCM;
     header.num_channels = channels;
     header.sample_rate = rate;
-    header.bits_per_sample = bits;
+
+    switch (bits) {
+    case 32:
+        format = PCM_FORMAT_S32_LE;
+        break;
+    case 24:
+        format = PCM_FORMAT_S24_LE;
+        break;
+    case 16:
+        format = PCM_FORMAT_S16_LE;
+        break;
+    default:
+        fprintf(stderr, "%d bits is not supported.\n", bits);
+        return 1;
+    }
+
+    header.bits_per_sample = pcm_format_to_bits(format);
     header.byte_rate = (header.bits_per_sample / 8) * channels * rate;
     header.block_align = channels * (header.bits_per_sample / 8);
     header.data_id = ID_DATA;
@@ -148,7 +165,7 @@ int main(int argc, char **argv)
     /* install signal handler and begin capturing */
     signal(SIGINT, sigint_handler);
     frames = capture_sample(file, card, device, header.num_channels,
-                            header.sample_rate, header.bits_per_sample,
+                            header.sample_rate, format,
                             period_size, period_count);
     printf("Captured %d frames\n", frames);
 
@@ -165,7 +182,7 @@ int main(int argc, char **argv)
 
 unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
                             unsigned int channels, unsigned int rate,
-                            unsigned int bits, unsigned int period_size,
+                            enum pcm_format format, unsigned int period_size,
                             unsigned int period_count)
 {
     struct pcm_config config;
@@ -178,10 +195,7 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
     config.rate = rate;
     config.period_size = period_size;
     config.period_count = period_count;
-    if (bits == 32)
-        config.format = PCM_FORMAT_S32_LE;
-    else if (bits == 16)
-        config.format = PCM_FORMAT_S16_LE;
+    config.format = format;
     config.start_threshold = 0;
     config.stop_threshold = 0;
     config.silence_threshold = 0;
@@ -202,7 +216,8 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
         return 0;
     }
 
-    printf("Capturing sample: %u ch, %u hz, %u bit\n", channels, rate, bits);
+    printf("Capturing sample: %u ch, %u hz, %u bit\n", channels, rate,
+           pcm_format_to_bits(format));
 
     while (capturing && !pcm_read(pcm, buffer, size)) {
         if (fwrite(buffer, 1, size, file) != size) {
@@ -214,6 +229,6 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
 
     free(buffer);
     pcm_close(pcm);
-    return bytes_read / ((bits / 8) * channels);
+    return pcm_bytes_to_frames(pcm, bytes_read);
 }
 
