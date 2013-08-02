@@ -360,6 +360,11 @@ int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count)
         source = ev.value.bytes.data;
         break;
 
+    case SNDRV_CTL_ELEM_TYPE_IEC958:
+        size = sizeof(ev.value.iec958);
+        source = &ev.value.iec958;
+        break;
+
     default:
         return -EINVAL;
     }
@@ -425,6 +430,11 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
     case SNDRV_CTL_ELEM_TYPE_BYTES:
         size = sizeof(ev.value.bytes.data[0]);
         dest = ev.value.bytes.data;
+        break;
+
+    case SNDRV_CTL_ELEM_TYPE_IEC958:
+        size = sizeof(ev.value.iec958);
+        dest = &ev.value.iec958;
         break;
 
     default:
