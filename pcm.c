@@ -719,6 +719,17 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
         goto fail;
     }
 
+#ifdef SNDRV_PCM_IOCTL_TTSTAMP
+    if (pcm->flags & PCM_MONOTONIC) {
+        int arg = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC;
+        rc = ioctl(pcm->fd, SNDRV_PCM_IOCTL_TTSTAMP, &arg);
+        if (rc < 0) {
+            oops(pcm, rc, "cannot set timestamp type");
+            goto fail;
+        }
+    }
+#endif
+
     pcm->underruns = 0;
     return pcm;
 
