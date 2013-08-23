@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <errno.h>
 
 static void tinymix_list_controls(struct mixer *mixer);
 static void tinymix_detail_control(struct mixer *mixer, const char *control,
@@ -197,26 +198,44 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
     num_ctl_values = mixer_ctl_get_num_values(ctl);
 
     if (isdigit(values[0][0])) {
-        if (num_values == 1) {
-            /* Set all values the same */
-            int value = atoi(values[0]);
+        char *endptr = NULL;
+        long value;
+        /* Initialize a function pointer of mixer_ctl_set_... type */
+        int (*mixer_ctl_set)(struct mixer_ctl*, unsigned int, int) = NULL;
+        errno = 0;
 
-            for (i = 0; i < num_ctl_values; i++) {
-                if (mixer_ctl_set_value(ctl, i, value)) {
-                    fprintf(stderr, "Error: invalid value\n");
-                    return;
-                }
-            }
-        } else {
-            /* Set multiple values */
-            if (num_values > num_ctl_values) {
-                fprintf(stderr,
-                        "Error: %d values given, but control only takes %d\n",
-                        num_values, num_ctl_values);
+        if (num_values > num_ctl_values) {
+            fprintf(stderr,
+                    "Error: %d values given, but control only takes %d\n",
+                    num_values, num_ctl_values);
+            return;
+        }
+
+        for (i = 0; i < num_values; i++) {
+            value = strtol(values[i], &endptr, 10);
+
+            if (errno != 0) {
+                perror("strtol");
                 return;
             }
-            for (i = 0; i < num_values; i++) {
-                if (mixer_ctl_set_value(ctl, i, atoi(values[i]))) {
+
+            if (*endptr == '%') {
+                mixer_ctl_set = mixer_ctl_set_percent;
+            } else {
+                mixer_ctl_set = mixer_ctl_set_value;
+            }
+
+            if (num_values == 1) {
+                /* Set all values the same */
+                for (i = 0; i < num_ctl_values; i++) {
+                    if (mixer_ctl_set(ctl, i, (int)value)) {
+                        fprintf(stderr, "Error: invalid value for index %d\n", i);
+                        return;
+                    }
+                }
+            } else {
+                /* Set multiple values */
+                if (mixer_ctl_set(ctl, i, (int)value)) {
                     fprintf(stderr, "Error: invalid value for index %d\n", i);
                     return;
                 }
