@@ -259,14 +259,11 @@ unsigned int mixer_ctl_get_num_values(struct mixer_ctl *ctl)
 
 static int percent_to_int(struct snd_ctl_elem_info *ei, int percent)
 {
-    int range;
+    if ((percent > 100) || (percent < 0)) {
+        return -EINVAL;
+    }
 
-    if (percent > 100)
-        percent = 100;
-    else if (percent < 0)
-        percent = 0;
-
-    range = (ei->value.integer.max - ei->value.integer.min);
+    int range = (ei->value.integer.max - ei->value.integer.min);
 
     return ei->value.integer.min + (range * percent) / 100;
 }
