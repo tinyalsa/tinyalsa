@@ -197,7 +197,7 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
     type = mixer_ctl_get_type(ctl);
     num_ctl_values = mixer_ctl_get_num_values(ctl);
 
-    if (isdigit(values[0][0])) {
+    if ((isdigit(values[0][0])) || (values[0][0] == '-')) {
         char *endptr = NULL;
         long value;
         /* Initialize a function pointer of mixer_ctl_set_... type */
