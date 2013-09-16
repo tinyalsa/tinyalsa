@@ -308,7 +308,7 @@ static void pcm_hw_munmap_status(struct pcm *pcm) {
 }
 
 static int pcm_areas_copy(struct pcm *pcm, unsigned int pcm_offset,
-                          const char *src, unsigned int src_offset,
+                          char *buf, unsigned int src_offset,
                           unsigned int frames)
 {
     int size_bytes = pcm_frames_to_bytes(pcm, frames);
@@ -316,12 +316,18 @@ static int pcm_areas_copy(struct pcm *pcm, unsigned int pcm_offset,
     int src_offset_bytes = pcm_frames_to_bytes(pcm, src_offset);
 
     /* interleaved only atm */
-    memcpy((char*)pcm->mmap_buffer + pcm_offset_bytes,
-           src + src_offset_bytes, size_bytes);
+    if (pcm->flags & PCM_IN)
+        memcpy(buf + src_offset_bytes,
+               (char*)pcm->mmap_buffer + pcm_offset_bytes,
+               size_bytes);
+    else
+        memcpy((char*)pcm->mmap_buffer + pcm_offset_bytes,
+               buf + src_offset_bytes,
+               size_bytes);
     return 0;
 }
 
-static int pcm_mmap_write_areas(struct pcm *pcm, const char *src,
+static int pcm_mmap_transfer_areas(struct pcm *pcm, char *buf,
                                 unsigned int offset, unsigned int size)
 {
     void *pcm_areas;
@@ -331,7 +337,7 @@ static int pcm_mmap_write_areas(struct pcm *pcm, const char *src,
     while (size > 0) {
         frames = size;
         pcm_mmap_begin(pcm, &pcm_areas, &pcm_offset, &frames);
-        pcm_areas_copy(pcm, pcm_offset, src, offset, frames);
+        pcm_areas_copy(pcm, pcm_offset, buf, offset, frames);
         commit = pcm_mmap_commit(pcm, pcm_offset, frames);
         if (commit < 0) {
             oops(pcm, commit, "failed to commit %d frames\n", frames);
@@ -931,7 +937,7 @@ int pcm_wait(struct pcm *pcm, int timeout)
     return 1;
 }
 
-int pcm_mmap_write(struct pcm *pcm, const void *buffer, unsigned int bytes)
+int pcm_mmap_transfer(struct pcm *pcm, const void *buffer, unsigned int bytes)
 {
     int err = 0, frames, avail;
     unsigned int offset = 0, count;
@@ -1002,7 +1008,7 @@ int pcm_mmap_write(struct pcm *pcm, const void *buffer, unsigned int bytes)
             break;
 
         /* copy frames from buffer */
-        frames = pcm_mmap_write_areas(pcm, buffer, offset, frames);
+        frames = pcm_mmap_transfer_areas(pcm, (void *)buffer, offset, frames);
         if (frames < 0) {
             fprintf(stderr, "write error: hw 0x%x app 0x%x avail 0x%x\n",
                     (unsigned int)pcm->mmap_status->hw_ptr,
@@ -1016,4 +1022,20 @@ int pcm_mmap_write(struct pcm *pcm, const void *buffer, unsigned int bytes)
     }
 
     return 0;
+}
+
+int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count)
+{
+    if ((~pcm->flags) & (PCM_OUT | PCM_MMAP))
+        return -ENOSYS;
+
+    return pcm_mmap_transfer(pcm, (void *)data, count);
+}
+
+int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
+{
+    if ((~pcm->flags) & (PCM_IN | PCM_MMAP))
+        return -ENOSYS;
+
+    return pcm_mmap_transfer(pcm, data, count);
 }
