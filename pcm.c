@@ -918,7 +918,7 @@ int pcm_wait(struct pcm *pcm, int timeout)
     int err;
 
     pfd.fd = pcm->fd;
-    pfd.events = POLLOUT | POLLERR | POLLNVAL;
+    pfd.events = POLLIN | POLLOUT | POLLERR | POLLNVAL;
 
     do {
         /* let's wait for avail or timeout */
