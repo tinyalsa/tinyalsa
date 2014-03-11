@@ -504,6 +504,12 @@ void pcm_params_free(struct pcm_params *pcm_params)
 static int pcm_param_to_alsa(enum pcm_param param)
 {
     switch (param) {
+    case PCM_PARAM_ACCESS:
+        return SNDRV_PCM_HW_PARAM_ACCESS;
+    case PCM_PARAM_FORMAT:
+        return SNDRV_PCM_HW_PARAM_FORMAT;
+    case PCM_PARAM_SUBFORMAT:
+        return SNDRV_PCM_HW_PARAM_SUBFORMAT;
     case PCM_PARAM_SAMPLE_BITS:
         return SNDRV_PCM_HW_PARAM_SAMPLE_BITS;
         break;
@@ -544,6 +550,23 @@ static int pcm_param_to_alsa(enum pcm_param param)
     default:
         return -1;
     }
+}
+
+struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
+                                     enum pcm_param param)
+{
+    int p;
+    struct snd_pcm_hw_params *params = (struct snd_pcm_hw_params *)pcm_params;
+    if (params == NULL) {
+        return NULL;
+    }
+
+    p = pcm_param_to_alsa(param);
+    if (p < 0 || !param_is_mask(p)) {
+        return NULL;
+    }
+
+    return (struct pcm_mask *)param_to_mask(params, p);
 }
 
 unsigned int pcm_params_get_min(struct pcm_params *pcm_params,

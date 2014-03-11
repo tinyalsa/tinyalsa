@@ -74,6 +74,11 @@ enum pcm_format {
     PCM_FORMAT_MAX,
 };
 
+/* Bitmask has 256 bits (32 bytes) in asound.h */
+struct pcm_mask {
+    unsigned int bits[32 / sizeof(unsigned int)];
+};
+
 /* Configuration for a stream */
 struct pcm_config {
     unsigned int channels;
@@ -98,6 +103,11 @@ struct pcm_config {
 /* PCM parameters */
 enum pcm_param
 {
+    /* mask parameters */
+    PCM_PARAM_ACCESS,
+    PCM_PARAM_FORMAT,
+    PCM_PARAM_SUBFORMAT,
+    /* interval parameters */
     PCM_PARAM_SAMPLE_BITS,
     PCM_PARAM_FRAME_BITS,
     PCM_PARAM_CHANNELS,
@@ -135,6 +145,9 @@ int pcm_is_ready(struct pcm *pcm);
 struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
                                   unsigned int flags);
 void pcm_params_free(struct pcm_params *pcm_params);
+
+struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
+        enum pcm_param param);
 unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
                                 enum pcm_param param);
 unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
