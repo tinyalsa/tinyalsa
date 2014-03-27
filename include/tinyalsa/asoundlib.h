@@ -158,11 +158,26 @@ struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
 void pcm_params_free(struct pcm_params *pcm_params);
 
 struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
-        enum pcm_param param);
+                                     enum pcm_param param);
 unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
                                 enum pcm_param param);
 unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
                                 enum pcm_param param);
+
+/* Converts the pcm parameters to a human readable string.
+ * The string parameter is a caller allocated buffer of size bytes,
+ * which is then filled up to size - 1 and null terminated,
+ * if size is greater than zero.
+ * The return value is the number of bytes copied to string
+ * (not including null termination) if less than size; otherwise,
+ * the number of bytes required for the buffer.
+ */
+int pcm_params_to_string(struct pcm_params *params, char *string, unsigned int size);
+
+/* Returns 1 if the pcm_format is present (format bit set) in
+ * the pcm_params structure; 0 otherwise, or upon unrecognized format.
+ */
+int pcm_params_format_test(struct pcm_params *params, enum pcm_format format);
 
 /* Set and get config */
 int pcm_get_config(struct pcm *pcm, struct pcm_config *config);
