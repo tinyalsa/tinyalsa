@@ -51,6 +51,84 @@
 #define PARAM_MAX SNDRV_PCM_HW_PARAM_LAST_INTERVAL
 #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)
 
+/* Logs information into a string; follows snprintf() in that
+ * offset may be greater than size, and though no characters are copied
+ * into string, characters are still counted into offset. */
+#define STRLOG(string, offset, size, ...) \
+    do { int temp, clipoffset = offset > size ? size : offset; \
+         temp = snprintf(string + clipoffset, size - clipoffset, __VA_ARGS__); \
+         if (temp > 0) offset += temp; } while (0)
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#endif
+
+/* refer to SNDRV_PCM_ACCESS_##index in sound/asound.h. */
+static const char * const access_lookup[] = {
+        "MMAP_INTERLEAVED",
+        "MMAP_NONINTERLEAVED",
+        "MMAP_COMPLEX",
+        "RW_INTERLEAVED",
+        "RW_NONINTERLEAVED",
+};
+
+/* refer to SNDRV_PCM_FORMAT_##index in sound/asound.h. */
+static const char * const format_lookup[] = {
+        /*[0] =*/ "S8",
+        "U8",
+        "S16_LE",
+        "S16_BE",
+        "U16_LE",
+        "U16_BE",
+        "S24_LE",
+        "S24_BE",
+        "U24_LE",
+        "U24_BE",
+        "S32_LE",
+        "S32_BE",
+        "U32_LE",
+        "U32_BE",
+        "FLOAT_LE",
+        "FLOAT_BE",
+        "FLOAT64_LE",
+        "FLOAT64_BE",
+        "IEC958_SUBFRAME_LE",
+        "IEC958_SUBFRAME_BE",
+        "MU_LAW",
+        "A_LAW",
+        "IMA_ADPCM",
+        "MPEG",
+        /*[24] =*/ "GSM",
+        /* gap */
+        [31] = "SPECIAL",
+        "S24_3LE",
+        "S24_3BE",
+        "U24_3LE",
+        "U24_3BE",
+        "S20_3LE",
+        "S20_3BE",
+        "U20_3LE",
+        "U20_3BE",
+        "S18_3LE",
+        "S18_3BE",
+        "U18_3LE",
+        /*[43] =*/ "U18_3BE",
+#if 0
+        /* recent additions, may not be present on local asound.h */
+        "G723_24",
+        "G723_24_1B",
+        "G723_40",
+        "G723_40_1B",
+        "DSD_U8",
+        "DSD_U16_LE",
+#endif
+};
+
+/* refer to SNDRV_PCM_SUBFORMAT_##index in sound/asound.h. */
+static const char * const subformat_lookup[] = {
+        "STD",
+};
+
 static inline int param_is_mask(int p)
 {
     return (p >= SNDRV_PCM_HW_PARAM_FIRST_MASK) &&
@@ -609,6 +687,87 @@ unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
         return 0;
 
     return param_get_max(params, p);
+}
+
+static int pcm_mask_test(struct pcm_mask *m, unsigned int index)
+{
+    const unsigned int bitshift = 5; /* for 32 bit integer */
+    const unsigned int bitmask = (1 << bitshift) - 1;
+    unsigned int element;
+
+    element = index >> bitshift;
+    if (element >= ARRAY_SIZE(m->bits))
+        return 0; /* for safety, but should never occur */
+    return (m->bits[element] >> (index & bitmask)) & 1;
+}
+
+static int pcm_mask_to_string(struct pcm_mask *m, char *string, unsigned int size,
+                              char *mask_name,
+                              const char * const *bit_array_name, size_t bit_array_size)
+{
+    unsigned int i;
+    unsigned int offset = 0;
+
+    if (m == NULL)
+        return 0;
+    if (bit_array_size < 32) {
+        STRLOG(string, offset, size, "%12s:\t%#08x\n", mask_name, m->bits[0]);
+    } else { /* spans two or more bitfields, print with an array index */
+        for (i = 0; i < (bit_array_size + 31) >> 5; ++i) {
+            STRLOG(string, offset, size, "%9s[%d]:\t%#08x\n",
+                   mask_name, i, m->bits[i]);
+        }
+    }
+    for (i = 0; i < bit_array_size; ++i) {
+        if (pcm_mask_test(m, i)) {
+            STRLOG(string, offset, size, "%12s \t%s\n", "", bit_array_name[i]);
+        }
+    }
+    return offset;
+}
+
+int pcm_params_to_string(struct pcm_params *params, char *string, unsigned int size)
+{
+    struct pcm_mask *m;
+    unsigned int min, max;
+    unsigned int clipoffset, offset;
+
+    m = pcm_params_get_mask(params, PCM_PARAM_ACCESS);
+    offset = pcm_mask_to_string(m, string, size,
+                                 "Access", access_lookup, ARRAY_SIZE(access_lookup));
+    m = pcm_params_get_mask(params, PCM_PARAM_FORMAT);
+    clipoffset = offset > size ? size : offset;
+    offset += pcm_mask_to_string(m, string + clipoffset, size - clipoffset,
+                                 "Format", format_lookup, ARRAY_SIZE(format_lookup));
+    m = pcm_params_get_mask(params, PCM_PARAM_SUBFORMAT);
+    clipoffset = offset > size ? size : offset;
+    offset += pcm_mask_to_string(m, string + clipoffset, size - clipoffset,
+                                 "Subformat", subformat_lookup, ARRAY_SIZE(subformat_lookup));
+    min = pcm_params_get_min(params, PCM_PARAM_RATE);
+    max = pcm_params_get_max(params, PCM_PARAM_RATE);
+    STRLOG(string, offset, size, "        Rate:\tmin=%uHz\tmax=%uHz\n", min, max);
+    min = pcm_params_get_min(params, PCM_PARAM_CHANNELS);
+    max = pcm_params_get_max(params, PCM_PARAM_CHANNELS);
+    STRLOG(string, offset, size, "    Channels:\tmin=%u\t\tmax=%u\n", min, max);
+    min = pcm_params_get_min(params, PCM_PARAM_SAMPLE_BITS);
+    max = pcm_params_get_max(params, PCM_PARAM_SAMPLE_BITS);
+    STRLOG(string, offset, size, " Sample bits:\tmin=%u\t\tmax=%u\n", min, max);
+    min = pcm_params_get_min(params, PCM_PARAM_PERIOD_SIZE);
+    max = pcm_params_get_max(params, PCM_PARAM_PERIOD_SIZE);
+    STRLOG(string, offset, size, " Period size:\tmin=%u\t\tmax=%u\n", min, max);
+    min = pcm_params_get_min(params, PCM_PARAM_PERIODS);
+    max = pcm_params_get_max(params, PCM_PARAM_PERIODS);
+    STRLOG(string, offset, size, "Period count:\tmin=%u\t\tmax=%u\n", min, max);
+    return offset;
+}
+
+int pcm_params_format_test(struct pcm_params *params, enum pcm_format format)
+{
+    unsigned int alsa_format = pcm_format_to_alsa(format);
+
+    if (alsa_format == SNDRV_PCM_FORMAT_S16_LE && format != PCM_FORMAT_S16_LE)
+        return 0; /* caution: format not recognized is equivalent to S16_LE */
+    return pcm_mask_test(pcm_params_get_mask(params, PCM_PARAM_FORMAT), alsa_format);
 }
 
 int pcm_close(struct pcm *pcm)
