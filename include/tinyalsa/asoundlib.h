@@ -70,11 +70,11 @@ struct pcm;
 
 /* Bit formats */
 enum pcm_format {
-    PCM_FORMAT_S16_LE = 0,
-    PCM_FORMAT_S32_LE,
-    PCM_FORMAT_S8,
-    PCM_FORMAT_S24_LE,
-    PCM_FORMAT_S24_3LE,
+    PCM_FORMAT_S16_LE = 0,  /* 16-bit signed */
+    PCM_FORMAT_S32_LE,      /* 32-bit signed */
+    PCM_FORMAT_S8,          /* 8-bit signed */
+    PCM_FORMAT_S24_LE,      /* 24-bits in 4-bytes */
+    PCM_FORMAT_S24_3LE,     /* 24-bits in 3-bytes */
 
     PCM_FORMAT_MAX,
 };
@@ -161,8 +161,12 @@ struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
                                      enum pcm_param param);
 unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
                                 enum pcm_param param);
+void pcm_params_set_min(struct pcm_params *pcm_params,
+                                enum pcm_param param, unsigned int val);
 unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
                                 enum pcm_param param);
+void pcm_params_set_max(struct pcm_params *pcm_params,
+                                enum pcm_param param, unsigned int val);
 
 /* Converts the pcm parameters to a human readable string.
  * The string parameter is a caller allocated buffer of size bytes,

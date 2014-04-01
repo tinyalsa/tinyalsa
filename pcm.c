@@ -180,6 +180,14 @@ static unsigned int param_get_min(struct snd_pcm_hw_params *p, int n)
     return 0;
 }
 
+static void param_set_max(struct snd_pcm_hw_params *p, int n, unsigned int val)
+{
+    if (param_is_interval(n)) {
+        struct snd_interval *i = param_to_interval(p, n);
+        i->max = val;
+    }
+}
+
 static unsigned int param_get_max(struct snd_pcm_hw_params *p, int n)
 {
     if (param_is_interval(n)) {
@@ -673,6 +681,22 @@ unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
     return param_get_min(params, p);
 }
 
+void pcm_params_set_min(struct pcm_params *pcm_params,
+                                enum pcm_param param, unsigned int val)
+{
+    struct snd_pcm_hw_params *params = (struct snd_pcm_hw_params *)pcm_params;
+    int p;
+
+    if (!params)
+        return;
+
+    p = pcm_param_to_alsa(param);
+    if (p < 0)
+        return;
+
+    param_set_min(params, p, val);
+}
+
 unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
                                 enum pcm_param param)
 {
@@ -687,6 +711,22 @@ unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
         return 0;
 
     return param_get_max(params, p);
+}
+
+void pcm_params_set_max(struct pcm_params *pcm_params,
+                                enum pcm_param param, unsigned int val)
+{
+    struct snd_pcm_hw_params *params = (struct snd_pcm_hw_params *)pcm_params;
+    int p;
+
+    if (!params)
+        return;
+
+    p = pcm_param_to_alsa(param);
+    if (p < 0)
+        return;
+
+    param_set_max(params, p, val);
 }
 
 static int pcm_mask_test(struct pcm_mask *m, unsigned int index)
@@ -838,7 +878,6 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     param_set_int(&params, SNDRV_PCM_HW_PARAM_RATE, config->rate);
 
     if (flags & PCM_NOIRQ) {
-
         if (!(flags & PCM_MMAP)) {
             oops(pcm, -EINVAL, "noirq only currently supported with mmap().");
             goto fail;
@@ -850,10 +889,10 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 
     if (flags & PCM_MMAP)
         param_set_mask(&params, SNDRV_PCM_HW_PARAM_ACCESS,
-                   SNDRV_PCM_ACCESS_MMAP_INTERLEAVED);
+                       SNDRV_PCM_ACCESS_MMAP_INTERLEAVED);
     else
         param_set_mask(&params, SNDRV_PCM_HW_PARAM_ACCESS,
-                   SNDRV_PCM_ACCESS_RW_INTERLEAVED);
+                       SNDRV_PCM_ACCESS_RW_INTERLEAVED);
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
         oops(pcm, errno, "cannot set hw params");
@@ -874,7 +913,6 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
             goto fail_close;
         }
     }
-
 
     memset(&sparams, 0, sizeof(sparams));
     sparams.tstamp_mode = SNDRV_PCM_TSTAMP_ENABLE;
@@ -915,7 +953,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     pcm->boundary = sparams.boundary = pcm->buffer_size;
 
     while (pcm->boundary * 2 <= INT_MAX - pcm->buffer_size)
-		pcm->boundary *= 2;
+        pcm->boundary *= 2;
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
         oops(pcm, errno, "cannot set sw params");
