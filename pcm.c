@@ -171,6 +171,7 @@ struct pcm {
     void *mmap_buffer;
     unsigned int noirq_frames_per_msec;
     long pcm_delay;
+    unsigned int subdevice;
 };
 
 unsigned int pcm_get_buffer_size(struct pcm *pcm)
@@ -181,6 +182,11 @@ unsigned int pcm_get_buffer_size(struct pcm *pcm)
 const char* pcm_get_error(struct pcm *pcm)
 {
     return pcm->error;
+}
+
+unsigned int pcm_get_subdevice(struct pcm *pcm)
+{
+    return pcm->subdevice;
 }
 
 static int oops(struct pcm *pcm, int e, const char *fmt, ...)
@@ -654,6 +660,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
         oops(pcm, errno, "cannot get info");
         goto fail_close;
     }
+    pcm->subdevice = info.subdevice;
 
     param_init(&params);
     param_set_mask(&params, SNDRV_PCM_HW_PARAM_FORMAT,

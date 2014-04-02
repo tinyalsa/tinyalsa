@@ -179,6 +179,9 @@ unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes);
 int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
                        struct timespec *tstamp);
 
+/* Returns the subdevice on which the pcm has been opened */
+unsigned int pcm_get_subdevice(struct pcm *pcm);
+
 /* Write data to the fifo.
  * Will start playback on the first write or on a write that
  * occurs after a fifo underrun.
