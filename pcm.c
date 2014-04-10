@@ -170,6 +170,7 @@ struct pcm {
     struct snd_pcm_sync_ptr *sync_ptr;
     void *mmap_buffer;
     unsigned int noirq_frames_per_msec;
+    long pcm_delay;
 };
 
 unsigned int pcm_get_buffer_size(struct pcm *pcm)
@@ -1045,4 +1046,12 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
         return -ENOSYS;
 
     return pcm_mmap_transfer(pcm, data, count);
+}
+
+long pcm_get_delay(struct pcm *pcm)
+{
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DELAY, &pcm->pcm_delay) < 0)
+        return -1;
+
+    return pcm->pcm_delay;
 }
