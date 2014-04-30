@@ -159,6 +159,7 @@ struct pcm {
     int fd;
     unsigned int flags;
     int running:1;
+    int prepared:1;
     int underruns;
     unsigned int buffer_size;
     unsigned int boundary;
@@ -386,14 +387,16 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
 
     for (;;) {
         if (!pcm->running) {
-            if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_PREPARE))
-                return oops(pcm, errno, "cannot prepare channel");
+            int prepare_error = pcm_prepare(pcm);
+            if (prepare_error)
+                return prepare_error;
             if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &x))
                 return oops(pcm, errno, "cannot write initial data");
             pcm->running = 1;
             return 0;
         }
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &x)) {
+            pcm->prepared = 0;
             pcm->running = 0;
             if (errno == EPIPE) {
                 /* we failed to make our window -- try to restart if we are
@@ -429,6 +432,7 @@ int pcm_read(struct pcm *pcm, void *data, unsigned int count)
             }
         }
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_READI_FRAMES, &x)) {
+            pcm->prepared = 0;
             pcm->running = 0;
             if (errno == EPIPE) {
                     /* we failed to make our window -- try to restart */
@@ -582,6 +586,7 @@ int pcm_close(struct pcm *pcm)
 
     if (pcm->fd >= 0)
         close(pcm->fd);
+    pcm->prepared = 0;
     pcm->running = 0;
     pcm->buffer_size = 0;
     pcm->fd = -1;
@@ -736,10 +741,23 @@ int pcm_is_ready(struct pcm *pcm)
     return pcm->fd >= 0;
 }
 
-int pcm_start(struct pcm *pcm)
+int pcm_prepare(struct pcm *pcm)
 {
+    if (pcm->prepared)
+        return 0;
+
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_PREPARE) < 0)
         return oops(pcm, errno, "cannot prepare channel");
+
+    pcm->prepared = 1;
+    return 0;
+}
+
+int pcm_start(struct pcm *pcm)
+{
+    int prepare_error = pcm_prepare(pcm);
+    if (prepare_error)
+        return prepare_error;
 
     if (pcm->flags & PCM_MMAP)
 	    pcm_sync_ptr(pcm, 0);
@@ -756,6 +774,7 @@ int pcm_stop(struct pcm *pcm)
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DROP) < 0)
         return oops(pcm, errno, "cannot stop channel");
 
+    pcm->prepared = 0;
     pcm->running = 0;
     return 0;
 }
@@ -936,6 +955,7 @@ int pcm_mmap_write(struct pcm *pcm, const void *buffer, unsigned int bytes)
 
             err = pcm_wait(pcm, time);
             if (err < 0) {
+                pcm->prepared = 0;
                 pcm->running = 0;
                 fprintf(stderr, "wait error: hw 0x%x app 0x%x avail 0x%x\n",
                     (unsigned int)pcm->mmap_status->hw_ptr,
