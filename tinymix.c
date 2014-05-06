@@ -240,6 +240,7 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
     enum mixer_ctl_type type;
     unsigned int num_ctl_values;
     unsigned int i;
+    const char* percentage;
 
     if (isdigit(control[0]))
         ctl = mixer_get_ctl(mixer, atoi(control));
@@ -253,6 +254,7 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
 
     type = mixer_ctl_get_type(ctl);
     num_ctl_values = mixer_ctl_get_num_values(ctl);
+    percentage = strstr(values[0],"%");
 
     if (type == MIXER_CTL_TYPE_BYTE) {
         tinymix_set_byte_ctl(ctl, control, values, num_values);
@@ -264,10 +266,19 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
             /* Set all values the same */
             int value = atoi(values[0]);
 
-            for (i = 0; i < num_ctl_values; i++) {
-                if (mixer_ctl_set_value(ctl, i, value)) {
-                    fprintf(stderr, "Error: invalid value\n");
-                    return;
+            if (percentage != NULL) {
+                for (i = 0; i < num_ctl_values; i++) {
+                    if (mixer_ctl_set_percent(ctl, i, value)) {
+                        fprintf(stderr, "Error: invalid value\n");
+                        return;
+                    }
+                }
+                                       } else {
+                for (i = 0; i < num_ctl_values; i++) {
+                    if (mixer_ctl_set_value(ctl, i, value)) {
+                        fprintf(stderr, "Error: invalid value\n");
+                        return;
+                    }
                 }
             }
         } else {
@@ -279,9 +290,18 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
                 return;
             }
             for (i = 0; i < num_values; i++) {
-                if (mixer_ctl_set_value(ctl, i, atoi(values[i]))) {
-                    fprintf(stderr, "Error: invalid value for index %d\n", i);
-                    return;
+                if (percentage != NULL) {
+                    for (i = 0; i < num_ctl_values; i++) {
+                        if (mixer_ctl_set_percent(ctl, i, atoi(values[i]))) {
+                            fprintf(stderr, "Error: invalid value\n");
+                            return;
+                        }
+                    }
+                } else {
+                    if (mixer_ctl_set_value(ctl, i, atoi(values[i]))) {
+                        fprintf(stderr, "Error: invalid value for index %d\n", i);
+                        return;
+                    }
                 }
             }
         }
@@ -298,4 +318,3 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
         }
     }
 }
-

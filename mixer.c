@@ -497,4 +497,3 @@ int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string)
 
     return -EINVAL;
 }
-
