@@ -57,13 +57,9 @@ struct pcm;
                                    */
 
 /* PCM runtime states */
-#define	PCM_STATE_OPEN		0
-#define	PCM_STATE_SETUP		1
-#define	PCM_STATE_PREPARED	2
-#define	PCM_STATE_RUNNING		3
+#define	PCM_STATE_RUNNING	3
 #define	PCM_STATE_XRUN		4
 #define	PCM_STATE_DRAINING	5
-#define	PCM_STATE_PAUSED		6
 #define	PCM_STATE_SUSPENDED	7
 #define	PCM_STATE_DISCONNECTED	8
 
@@ -143,10 +139,6 @@ unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
 unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
                                 enum pcm_param param);
 
-/* Set and get config */
-int pcm_get_config(struct pcm *pcm, struct pcm_config *config);
-int pcm_set_config(struct pcm *pcm, struct pcm_config *config);
-
 /* Returns a human readable reason for the last error */
 const char *pcm_get_error(struct pcm *pcm);
 
@@ -161,9 +153,6 @@ unsigned int pcm_format_to_bits(enum pcm_format format);
 unsigned int pcm_get_buffer_size(struct pcm *pcm);
 unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames);
 unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes);
-
-/* Returns the pcm latency in ms */
-unsigned int pcm_get_latency(struct pcm *pcm);
 
 /* Returns available frames in pcm buffer and corresponding time stamp.
  * For an input stream, frames available are frames ready for the
