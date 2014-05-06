@@ -45,3 +45,12 @@ LOCAL_SHARED_LIBRARIES:= libcutils libutils libtinyalsa
 LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES:= external/tinyalsa/include
+LOCAL_SRC_FILES:= tinyplay.c
+LOCAL_MODULE := tinyplay
+LOCAL_STATIC_LIBRARIES:= libcutils libutils libtinyalsa
+LOCAL_MODULE_TAGS := optional
+
+include $(BUILD_HOST_EXECUTABLE)

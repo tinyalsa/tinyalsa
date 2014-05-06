@@ -38,6 +38,9 @@
 #define ID_FMT  0x20746d66
 #define ID_DATA 0x61746164
 
+#define WAVE_FORMAT_PCM         1
+#define WAVE_FORMAT_EXTENSIBLE  0xFFFE
+
 struct riff_wave_header {
     uint32_t riff_id;
     uint32_t riff_sz;
@@ -111,6 +114,15 @@ int main(int argc, char **argv)
         switch (chunk_header.id) {
         case ID_FMT:
             fread(&chunk_fmt, sizeof(chunk_fmt), 1, file);
+            switch (chunk_fmt.audio_format) {
+            case WAVE_FORMAT_PCM:
+            case WAVE_FORMAT_EXTENSIBLE:
+                break;
+            default:
+                fprintf(stderr, "Format %d is not supported\n", chunk_fmt.audio_format);
+                fclose(file);
+                return 1;
+            }
             /* If the format header is larger, skip the rest */
             if (chunk_header.sz > sizeof(chunk_fmt))
                 fseek(file, chunk_header.sz - sizeof(chunk_fmt), SEEK_CUR);
@@ -226,9 +238,12 @@ void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned in
         config.format = PCM_FORMAT_S32_LE;
     else if (bits == 16)
         config.format = PCM_FORMAT_S16_LE;
+    else    /* e.g. bits == 24 */
+        return;
     config.start_threshold = 0;
     config.stop_threshold = 0;
     config.silence_threshold = 0;
+    config.avail_min = 0;   /* only needed for PCM_MMAP */
 
     if (!sample_is_playable(card, device, channels, rate, bits, period_size, period_count)) {
         return;
