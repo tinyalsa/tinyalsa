@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <limits.h>
+#include <errno.h>
 
 static void tinymix_list_controls(struct mixer *mixer);
 static void tinymix_detail_control(struct mixer *mixer, const char *control,
@@ -233,6 +235,20 @@ static void tinymix_set_byte_ctl(struct mixer_ctl *ctl, const char *control,
     }
 }
 
+static int is_int(char *value)
+{
+    char* end;
+    long int result;
+
+    errno = 0;
+    result = strtol(value, &end, 10);
+
+    if (result == LONG_MIN || result == LONG_MAX)
+        return 0;
+
+    return errno == 0 && *end == '\0';
+}
+
 static void tinymix_set_value(struct mixer *mixer, const char *control,
                               char **values, unsigned int num_values)
 {
@@ -259,7 +275,7 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
         return;
     }
 
-    if (isdigit(values[0][0])) {
+    if (is_int(values[0])) {
         if (num_values == 1) {
             /* Set all values the same */
             int value = atoi(values[0]);
