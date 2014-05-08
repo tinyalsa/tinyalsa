@@ -55,6 +55,7 @@ struct pcm;
                                    * second call to pcm_write will attempt to
                                    * restart the stream.
                                    */
+#define PCM_MONOTONIC  0x00000008 /* see pcm_get_htimestamp */
 
 /* PCM runtime states */
 #define	PCM_STATE_RUNNING	3
@@ -155,6 +156,8 @@ unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames);
 unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes);
 
 /* Returns available frames in pcm buffer and corresponding time stamp.
+ * The clock is CLOCK_MONOTONIC if flag PCM_MONOTONIC was specified in pcm_open,
+ * otherwise the clock is CLOCK_REALTIME.
  * For an input stream, frames available are frames ready for the
  * application to read.
  * For an output stream, frames available are the number of empty frames available
