@@ -41,6 +41,7 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control,
 static void tinymix_set_value(struct mixer *mixer, const char *control,
                               char **values, unsigned int num_values);
 static void tinymix_print_enum(struct mixer_ctl *ctl, int print_all);
+static void tinymix_poll_mixer(struct mixer *mixer, const char *control);
 
 int main(int argc, char **argv)
 {
@@ -70,10 +71,12 @@ int main(int argc, char **argv)
         tinymix_list_controls(mixer);
     } else if (argc == 2) {
         tinymix_detail_control(mixer, argv[1], 1);
+    } else if ((argc == 3) && (strcmp(argv[1], "-P") == 0)) {
+        tinymix_poll_mixer(mixer, argv[2]);
     } else if (argc >= 3) {
         tinymix_set_value(mixer, argv[1], &argv[2], argc - 2);
     } else {
-        printf("Usage: tinymix [-D card] [control id] [value to set]\n");
+        printf("Usage: tinymix [-D card] [-P] [control id] [value to set]\n");
     }
 
     mixer_close(mixer);
@@ -122,6 +125,24 @@ static void tinymix_print_enum(struct mixer_ctl *ctl, int print_all)
     }
 }
 
+static void tinymix_poll_mixer(struct mixer *mixer, const char *control)
+{
+    struct mixer_ctl *ctl;
+
+    if (isdigit(control[0]))
+        ctl = mixer_get_ctl(mixer, atoi(control));
+    else
+        ctl = mixer_get_ctl_by_name(mixer, control);
+
+    if (!ctl) {
+        fprintf(stderr, "Invalid mixer control\n");
+        return;
+    }
+    mixer_ctl_subscribe_events(ctl, 1);
+    printf("Waiting on %s:\n", mixer_ctl_get_name(ctl));
+    mixer_ctl_poll(ctl, -1);
+    mixer_ctl_subscribe_events(ctl, 0);
+}
 static void tinymix_detail_control(struct mixer *mixer, const char *control,
                                    int print_all)
 {
