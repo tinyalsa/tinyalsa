@@ -35,6 +35,7 @@
 #include <ctype.h>
 
 #include <sys/ioctl.h>
+#include <poll.h>
 
 #include <linux/ioctl.h>
 #define __force
@@ -503,3 +504,32 @@ int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string)
     return -EINVAL;
 }
 
+int mixer_ctl_subscribe_events(struct mixer_ctl *ctl, int subscribe)
+{
+    if (ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS, &subscribe) < 0) {
+        printf("SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS failed with error %d\n", -errno);
+        return -errno;
+    }
+    return 0;
+}
+
+int mixer_ctl_poll(struct mixer_ctl *ctl, int timeout)
+{
+    struct pollfd pfd;
+
+    pfd.fd = ctl->mixer->fd;
+    pfd.events = POLLIN | POLLOUT | POLLERR | POLLNVAL;
+
+    for (;;) {
+        int err;
+        err = poll(&pfd, 1, timeout);
+        if (err < 0)
+            return -errno;
+        if (! err)
+            return 0;
+        if (pfd.revents & (POLLERR | POLLNVAL))
+            return -EIO;
+        if (pfd.revents & (POLLIN | POLLOUT))
+            return 1;
+    }
+}
