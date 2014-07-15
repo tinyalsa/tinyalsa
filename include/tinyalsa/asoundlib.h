@@ -70,6 +70,7 @@ struct pcm;
 
 /* Bit formats */
 enum pcm_format {
+    PCM_FORMAT_INVALID = -1,
     PCM_FORMAT_S16_LE = 0,  /* 16-bit signed */
     PCM_FORMAT_S32_LE,      /* 32-bit signed */
     PCM_FORMAT_S8,          /* 8-bit signed */
