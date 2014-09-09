@@ -69,6 +69,8 @@ struct mixer *mixer_open(unsigned int card);
 
 void mixer_close(struct mixer *mixer);
 
+int mixer_add_new_ctls(struct mixer *mixer);
+
 const char *mixer_get_name(const struct mixer *mixer);
 
 unsigned int mixer_get_num_ctls(const struct mixer *mixer);
