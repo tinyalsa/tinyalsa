@@ -58,9 +58,21 @@ struct mixer {
     unsigned int count;
 };
 
+static void mixer_cleanup_control(struct mixer_ctl *ctl)
+{
+    unsigned int m;
+
+    if (ctl->ename) {
+        unsigned int max = ctl->info.value.enumerated.items;
+        for (m = 0; m < max; m++)
+            free(ctl->ename[m]);
+        free(ctl->ename);
+    }
+}
+
 void mixer_close(struct mixer *mixer)
 {
-    unsigned int n,m;
+    unsigned int n;
 
     if (!mixer)
         return;
@@ -69,14 +81,8 @@ void mixer_close(struct mixer *mixer)
         close(mixer->fd);
 
     if (mixer->ctl) {
-        for (n = 0; n < mixer->count; n++) {
-            if (mixer->ctl[n].ename) {
-                unsigned int max = mixer->ctl[n].info.value.enumerated.items;
-                for (m = 0; m < max; m++)
-                    free(mixer->ctl[n].ename[m]);
-                free(mixer->ctl[n].ename);
-            }
-        }
+        for (n = 0; n < mixer->count; n++)
+            mixer_cleanup_control(&mixer->ctl[n]);
         free(mixer->ctl);
     }
 
@@ -85,13 +91,104 @@ void mixer_close(struct mixer *mixer)
     /* TODO: verify frees */
 }
 
-struct mixer *mixer_open(unsigned int card)
+static void *mixer_realloc_z(void *ptr, size_t curnum, size_t newnum, size_t size)
+{
+        int8_t *newp;
+
+        newp = realloc(ptr, size * newnum);
+        if (!newp)
+            return NULL;
+
+        memset(newp + (curnum * size), 0, (newnum-curnum) * size);
+        return newp;
+}
+
+static int add_controls(struct mixer *mixer)
 {
     struct snd_ctl_elem_list elist;
     struct snd_ctl_elem_info tmp;
     struct snd_ctl_elem_id *eid = NULL;
-    struct mixer *mixer = NULL;
+    struct snd_ctl_elem_info *info;
+    struct mixer_ctl *ctl;
+    int fd = mixer->fd;
+    const unsigned int old_count = mixer->count;
+    unsigned int extra_count;
     unsigned int n, m;
+
+    memset(&elist, 0, sizeof(elist));
+    if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_LIST, &elist) < 0)
+        goto fail;
+
+    if (old_count == elist.count)
+        return 0;   /* no new controls return unchanged */
+
+    ctl = mixer_realloc_z(mixer->ctl, old_count, elist.count,
+                        sizeof(struct mixer_ctl));
+    if (!ctl)
+        goto fail;
+    mixer->ctl = ctl;
+    
+    extra_count = elist.count - old_count; /* controls we haven't seen before */
+    eid = calloc(extra_count, sizeof(struct snd_ctl_elem_id));
+    if (!eid)
+        goto fail;
+
+    /* Add all controls we haven't seen before
+     * ALSA drivers are not allowed to remove or re-order controls that
+     * have already been created so we know that any new controls must
+     * be after the ones we have already collected
+     */
+    elist.offset = old_count; /* first control we haven't seen yet */
+    elist.space = extra_count;
+    elist.pids = eid;
+    if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_LIST, &elist) < 0)
+        goto fail;
+
+    for (n = old_count; n < old_count + extra_count; n++) {
+        struct snd_ctl_elem_info *ei = &mixer->ctl[n].info;
+        ei->id.numid = eid[n - old_count].numid;
+        if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_INFO, ei) < 0)
+            goto fail_extend;
+        ctl[n].mixer = mixer;
+        if (ei->type == SNDRV_CTL_ELEM_TYPE_ENUMERATED) {
+            char **enames = calloc(ei->value.enumerated.items, sizeof(char*));
+            if (!enames)
+                goto fail_extend;
+            ctl[n].ename = enames;
+            for (m = 0; m < ei->value.enumerated.items; m++) {
+                memset(&tmp, 0, sizeof(tmp));
+                tmp.id.numid = ei->id.numid;
+                tmp.value.enumerated.item = m;
+                if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_INFO, &tmp) < 0)
+                    goto fail_extend;
+                enames[m] = strdup(tmp.value.enumerated.name);
+                if (!enames[m])
+                    goto fail_extend;
+            }
+        }
+    }
+
+    mixer->count = old_count + extra_count;
+    free(eid);
+    return 0;
+
+fail_extend:
+    /* cleanup the control we failed on but leave the ones that were already
+     * added. Also no advantage to shrinking the resized memory block, we
+     * might want to extend the controls again later
+     */
+    mixer_cleanup_control(&ctl[n]);
+
+    mixer->count = n;   /* keep controls we successfully added */
+    /* fall through... */
+fail:
+    free(eid);
+    return -1;
+}
+
+struct mixer *mixer_open(unsigned int card)
+{
+    struct mixer *mixer = NULL;
     int fd;
     char fn[256];
 
@@ -100,68 +197,34 @@ struct mixer *mixer_open(unsigned int card)
     if (fd < 0)
         return 0;
 
-    memset(&elist, 0, sizeof(elist));
-    if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_LIST, &elist) < 0)
-        goto fail;
-
     mixer = calloc(1, sizeof(*mixer));
     if (!mixer)
-        goto fail;
-
-    mixer->ctl = calloc(elist.count, sizeof(struct mixer_ctl));
-    if (!mixer->ctl)
         goto fail;
 
     if (ioctl(fd, SNDRV_CTL_IOCTL_CARD_INFO, &mixer->card_info) < 0)
         goto fail;
 
-    eid = calloc(elist.count, sizeof(struct snd_ctl_elem_id));
-    if (!eid)
-        goto fail;
-
-    mixer->count = elist.count;
     mixer->fd = fd;
-    elist.space = mixer->count;
-    elist.pids = eid;
-    if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_LIST, &elist) < 0)
+
+    if (add_controls(mixer) != 0)
         goto fail;
 
-    for (n = 0; n < mixer->count; n++) {
-        struct snd_ctl_elem_info *ei = &mixer->ctl[n].info;
-        ei->id.numid = eid[n].numid;
-        if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_INFO, ei) < 0)
-            goto fail;
-        mixer->ctl[n].mixer = mixer;
-        if (ei->type == SNDRV_CTL_ELEM_TYPE_ENUMERATED) {
-            char **enames = calloc(ei->value.enumerated.items, sizeof(char*));
-            if (!enames)
-                goto fail;
-            mixer->ctl[n].ename = enames;
-            for (m = 0; m < ei->value.enumerated.items; m++) {
-                memset(&tmp, 0, sizeof(tmp));
-                tmp.id.numid = ei->id.numid;
-                tmp.value.enumerated.item = m;
-                if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_INFO, &tmp) < 0)
-                    goto fail;
-                enames[m] = strdup(tmp.value.enumerated.name);
-                if (!enames[m])
-                    goto fail;
-            }
-        }
-    }
-
-    free(eid);
     return mixer;
 
 fail:
-    /* TODO: verify frees in failure case */
-    if (eid)
-        free(eid);
     if (mixer)
         mixer_close(mixer);
     else if (fd >= 0)
         close(fd);
-    return 0;
+    return NULL;
+}
+
+int mixer_update_ctls(struct mixer *mixer)
+{
+    if (!mixer)
+        return 0;
+
+    return add_controls(mixer);
 }
 
 const char *mixer_get_name(struct mixer *mixer)
