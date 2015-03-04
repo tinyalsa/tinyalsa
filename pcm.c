@@ -827,7 +827,7 @@ static inline int pcm_mmap_playback_avail(struct pcm *pcm)
 
     if (avail < 0)
         avail += pcm->boundary;
-    else if (avail > (int)pcm->boundary)
+    else if (avail >= (int)pcm->boundary)
         avail -= pcm->boundary;
 
     return avail;
