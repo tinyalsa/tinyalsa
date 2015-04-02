@@ -131,7 +131,7 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control,
     unsigned int i;
     int min, max;
     int ret;
-    char buf[512] = { 0 };
+    char *buf = NULL;
     size_t len;
 
     if (isdigit(control[0]))
@@ -148,14 +148,18 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control,
     num_values = mixer_ctl_get_num_values(ctl);
 
     if (type == MIXER_CTL_TYPE_BYTE) {
-        len = num_values;
-        if (len > sizeof(buf)) {
-            fprintf(stderr, "Truncating get to %zu bytes\n", sizeof(buf));
-            len = sizeof(buf);
+
+        buf = calloc(1, num_values);
+        if (buf == NULL) {
+            fprintf(stderr, "Failed to alloc mem for bytes %d\n", num_values);
+            return;
         }
+
+        len = num_values;
         ret = mixer_ctl_get_array(ctl, buf, len);
         if (ret < 0) {
             fprintf(stderr, "Failed to mixer_ctl_get_array\n");
+            free(buf);
             return;
         }
     }
@@ -191,6 +195,9 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control,
             printf(" (range %d->%d)", min, max);
         }
     }
+
+    free(buf);
+
     printf("\n");
 }
 
@@ -198,14 +205,15 @@ static void tinymix_set_byte_ctl(struct mixer_ctl *ctl, const char *control,
     char **values, unsigned int num_values)
 {
     int ret;
-    char buf[512] = { 0 };
+    char *buf;
     char *end;
-    int i;
+    unsigned int i;
     long n;
 
-    if (num_values > sizeof(buf)) {
-        fprintf(stderr, "Truncating set to %zu bytes\n", sizeof(buf));
-        num_values = sizeof(buf);
+    buf = calloc(1, num_values);
+    if (buf == NULL) {
+        fprintf(stderr, "set_byte_ctl: Failed to alloc mem for bytes %d\n", num_values);
+        exit(EXIT_FAILURE);
     }
 
     for (i = 0; i < num_values; i++) {
@@ -213,17 +221,17 @@ static void tinymix_set_byte_ctl(struct mixer_ctl *ctl, const char *control,
         n = strtol(values[i], &end, 0);
         if (*end) {
             fprintf(stderr, "%s not an integer\n", values[i]);
-            exit(EXIT_FAILURE);
+            goto fail;
         }
         if (errno) {
             fprintf(stderr, "strtol: %s: %s\n", values[i],
                 strerror(errno));
-            exit(EXIT_FAILURE);
+            goto fail;
         }
         if (n < 0 || n > 0xff) {
             fprintf(stderr, "%s should be between [0, 0xff]\n",
                 values[i]);
-            exit(EXIT_FAILURE);
+            goto fail;
         }
         buf[i] = n;
     }
@@ -231,8 +239,15 @@ static void tinymix_set_byte_ctl(struct mixer_ctl *ctl, const char *control,
     ret = mixer_ctl_set_array(ctl, buf, num_values);
     if (ret < 0) {
         fprintf(stderr, "Failed to set binary control\n");
-        exit(EXIT_FAILURE);
+        goto fail;
     }
+
+    free(buf);
+    return;
+
+fail:
+    free(buf);
+    exit(EXIT_FAILURE);
 }
 
 static int is_int(char *value)
