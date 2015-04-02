@@ -201,7 +201,7 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control,
     printf("\n");
 }
 
-static void tinymix_set_byte_ctl(struct mixer_ctl *ctl, const char *control,
+static void tinymix_set_byte_ctl(struct mixer_ctl *ctl,
     char **values, unsigned int num_values)
 {
     int ret;
@@ -286,7 +286,7 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
     num_ctl_values = mixer_ctl_get_num_values(ctl);
 
     if (type == MIXER_CTL_TYPE_BYTE) {
-        tinymix_set_byte_ctl(ctl, control, values, num_values);
+        tinymix_set_byte_ctl(ctl, values, num_values);
         return;
     }
 
