@@ -93,17 +93,20 @@ struct pcm_config {
     unsigned int period_count;
     enum pcm_format format;
 
-    /* Values to use for the ALSA start, stop and silence thresholds.  Setting
-     * any one of these values to 0 will cause the default tinyalsa values to be
-     * used instead.  Tinyalsa defaults are as follows.
+    /* Values to use for the ALSA start, stop and silence thresholds, and
+     * silence size.  Setting any one of these values to 0 will cause the
+     * default tinyalsa values to be used instead.
+     * Tinyalsa defaults are as follows.
      *
      * start_threshold   : period_count * period_size
      * stop_threshold    : period_count * period_size
      * silence_threshold : 0
+     * silence_size      : 0
      */
     unsigned int start_threshold;
     unsigned int stop_threshold;
     unsigned int silence_threshold;
+    unsigned int silence_size;
 
     /* Minimum number of frames available before pcm_mmap_write() will actually
      * write into the kernel buffer. Only used if the stream is opened in mmap mode

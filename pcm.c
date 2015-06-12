@@ -953,8 +953,8 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
         sparams.avail_min = config->avail_min;
 
     sparams.xfer_align = config->period_size / 2; /* needed for old kernels */
-    sparams.silence_size = 0;
     sparams.silence_threshold = config->silence_threshold;
+    sparams.silence_size = config->silence_size;
     pcm->boundary = sparams.boundary = pcm->buffer_size;
 
     while (pcm->boundary * 2 <= INT_MAX - pcm->buffer_size)
