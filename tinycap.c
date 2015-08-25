@@ -191,6 +191,7 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
     unsigned int size;
     unsigned int bytes_read = 0;
 
+    memset(&config, 0, sizeof(config));
     config.channels = channels;
     config.rate = rate;
     config.period_size = period_size;
