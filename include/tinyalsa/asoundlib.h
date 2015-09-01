@@ -248,6 +248,7 @@ int pcm_ioctl(struct pcm *pcm, int request, ...);
 
 /* Interrupt driven API */
 int pcm_wait(struct pcm *pcm, int timeout);
+int pcm_get_poll_fd(struct pcm *pcm);
 
 /* Change avail_min after the stream has been opened with no need to stop the stream.
  * Only accepted if opened with PCM_MMAP and PCM_NOIRQ flags
