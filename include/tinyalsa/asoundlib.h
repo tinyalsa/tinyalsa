@@ -235,6 +235,7 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count);
 int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset,
                    unsigned int *frames);
 int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
+int pcm_mmap_avail(struct pcm *pcm);
 
 /* Prepare the PCM substream to be triggerable */
 int pcm_prepare(struct pcm *pcm);
