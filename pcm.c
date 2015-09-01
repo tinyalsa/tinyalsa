@@ -1180,6 +1180,11 @@ int pcm_wait(struct pcm *pcm, int timeout)
     return 1;
 }
 
+int pcm_get_poll_fd(struct pcm *pcm)
+{
+    return pcm->fd;
+}
+
 int pcm_mmap_transfer(struct pcm *pcm, const void *buffer, unsigned int bytes)
 {
     int err = 0, frames, avail;
