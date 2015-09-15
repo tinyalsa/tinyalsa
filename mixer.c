@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
+#include <limits.h>
 
 #include <sys/ioctl.h>
 
@@ -207,6 +208,17 @@ struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name)
 void mixer_ctl_update(struct mixer_ctl *ctl)
 {
     ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_INFO, ctl->info);
+}
+
+unsigned int mixer_ctl_get_id(struct mixer_ctl *ctl)
+{
+    if (!ctl)
+        return UINT_MAX;
+
+    /* numid values start at 1, return a 0-base value that
+     * can be passed to mixer_get_ctl()
+     */
+    return ctl->info->id.numid - 1;
 }
 
 const char *mixer_ctl_get_name(struct mixer_ctl *ctl)
