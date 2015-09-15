@@ -170,6 +170,8 @@ struct pcm {
     struct snd_pcm_sync_ptr *sync_ptr;
     void *mmap_buffer;
     unsigned int noirq_frames_per_msec;
+    long pcm_delay;
+    unsigned int subdevice;
 };
 
 unsigned int pcm_get_buffer_size(struct pcm *pcm)
@@ -180,6 +182,11 @@ unsigned int pcm_get_buffer_size(struct pcm *pcm)
 const char* pcm_get_error(struct pcm *pcm)
 {
     return pcm->error;
+}
+
+unsigned int pcm_get_subdevice(struct pcm *pcm)
+{
+    return pcm->subdevice;
 }
 
 static int oops(struct pcm *pcm, int e, const char *fmt, ...)
@@ -653,6 +660,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
         oops(pcm, errno, "cannot get info");
         goto fail_close;
     }
+    pcm->subdevice = info.subdevice;
 
     param_init(&params);
     param_set_mask(&params, SNDRV_PCM_HW_PARAM_FORMAT,
@@ -918,7 +926,7 @@ int pcm_wait(struct pcm *pcm, int timeout)
     int err;
 
     pfd.fd = pcm->fd;
-    pfd.events = POLLOUT | POLLERR | POLLNVAL;
+    pfd.events = POLLIN | POLLOUT | POLLERR | POLLNVAL;
 
     do {
         /* let's wait for avail or timeout */
@@ -1045,4 +1053,12 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
         return -ENOSYS;
 
     return pcm_mmap_transfer(pcm, data, count);
+}
+
+long pcm_get_delay(struct pcm *pcm)
+{
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DELAY, &pcm->pcm_delay) < 0)
+        return -1;
+
+    return pcm->pcm_delay;
 }
