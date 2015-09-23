@@ -1059,7 +1059,7 @@ static inline int pcm_mmap_capture_avail(struct pcm *pcm)
     return avail;
 }
 
-static inline int pcm_mmap_avail(struct pcm *pcm)
+int pcm_mmap_avail(struct pcm *pcm)
 {
     pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_HWSYNC);
     if (pcm->flags & PCM_IN)
@@ -1178,6 +1178,11 @@ int pcm_wait(struct pcm *pcm, int timeout)
     } while (!(pfd.revents & (POLLIN | POLLOUT)));
 
     return 1;
+}
+
+int pcm_get_poll_fd(struct pcm *pcm)
+{
+    return pcm->fd;
 }
 
 int pcm_mmap_transfer(struct pcm *pcm, const void *buffer, unsigned int bytes)

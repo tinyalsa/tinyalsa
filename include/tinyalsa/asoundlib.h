@@ -235,6 +235,7 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count);
 int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset,
                    unsigned int *frames);
 int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
+int pcm_mmap_avail(struct pcm *pcm);
 
 /* Prepare the PCM substream to be triggerable */
 int pcm_prepare(struct pcm *pcm);
@@ -247,6 +248,7 @@ int pcm_ioctl(struct pcm *pcm, int request, ...);
 
 /* Interrupt driven API */
 int pcm_wait(struct pcm *pcm, int timeout);
+int pcm_get_poll_fd(struct pcm *pcm);
 
 /* Change avail_min after the stream has been opened with no need to stop the stream.
  * Only accepted if opened with PCM_MMAP and PCM_NOIRQ flags
