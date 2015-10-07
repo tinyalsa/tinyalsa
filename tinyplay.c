@@ -218,6 +218,7 @@ void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned in
     int size;
     int num_read;
 
+    memset(&config, 0, sizeof(config));
     config.channels = channels;
     config.rate = rate;
     config.period_size = period_size;
