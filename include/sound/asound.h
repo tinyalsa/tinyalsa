@@ -12,6 +12,7 @@
 #ifndef __SOUND_ASOUND_H
 #define __SOUND_ASOUND_H
 
+#include <time.h>
 #include <linux/types.h>
 
 #define SNDRV_PROTOCOL_VERSION(major, minor, subminor) (((major)<<16)|((minor)<<8)|(subminor))
