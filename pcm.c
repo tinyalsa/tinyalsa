@@ -653,10 +653,13 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     int rc;
 
     pcm = calloc(1, sizeof(struct pcm));
-    if (!pcm || !config)
-        return &bad_pcm; /* TODO: could support default config here */
+    if (!pcm)
+        return &bad_pcm;
 
-    pcm->config = *config;
+    if (!config)
+        pcm_config_set_defaults(&pcm->config);
+    else
+        pcm->config = *config;
 
     snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,
              flags & PCM_IN ? 'c' : 'p');
