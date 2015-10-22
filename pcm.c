@@ -48,6 +48,18 @@
 
 #include <tinyalsa/asoundlib.h>
 
+void pcm_config_set_defaults(struct pcm_config * config)
+{
+    config->channels = 2;
+    config->rate = 44100;
+    config->period_size = 1024;
+    config->period_count = 4;
+    config->format = PCM_FORMAT_S16_LE;
+    config->start_threshold = 1024 * 4;
+    config->stop_threshold = 1024 * 4;
+    config->silence_threshold = 0;
+}
+
 #define PARAM_MAX SNDRV_PCM_HW_PARAM_LAST_INTERVAL
 #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)
 
