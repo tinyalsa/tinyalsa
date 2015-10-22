@@ -38,6 +38,9 @@
 #define ID_FMT  0x20746d66
 #define ID_DATA 0x61746164
 
+#define INPUT_WAV 0
+#define INPUT_RAW 1
+
 struct riff_wave_header {
     uint32_t riff_id;
     uint32_t riff_sz;
@@ -81,12 +84,18 @@ int main(int argc, char **argv)
     unsigned int card = 0;
     unsigned int period_size = 1024;
     unsigned int period_count = 4;
+    unsigned int channels = 2;
+    unsigned int rate = 48000;
+    unsigned int bits = 16;
+    unsigned int input = INPUT_WAV; /* Default wav file */
     char *filename;
     int more_chunks = 1;
 
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s file.wav [-D card] [-d device] [-p period_size]"
+        fprintf(stderr, "Usage1: %s file.wav [-D card] [-d device] [-p period_size]"
                 " [-n n_periods] \n", argv[0]);
+        fprintf(stderr, "Usage2: %s file.raw [-D card] [-d device] [-c channels] "
+                "[-r rate] [-b bits] [-p period_size] [-n n_periods] [-i raw] \n", argv[0]);
         return 1;
     }
 
@@ -96,34 +105,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "Unable to open file '%s'\n", filename);
         return 1;
     }
-
-    fread(&riff_wave_header, sizeof(riff_wave_header), 1, file);
-    if ((riff_wave_header.riff_id != ID_RIFF) ||
-        (riff_wave_header.wave_id != ID_WAVE)) {
-        fprintf(stderr, "Error: '%s' is not a riff/wave file\n", filename);
-        fclose(file);
-        return 1;
-    }
-
-    do {
-        fread(&chunk_header, sizeof(chunk_header), 1, file);
-
-        switch (chunk_header.id) {
-        case ID_FMT:
-            fread(&chunk_fmt, sizeof(chunk_fmt), 1, file);
-            /* If the format header is larger, skip the rest */
-            if (chunk_header.sz > sizeof(chunk_fmt))
-                fseek(file, chunk_header.sz - sizeof(chunk_fmt), SEEK_CUR);
-            break;
-        case ID_DATA:
-            /* Stop looking for chunks */
-            more_chunks = 0;
-            break;
-        default:
-            /* Unknown chunk, skip bytes */
-            fseek(file, chunk_header.sz, SEEK_CUR);
-        }
-    } while (more_chunks);
 
     /* parse command line arguments */
     argv += 2;
@@ -148,12 +129,73 @@ int main(int argc, char **argv)
             if (*argv)
                 card = atoi(*argv);
         }
+        if (strcmp(*argv, "-c") == 0) {
+            argv++;
+            if (*argv)
+                channels = atoi(*argv);
+        }
+        if (strcmp(*argv, "-r") == 0) {
+            argv++;
+            if (*argv)
+                rate = atoi(*argv);
+        }
+        if (strcmp(*argv, "-b") == 0) {
+            argv++;
+            if (*argv)
+                bits = atoi(*argv);
+        }
+        if (strcmp(*argv, "-i") == 0) {
+            argv++;
+            if (*argv) {
+                if (strcasecmp(*argv, "raw") == 0) {
+                    input = INPUT_RAW;
+                }
+            }
+        }
         if (*argv)
             argv++;
     }
 
-    play_sample(file, card, device, chunk_fmt.num_channels, chunk_fmt.sample_rate,
-                chunk_fmt.bits_per_sample, period_size, period_count);
+    switch ( input ) {
+
+        case INPUT_RAW:
+            /* Nothing to parse...*/
+        break;
+
+        case INPUT_WAV:
+        default:
+            fread(&riff_wave_header, sizeof(riff_wave_header), 1, file);
+            if ((riff_wave_header.riff_id != ID_RIFF) ||
+                (riff_wave_header.wave_id != ID_WAVE)) {
+                fprintf(stderr, "Error: '%s' is not a riff/wave file\n", filename);
+                fclose(file);
+                return 1;
+            }
+            do {
+                fread(&chunk_header, sizeof(chunk_header), 1, file);
+                switch (chunk_header.id) {
+                case ID_FMT:
+                    fread(&chunk_fmt, sizeof(chunk_fmt), 1, file);
+                    /* If the format header is larger, skip the rest */
+                    if (chunk_header.sz > sizeof(chunk_fmt))
+                        fseek(file, chunk_header.sz - sizeof(chunk_fmt), SEEK_CUR);
+                    break;
+                case ID_DATA:
+                    /* Stop looking for chunks */
+                    more_chunks = 0;
+                    break;
+                default:
+                    /* Unknown chunk, skip bytes */
+                    fseek(file, chunk_header.sz, SEEK_CUR);
+                }
+            } while (more_chunks);
+            channels = chunk_fmt.num_channels;
+            rate = chunk_fmt.sample_rate;
+            bits = chunk_fmt.bits_per_sample;
+        break;
+    }
+
+    play_sample(file, card, device, channels, rate, bits, period_size, period_count);
 
     fclose(file);
 
