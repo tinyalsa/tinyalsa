@@ -100,6 +100,8 @@ struct pcm_config {
     unsigned int silence_threshold;
 };
 
+void pcm_config_set_defaults(struct pcm_config * config);
+
 /* PCM parameters */
 enum pcm_param
 {
