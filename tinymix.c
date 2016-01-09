@@ -132,7 +132,6 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control,
     int min, max;
     int ret;
     char *buf = NULL;
-    size_t len;
 
     if (isdigit(control[0]))
         ctl = mixer_get_ctl(mixer, atoi(control));
@@ -147,16 +146,14 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control,
     type = mixer_ctl_get_type(ctl);
     num_values = mixer_ctl_get_num_values(ctl);
 
-    if (type == MIXER_CTL_TYPE_BYTE) {
-
+    if ((type == MIXER_CTL_TYPE_BYTE) && (num_values > 0)) {
         buf = calloc(1, num_values);
         if (buf == NULL) {
             fprintf(stderr, "Failed to alloc mem for bytes %d\n", num_values);
             return;
         }
 
-        len = num_values;
-        ret = mixer_ctl_get_array(ctl, buf, len);
+        ret = mixer_ctl_get_array(ctl, buf, num_values);
         if (ret < 0) {
             fprintf(stderr, "Failed to mixer_ctl_get_array\n");
             free(buf);
