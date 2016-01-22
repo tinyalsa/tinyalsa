@@ -62,7 +62,7 @@ int prinfo = 1;
 unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
                             unsigned int channels, unsigned int rate,
                             enum pcm_format format, unsigned int period_size,
-                            unsigned int period_count);
+                            unsigned int period_count, unsigned int capture_time);
 
 void sigint_handler(int sig)
 {
@@ -81,12 +81,13 @@ int main(int argc, char **argv)
     unsigned int frames;
     unsigned int period_size = 1024;
     unsigned int period_count = 4;
+    unsigned int capture_time = 0;
     enum pcm_format format;
     int no_header = 0;
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s {file.wav | --} [-D card] [-d device] [-c channels] "
-                "[-r rate] [-b bits] [-p period_size] [-n n_periods]\n\n"
+                "[-r rate] [-b bits] [-p period_size] [-n n_periods] [-t time_in_seconds]\n\n"
                 "Use -- for filename to send raw PCM to stdout\n", argv[0]);
         return 1;
     }
@@ -134,6 +135,10 @@ int main(int argc, char **argv)
             argv++;
             if (*argv)
                 period_count = atoi(*argv);
+        } else if (strcmp(*argv, "-t") == 0) {
+            argv++;
+            if (*argv)
+                capture_time = atoi(*argv);
         }
         if (*argv)
             argv++;
@@ -177,7 +182,7 @@ int main(int argc, char **argv)
     signal(SIGINT, sigint_handler);
     frames = capture_sample(file, card, device, header.num_channels,
                             header.sample_rate, format,
-                            period_size, period_count);
+                            period_size, period_count, capture_time);
     if (prinfo) {
         printf("Captured %d frames\n", frames);
     }
@@ -198,7 +203,7 @@ int main(int argc, char **argv)
 unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
                             unsigned int channels, unsigned int rate,
                             enum pcm_format format, unsigned int period_size,
-                            unsigned int period_count)
+                            unsigned int period_count, unsigned int capture_time)
 {
     struct pcm_config config;
     struct pcm *pcm;
@@ -238,6 +243,11 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
     }
 
     while (capturing && !pcm_read(pcm, buffer, size)) {
+        if (capture_time > 0 &&
+            ((bytes_read + size) > pcm_frames_to_bytes(pcm, capture_time * rate))) {
+            size = pcm_frames_to_bytes(pcm, capture_time * rate) - bytes_read;
+            capturing = 0;
+        }
         if (fwrite(buffer, 1, size, file) != size) {
             fprintf(stderr,"Error capturing sample\n");
             break;
