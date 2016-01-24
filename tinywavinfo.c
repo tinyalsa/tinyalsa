@@ -201,9 +201,9 @@ void analyse_sample(FILE *file, unsigned int channels, unsigned int bits,
     for (ch = 0; ch < channels; ch++) {
         float average_power = 10 * log10((*(power + ch)) / total_sample_per_channel);
         if(isinf (average_power)) {
-            printf("Channel [%2d] Average Power : NO signal or ZERO signal\n", ch);
+            printf("Channel [%2u] Average Power : NO signal or ZERO signal\n", ch);
         } else {
-            printf("Channel [%2d] Average Power : %.2f dB\n", ch, average_power);
+            printf("Channel [%2u] Average Power : %.2f dB\n", ch, average_power);
         }
     }
 

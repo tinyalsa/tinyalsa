@@ -90,7 +90,7 @@ static void tinymix_list_controls(struct mixer *mixer)
 
     num_ctls = mixer_get_num_ctls(mixer);
 
-    printf("Number of controls: %d\n", num_ctls);
+    printf("Number of controls: %u\n", num_ctls);
 
     printf("ctl\ttype\tnum\t%-40s value\n", "name");
     for (i = 0; i < num_ctls; i++) {
@@ -99,7 +99,7 @@ static void tinymix_list_controls(struct mixer *mixer)
         name = mixer_ctl_get_name(ctl);
         type = mixer_ctl_get_type_string(ctl);
         num_values = mixer_ctl_get_num_values(ctl);
-        printf("%d\t%s\t%d\t%-40s", i, type, num_values, name);
+        printf("%u\t%s\t%u\t%-40s", i, type, num_values, name);
         tinymix_detail_control(mixer, name, 0);
     }
 }
@@ -149,7 +149,7 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control,
     if ((type == MIXER_CTL_TYPE_BYTE) && (num_values > 0)) {
         buf = calloc(1, num_values);
         if (buf == NULL) {
-            fprintf(stderr, "Failed to alloc mem for bytes %d\n", num_values);
+            fprintf(stderr, "Failed to alloc mem for bytes %u\n", num_values);
             return;
         }
 
@@ -209,7 +209,7 @@ static void tinymix_set_byte_ctl(struct mixer_ctl *ctl,
 
     buf = calloc(1, num_values);
     if (buf == NULL) {
-        fprintf(stderr, "set_byte_ctl: Failed to alloc mem for bytes %d\n", num_values);
+        fprintf(stderr, "set_byte_ctl: Failed to alloc mem for bytes %u\n", num_values);
         exit(EXIT_FAILURE);
     }
 
@@ -302,13 +302,13 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
             /* Set multiple values */
             if (num_values > num_ctl_values) {
                 fprintf(stderr,
-                        "Error: %d values given, but control only takes %d\n",
+                        "Error: %u values given, but control only takes %u\n",
                         num_values, num_ctl_values);
                 return;
             }
             for (i = 0; i < num_values; i++) {
                 if (mixer_ctl_set_value(ctl, i, atoi(values[i]))) {
-                    fprintf(stderr, "Error: invalid value for index %d\n", i);
+                    fprintf(stderr, "Error: invalid value for index %u\n", i);
                     return;
                 }
             }
