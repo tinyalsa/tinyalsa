@@ -1,29 +1,34 @@
-CFLAGS = -c -fPIC -Wall
+CFLAGS ?= -Wall
+LDFLAGS ?=
 INC = include
 OBJECTS = mixer.o pcm.o
-LIB = libtinyalsa.so
+LIB = libtinyalsa.a
+SHLIB = libtinyalsa.so
 CROSS_COMPILE =
 
-all: $(LIB) tinyplay tinycap tinymix tinypcminfo
+all: $(LIB) $(SHLIB) tinyplay tinycap tinymix tinypcminfo
 
-tinyplay: $(LIB) tinyplay.o
-	$(CROSS_COMPILE)gcc tinyplay.o -L. -ltinyalsa -o tinyplay
+tinyplay: $(SHLIB) tinyplay.o
+	$(CROSS_COMPILE)$(CC) $(LDFLAGS) tinyplay.o -L. -ltinyalsa -o tinyplay
 
-tinycap: $(LIB) tinycap.o
-	$(CROSS_COMPILE)gcc tinycap.o -L. -ltinyalsa -o tinycap
+tinycap: $(SHLIB) tinycap.o
+	$(CROSS_COMPILE)$(CC) $(LDFLAGS) tinycap.o -L. -ltinyalsa -o tinycap
 
-tinymix: $(LIB) tinymix.o
-	$(CROSS_COMPILE)gcc tinymix.o -L. -ltinyalsa -o tinymix
+tinymix: $(SHLIB) tinymix.o
+	$(CROSS_COMPILE)$(CC) $(LDFLAGS) tinymix.o -L. -ltinyalsa -o tinymix
 
-tinypcminfo: $(LIB) tinypcminfo.o
-	$(CROSS_COMPILE)gcc tinypcminfo.o -L. -ltinyalsa -o tinypcminfo
+tinypcminfo: $(SHLIB) tinypcminfo.o
+	$(CROSS_COMPILE)$(CC) $(LDFLAGS) tinypcminfo.o -L. -ltinyalsa -o tinypcminfo
+
+$(SHLIB): $(OBJECTS)
+	$(CROSS_COMPILE)$(CC) $(LDFLAGS) -shared $(OBJECTS) -o $(SHLIB)
 
 $(LIB): $(OBJECTS)
-	$(CROSS_COMPILE)gcc -shared $(OBJECTS) -o $(LIB)
+	$(CROSS_COMPILE)$(AR) rcs $@ $^
 
-.c.o:
-	$(CROSS_COMPILE)gcc $(CFLAGS) $< -I$(INC)
+%.o: %.c
+	$(CROSS_COMPILE)$(CC) $(CFLAGS) -fPIC -c $^ -I$(INC) -o $@
 
 clean:
-	-rm $(LIB) $(OBJECTS) tinyplay.o tinyplay tinycap.o tinycap \
+	-rm $(LIB) $(SHLIB) $(OBJECTS) tinyplay.o tinyplay tinycap.o tinycap \
 	tinymix.o tinymix tinypcminfo.o tinypcminfo
