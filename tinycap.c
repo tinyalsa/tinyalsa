@@ -63,7 +63,7 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
                             enum pcm_format format, unsigned int period_size,
                             unsigned int period_count);
 
-void sigint_handler(int sig)
+void sigint_handler(int sig __unused)
 {
     capturing = 0;
 }

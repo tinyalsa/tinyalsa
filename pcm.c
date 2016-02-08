@@ -49,7 +49,6 @@
 #include <tinyalsa/asoundlib.h>
 
 #define PARAM_MAX SNDRV_PCM_HW_PARAM_LAST_INTERVAL
-#define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)
 
 /* Logs information into a string; follows snprintf() in that
  * offset may be greater than size, and though no characters are copied
@@ -1106,7 +1105,7 @@ int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset,
     return 0;
 }
 
-int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames)
+int pcm_mmap_commit(struct pcm *pcm, unsigned int offset __attribute__((unused)), unsigned int frames)
 {
     /* update the application pointer in userspace and kernel */
     pcm_mmap_appl_forward(pcm, frames);
