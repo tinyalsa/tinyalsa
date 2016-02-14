@@ -125,7 +125,7 @@ int main(int argc, char **argv)
             argv++;
     }
 
-    printf("Info for card %d, device %d:\n", card, device);
+    printf("Info for card %u, device %u:\n", card, device);
 
     for (i = 0; i < 2; i++) {
         struct pcm_params *params;

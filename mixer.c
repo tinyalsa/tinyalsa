@@ -188,10 +188,12 @@ struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id)
 struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name)
 {
     unsigned int n;
-    struct mixer_ctl *ctl = mixer->ctl;
+    struct mixer_ctl *ctl;
 
     if (!mixer)
         return NULL;
+
+    ctl = mixer->ctl;
 
     for (n = 0; n < mixer->count; n++)
         if (!strcmp(name, (char*) ctl[n].info.id.name))
