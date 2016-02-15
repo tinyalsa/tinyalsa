@@ -48,6 +48,18 @@
 
 #include <tinyalsa/asoundlib.h>
 
+void pcm_config_set_defaults(struct pcm_config * config)
+{
+    config->channels = 2;
+    config->rate = 44100;
+    config->period_size = 1024;
+    config->period_count = 4;
+    config->format = PCM_FORMAT_S16_LE;
+    config->start_threshold = 1024 * 4;
+    config->stop_threshold = 1024 * 4;
+    config->silence_threshold = 0;
+}
+
 #define PARAM_MAX SNDRV_PCM_HW_PARAM_LAST_INTERVAL
 #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)
 
@@ -641,10 +653,13 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     int rc;
 
     pcm = calloc(1, sizeof(struct pcm));
-    if (!pcm || !config)
-        return &bad_pcm; /* TODO: could support default config here */
+    if (!pcm)
+        return &bad_pcm;
 
-    pcm->config = *config;
+    if (!config)
+        pcm_config_set_defaults(&pcm->config);
+    else
+        pcm->config = *config;
 
     snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,
              flags & PCM_IN ? 'c' : 'p');
