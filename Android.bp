@@ -40,7 +40,7 @@ cc_binary {
     name: "tinymix",
     srcs: ["tinymix.c"],
     shared_libs: ["libtinyalsa"],
-    cflags: ["-Werror"],
+    cflags: ["-Werror", "-Wall"],
 }
 
 cc_binary {
