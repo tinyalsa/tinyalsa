@@ -199,6 +199,9 @@ int check_param(struct pcm_params *params, unsigned int param, unsigned int valu
     int is_within_bounds = 1;
 
     min = pcm_params_get_min(params, param);
+    if (PCM_PARAM_SAMPLE_BITS == param && value == 24 && min ==32)
+	min = 24;
+
     if (value < min) {
         fprintf(stderr, "%s is %u%s, device only supports >= %u%s\n", param_name, value,
                 param_unit, min, param_unit);
@@ -246,8 +249,9 @@ void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned in
     struct pcm_config config;
     struct pcm *pcm;
     char *buffer;
-    int size;
-    int num_read;
+    char *buffer24;
+    int size, size24;
+    int num_read, num_read24, i, idx, idx24;
 
     memset(&config, 0, sizeof(config));
     config.channels = channels;
@@ -256,6 +260,8 @@ void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned in
     config.period_count = period_count;
     if (bits == 32)
         config.format = PCM_FORMAT_S32_LE;
+    else if (bits == 24)
+        config.format = PCM_FORMAT_S24_LE;
     else if (bits == 16)
         config.format = PCM_FORMAT_S16_LE;
     config.start_threshold = 0;
@@ -282,13 +288,39 @@ void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned in
         return;
     }
 
+    if (bits == 24) {
+	    size24 = ((size*3)/4);
+	    buffer24 = malloc(size24);
+	    if (!buffer24) {
+		fprintf(stderr, "Unable to allocate %d bytes\n", size24);
+		free(buffer);
+		pcm_close(pcm);
+		return;
+	    }
+
+    }
+
     printf("Playing sample: %u ch, %u hz, %u bit\n", channels, rate, bits);
 
     /* catch ctrl-c to shutdown cleanly */
     signal(SIGINT, stream_close);
 
     do {
-        num_read = fread(buffer, 1, size, file);
+	if (bits == 24) {
+            num_read24 = fread(buffer24, 1, size24, file);
+	    num_read = 0;
+	    idx = idx24 = 0;
+	    for (i=0; i < (num_read24/3); i++) {
+		buffer[idx++] = buffer24[idx24++];
+		buffer[idx++] = buffer24[idx24++];
+		buffer[idx++] = buffer24[idx24++];
+		buffer[idx++] = 0;
+	    }
+	    num_read = idx;
+	}
+	else
+            num_read = fread(buffer, 1, size, file);
+
         if (num_read > 0) {
             if (pcm_write(pcm, buffer, num_read)) {
                 fprintf(stderr, "Error playing sample\n");
