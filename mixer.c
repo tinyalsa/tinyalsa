@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -360,7 +361,11 @@ int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count)
             struct snd_ctl_tlv *tlv;
             int ret;
 
+            if (count > SIZE_MAX - sizeof(*tlv))
+                return -EINVAL;
             tlv = calloc(1, sizeof(*tlv) + count);
+            if (!tlv)
+                return -ENOMEM;
             tlv->numid = ctl->info->id.numid;
             tlv->length = count;
             ret = ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_TLV_READ, tlv);
@@ -456,7 +461,11 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
         if (ctl->info->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
             struct snd_ctl_tlv *tlv;
             int ret = 0;
+            if (count > SIZE_MAX - sizeof(*tlv))
+                return -EINVAL;
             tlv = calloc(1, sizeof(*tlv) + count);
+            if (!tlv)
+                return -ENOMEM;
             tlv->numid = ctl->info->id.numid;
             tlv->length = count;
             memcpy(tlv->tlv, array, count);
