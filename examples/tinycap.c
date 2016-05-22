@@ -66,6 +66,7 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
 
 void sigint_handler(int sig)
 {
+	(void) sig;
     capturing = 0;
 }
 
