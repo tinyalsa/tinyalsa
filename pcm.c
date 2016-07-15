@@ -855,10 +855,16 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
              flags & PCM_IN ? 'c' : 'p');
 
     pcm->flags = flags;
-    pcm->fd = open(fn, O_RDWR);
+    pcm->fd = open(fn, O_RDWR|O_NONBLOCK);
     if (pcm->fd < 0) {
         oops(pcm, errno, "cannot open device '%s'", fn);
         return pcm;
+    }
+
+    if (fcntl(pcm->fd, F_SETFL, fcntl(pcm->fd, F_GETFL) &
+              ~O_NONBLOCK) < 0) {
+        oops(pcm, errno, "failed to reset blocking mode '%s'", fn);
+        goto fail_close;
     }
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_INFO, &info)) {
@@ -884,7 +890,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     if (flags & PCM_NOIRQ) {
         if (!(flags & PCM_MMAP)) {
             oops(pcm, -EINVAL, "noirq only currently supported with mmap().");
-            goto fail;
+            goto fail_close;
         }
 
         params.flags |= SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP;
