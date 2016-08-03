@@ -153,6 +153,9 @@ unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
 unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
                                 enum pcm_param param);
 
+/* Returns the file descriptor associated with the pcm */
+int pcm_get_file_descriptor(struct pcm *pcm);
+
 /* Returns a human readable reason for the last error */
 const char *pcm_get_error(struct pcm *pcm);
 

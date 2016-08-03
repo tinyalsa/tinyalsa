@@ -179,6 +179,11 @@ unsigned int pcm_get_buffer_size(struct pcm *pcm)
     return pcm->buffer_size;
 }
 
+int pcm_get_file_descriptor(struct pcm *pcm)
+{
+    return pcm->fd;
+}
+
 const char* pcm_get_error(struct pcm *pcm)
 {
     return pcm->error;
