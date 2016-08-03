@@ -5,6 +5,7 @@ OBJECTS = mixer.o pcm.o
 LIB = libtinyalsa.a
 SHLIB = libtinyalsa.so
 CROSS_COMPILE =
+PREFIX = /usr/local
 
 .PHONY: all
 all: $(LIB) $(SHLIB) tinyplay tinycap tinymix tinypcminfo
