@@ -6,6 +6,7 @@ LIB = libtinyalsa.a
 SHLIB = libtinyalsa.so
 CROSS_COMPILE =
 
+.PHONY: all
 all: $(LIB) $(SHLIB) tinyplay tinycap tinymix tinypcminfo
 
 tinyplay: $(SHLIB) tinyplay.o
@@ -29,6 +30,15 @@ $(LIB): $(OBJECTS)
 %.o: %.c
 	$(CROSS_COMPILE)$(CC) $(CFLAGS) -fPIC -c $^ -I$(INC) -o $@
 
+.PHONY: clean
 clean:
 	-rm $(LIB) $(SHLIB) $(OBJECTS) tinyplay.o tinyplay tinycap.o tinycap \
 	tinymix.o tinymix tinypcminfo.o tinypcminfo
+
+.PHONY: install
+install: $(LIB) $(SHLIB)
+	cp -u $(SHLIB) $(PREFIX)/lib/$(SHLIB)
+	cp -u $(LIB) $(PREFIX)/lib/$(LIB)
+	mkdir -p $(PREFIX)/include/tinyalsa
+	cp -u $(INC)/tinyalsa/asoundlib.h $(PREFIX)/include/tinyalsa/asoundlib.h
+
