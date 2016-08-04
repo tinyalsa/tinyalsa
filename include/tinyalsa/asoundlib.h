@@ -228,6 +228,19 @@ void mixer_close(struct mixer *mixer);
 /* Get info about a mixer */
 const char *mixer_get_name(struct mixer *mixer);
 
+/* Some controls may not be present at boot time, e.g. controls from loadable
+ * DSP firmware. This function adds any new controls that have appeared since
+ * mixer_open() or last call to this function.
+ *
+ * NOTE: this invalidates any struct mixer_ctl pointers previously obtained
+ * from mixer_get_ctl() and mixer_get_ctl_by_name(). Either refresh all your
+ * stored pointers after calling mixer_update_ctls(), or (better) do not
+ * store struct mixer_ctl pointers, instead lookup the control by name or
+ * id only when you are about to use it. The overhead of lookup by id
+ * using mixer_get_ctl() is negligible.
+ */
+int mixer_update_ctls(struct mixer *mixer);
+
 /* Obtain mixer controls */
 unsigned int mixer_get_num_ctls(struct mixer *mixer);
 struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id);
