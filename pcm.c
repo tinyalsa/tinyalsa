@@ -250,7 +250,8 @@ unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames)
         (pcm_format_to_bits(pcm->config.format) >> 3);
 }
 
-static int pcm_sync_ptr(struct pcm *pcm, int flags) {
+static int pcm_sync_ptr(struct pcm *pcm, int flags)
+{
     if (pcm->sync_ptr) {
         pcm->sync_ptr->flags = flags;
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SYNC_PTR, pcm->sync_ptr) < 0)
@@ -259,8 +260,8 @@ static int pcm_sync_ptr(struct pcm *pcm, int flags) {
     return 0;
 }
 
-static int pcm_hw_mmap_status(struct pcm *pcm) {
-
+static int pcm_hw_mmap_status(struct pcm *pcm)
+{
     if (pcm->sync_ptr)
         return 0;
 
