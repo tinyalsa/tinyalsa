@@ -38,6 +38,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+#include <time.h>
 #include <limits.h>
 
 #include <linux/ioctl.h>
