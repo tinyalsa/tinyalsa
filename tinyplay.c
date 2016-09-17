@@ -163,6 +163,12 @@ int main(int argc, char **argv)
         }
         do {
             fread(&chunk_header, sizeof(chunk_header), 1, file);
+	    if(!feof(file))
+	    {
+		fprintf(stderr, "Error: End of file, suspected %s ,corrupted riff/wav file\n",filename);
+		fclose(file);
+		return 1;
+            }
             switch (chunk_header.id) {
             case ID_FMT:
                 fread(&chunk_fmt, sizeof(chunk_fmt), 1, file);
