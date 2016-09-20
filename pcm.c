@@ -526,40 +526,28 @@ static int pcm_param_to_alsa(enum pcm_param param)
         return SNDRV_PCM_HW_PARAM_SUBFORMAT;
     case PCM_PARAM_SAMPLE_BITS:
         return SNDRV_PCM_HW_PARAM_SAMPLE_BITS;
-        break;
     case PCM_PARAM_FRAME_BITS:
         return SNDRV_PCM_HW_PARAM_FRAME_BITS;
-        break;
     case PCM_PARAM_CHANNELS:
         return SNDRV_PCM_HW_PARAM_CHANNELS;
-        break;
     case PCM_PARAM_RATE:
         return SNDRV_PCM_HW_PARAM_RATE;
-        break;
     case PCM_PARAM_PERIOD_TIME:
         return SNDRV_PCM_HW_PARAM_PERIOD_TIME;
-        break;
     case PCM_PARAM_PERIOD_SIZE:
         return SNDRV_PCM_HW_PARAM_PERIOD_SIZE;
-        break;
     case PCM_PARAM_PERIOD_BYTES:
         return SNDRV_PCM_HW_PARAM_PERIOD_BYTES;
-        break;
     case PCM_PARAM_PERIODS:
         return SNDRV_PCM_HW_PARAM_PERIODS;
-        break;
     case PCM_PARAM_BUFFER_TIME:
         return SNDRV_PCM_HW_PARAM_BUFFER_TIME;
-        break;
     case PCM_PARAM_BUFFER_SIZE:
         return SNDRV_PCM_HW_PARAM_BUFFER_SIZE;
-        break;
     case PCM_PARAM_BUFFER_BYTES:
         return SNDRV_PCM_HW_PARAM_BUFFER_BYTES;
-        break;
     case PCM_PARAM_TICK_TIME:
         return SNDRV_PCM_HW_PARAM_TICK_TIME;
-        break;
 
     default:
         return -1;
@@ -703,6 +691,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
                    SNDRV_PCM_ACCESS_RW_INTERLEAVED);
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
+printf("DEBUG: Passed %s %d \n",__FUNCTION__,__LINE__);
         oops(pcm, errno, "cannot set hw params");
         goto fail_close;
     }
@@ -758,6 +747,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 		pcm->boundary *= 2;
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
+printf("DEBUG: Passed %s %d \n",__FUNCTION__,__LINE__);
         oops(pcm, errno, "cannot set sw params");
         goto fail;
     }
