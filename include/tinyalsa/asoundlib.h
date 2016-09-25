@@ -266,6 +266,10 @@ int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string);
 int mixer_ctl_get_range_min(struct mixer_ctl *ctl);
 int mixer_ctl_get_range_max(struct mixer_ctl *ctl);
 
+/* Function to poll on mixer event */
+int mixer_ctl_subscribe_events(struct mixer_ctl *ctl, int subscribe);
+int mixer_ctl_poll(struct mixer_ctl *ctl, int timeout);
+
 #if defined(__cplusplus)
 }  /* extern "C" */
 #endif
