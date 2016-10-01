@@ -214,15 +214,30 @@ static int oops(struct pcm *pcm, int e, const char *fmt, ...)
 static unsigned int pcm_format_to_alsa(enum pcm_format format)
 {
     switch (format) {
-    case PCM_FORMAT_S32_LE:
-        return SNDRV_PCM_FORMAT_S32_LE;
+
     case PCM_FORMAT_S8:
         return SNDRV_PCM_FORMAT_S8;
-    case PCM_FORMAT_S24_LE:
-        return SNDRV_PCM_FORMAT_S24_LE;
+
     default:
     case PCM_FORMAT_S16_LE:
         return SNDRV_PCM_FORMAT_S16_LE;
+    case PCM_FORMAT_S16_BE:
+        return SNDRV_PCM_FORMAT_S16_BE;
+
+    case PCM_FORMAT_S24_LE:
+        return SNDRV_PCM_FORMAT_S24_LE;
+    case PCM_FORMAT_S24_BE:
+        return SNDRV_PCM_FORMAT_S24_BE;
+
+    case PCM_FORMAT_S24_3LE:
+        return SNDRV_PCM_FORMAT_S24_3LE;
+    case PCM_FORMAT_S24_3BE:
+        return SNDRV_PCM_FORMAT_S24_3BE;
+
+    case PCM_FORMAT_S32_LE:
+        return SNDRV_PCM_FORMAT_S32_LE;
+    case PCM_FORMAT_S32_BE:
+        return SNDRV_PCM_FORMAT_S32_BE;
     };
 }
 
@@ -230,11 +245,19 @@ unsigned int pcm_format_to_bits(enum pcm_format format)
 {
     switch (format) {
     case PCM_FORMAT_S32_LE:
+    case PCM_FORMAT_S32_BE:
     case PCM_FORMAT_S24_LE:
+    case PCM_FORMAT_S24_BE:
         return 32;
+    case PCM_FORMAT_S24_3LE:
+    case PCM_FORMAT_S24_3BE:
+        return 24;
     default:
     case PCM_FORMAT_S16_LE:
+    case PCM_FORMAT_S16_BE:
         return 16;
+    case PCM_FORMAT_S8:
+        return 8;
     };
 }
 

@@ -66,12 +66,16 @@ struct pcm;
 
 /* Bit formats */
 enum pcm_format {
+    PCM_FORMAT_S8 = 1,
     PCM_FORMAT_S16_LE = 0,
-    PCM_FORMAT_S32_LE,
-    PCM_FORMAT_S8,
+    PCM_FORMAT_S16_BE = 2,
     PCM_FORMAT_S24_LE,
-
-    PCM_FORMAT_MAX,
+    PCM_FORMAT_S24_BE,
+    PCM_FORMAT_S24_3LE,
+    PCM_FORMAT_S24_3BE,
+    PCM_FORMAT_S32_LE,
+    PCM_FORMAT_S32_BE,
+    PCM_FORMAT_MAX
 };
 
 /* Bitmask has 256 bits (32 bytes) in asound.h */
