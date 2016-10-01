@@ -22,3 +22,12 @@ make
 sudo make install
 ```
 
+### Documentation
+
+Once installed, the man pages are available via:
+
+```
+man tinyalsa-pcm
+man tinyalsa-mixer
+```
+
