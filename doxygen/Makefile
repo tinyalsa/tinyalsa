@@ -1,0 +1,7 @@
+DOXYGEN ?= doxygen
+DOXYGENFLAGS =
+
+.PHONY: all
+all:
+	$(DOXYGEN) $(DOXYGENFLAGS)
+
