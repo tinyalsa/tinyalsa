@@ -47,19 +47,34 @@
 
 #include <tinyalsa/asoundlib.h>
 
+/** A mixer control.
+ * @ingroup tinyalsa-mixer
+ */
 struct mixer_ctl {
+    /** The mixer that the mixer control belongs to */
     struct mixer *mixer;
     struct snd_ctl_elem_info info;
     char **ename;
 };
 
+/** A mixer handle.
+ * @ingroup tinyalsa-mixer
+ */
 struct mixer {
+    /** File descriptor for the card */
     int fd;
+    /** Card information */
     struct snd_ctl_card_info card_info;
+    /** A continuous array of mixer controls */
     struct mixer_ctl *ctl;
+    /** The number of mixer controls */
     unsigned int count;
 };
 
+/** Closes a mixer returned by @ref mixer_open.
+ * @param mixer A mixer handle.
+ * @ingroup tinyalsa-mixer
+ */
 void mixer_close(struct mixer *mixer)
 {
     unsigned int n,m;
@@ -87,6 +102,10 @@ void mixer_close(struct mixer *mixer)
     /* TODO: verify frees */
 }
 
+/** Opens a mixer for a given card.
+ * @param card The card to open the mixer for.
+ * @ingroup tinyalsa-mixer
+ */
 struct mixer *mixer_open(unsigned int card)
 {
     struct snd_ctl_elem_list elist;

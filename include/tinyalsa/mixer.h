@@ -26,6 +26,12 @@
 ** DAMAGE.
 */
 
+/** @file */
+
+/** @defgroup tinyalsa-mixer Mixer Interface
+ * @brief All macros, structures and functions that make up the mixer interface.
+ */
+
 #ifndef TINYALSA_MIXER_H
 #define TINYALSA_MIXER_H
 
