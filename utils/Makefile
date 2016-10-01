@@ -1,12 +1,18 @@
+TOPDIR ?= ..
+SRCDIR ?= $(TOPDIR)
+INCDIR ?= $(TOPDIR)/include
+
 DESTDIR ?=
 PREFIX ?= /usr/local
 CROSS_COMPILE ?=
 
 CC = $(CROSS_COMPILE)gcc
-CFLAGS ?= -Wall -Wextra -Werror -Wfatal-errors
+CFLAGS ?= -Wall -Wextra -Werror -Wfatal-errors -I $(INCDIR)
 
 LD = $(CROSS_COMPILE)ld
 LDFLAGS ?=
+
+VPATH = $(SRCDIR)
 
 .PHONY: all
 all: tinyplay tinycap tinymix tinypcminfo
