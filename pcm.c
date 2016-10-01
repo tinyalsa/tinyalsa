@@ -928,6 +928,9 @@ int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset,
 
 int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames)
 {
+    /* not used */
+    (void) offset;
+
     /* update the application pointer in userspace and kernel */
     pcm_mmap_appl_forward(pcm, frames);
     pcm_sync_ptr(pcm, 0);
