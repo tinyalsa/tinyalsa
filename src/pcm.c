@@ -156,15 +156,26 @@ static void param_init(struct snd_pcm_hw_params *p)
 
 #define PCM_ERROR_MAX 128
 
+/** A PCM handle.
+ * @ingroup tinyalsa-pcm
+ */
 struct pcm {
+    /** The PCM's file descriptor */
     int fd;
+    /** Flags that were passed to @ref pcm_open */
     unsigned int flags;
+    /** Whether the PCM is running or not */
     int running:1;
+    /** Whether or not the PCM has been prepared */
     int prepared:1;
+    /** The number of underruns that have occured */
     int underruns;
+    /** Size of the buffer */
     unsigned int buffer_size;
     unsigned int boundary;
+    /** Description of the last error that occured */
     char error[PCM_ERROR_MAX];
+    /** Configuration that was passed to @ref pcm_open */
     struct pcm_config config;
     struct snd_pcm_mmap_status *mmap_status;
     struct snd_pcm_mmap_control *mmap_control;
@@ -175,21 +186,40 @@ struct pcm {
     unsigned int subdevice;
 };
 
+/** Gets the buffer size of the PCM.
+ * @param pcm A PCM handle.
+ * @return The buffer size of the PCM.
+ * @ingroup tinyalsa-pcm
+ */
 unsigned int pcm_get_buffer_size(struct pcm *pcm)
 {
     return pcm->buffer_size;
 }
 
+/** Gets the file descriptor of the PCM.
+ * Useful for extending functionality of the PCM when needed.
+ * @return The file descriptor of the PCM.
+ * @ingroup tinyalsa-pcm
+ */
 int pcm_get_file_descriptor(struct pcm *pcm)
 {
     return pcm->fd;
 }
 
+/** Gets the error message for the last error that occured.
+ * If no error occured and this function is called, the results are undefined.
+ * @param pcm A PCM handle.
+ * @return The error message of the last error that occured.
+ * @ingroup tinyalsa-pcm
+ */
 const char* pcm_get_error(struct pcm *pcm)
 {
     return pcm->error;
 }
 
+/** Gets the subdevice on which the pcm has been opened.
+ * @param pcm A PCM handle.
+ * @return The subdevice on which the pcm has been opened */
 unsigned int pcm_get_subdevice(struct pcm *pcm)
 {
     return pcm->subdevice;
@@ -241,6 +271,11 @@ static unsigned int pcm_format_to_alsa(enum pcm_format format)
     };
 }
 
+/** Determines the number of bits occupied by a @ref pcm_format.
+ * @param format A PCM format.
+ * @return The number of bits associated with @p format
+ * @ingroup tinyalsa-pcm
+ */
 unsigned int pcm_format_to_bits(enum pcm_format format)
 {
     switch (format) {
@@ -261,12 +296,24 @@ unsigned int pcm_format_to_bits(enum pcm_format format)
     };
 }
 
+/** Determines how many frames of a PCM can fit into a number of bytes.
+ * @param pcm A PCM handle.
+ * @param bytes The number of bytes.
+ * @return The number of frames that may fit into @p bytes
+ * @ingroup tinyalsa-pcm
+ */
 unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes)
 {
     return bytes / (pcm->config.channels *
         (pcm_format_to_bits(pcm->config.format) >> 3));
 }
 
+/** Determines how many bytes are occupied by a number of frames of a PCM.
+ * @param pcm A PCM handle.
+ * @param frames The number of frames of a PCM.
+ * @return The bytes occupied by @p frames.
+ * @ingroup tinyalsa-pcm
+ */
 unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames)
 {
     return frames * pcm->config.channels *
@@ -381,6 +428,17 @@ static int pcm_mmap_transfer_areas(struct pcm *pcm, char *buf,
     return count;
 }
 
+/** Returns available frames in pcm buffer and corresponding time stamp.
+ * The clock is CLOCK_MONOTONIC if flag @ref PCM_MONOTONIC was specified in @ref pcm_open,
+ * otherwise the clock is CLOCK_REALTIME.
+ * For an input stream, frames available are frames ready for the application to read.
+ * For an output stream, frames available are the number of empty frames available for the application to write.
+ * Only available for PCMs opened with the @ref PCM_MMAP flag.
+ * @param pcm A PCM handle.
+ * @param avail The number of available frames
+ * @param tstamp The timestamp
+ * @return On success, zero is returned; on failure, negative one.
+ */
 int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
                        struct timespec *tstamp)
 {
@@ -417,6 +475,16 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
     return 0;
 }
 
+/** Writes audio samples to PCM.
+ * If the PCM has not been started, it is started in this function.
+ * This function is only valid for PCMs opened with the @ref PCM_OUT flag.
+ * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
+ * @param pcm A PCM handle.
+ * @param data The audio sample array
+ * @param count The number of bytes occupied by the sample array.
+ * @return On success, this function returns zero; otherwise, a negative number.
+ * @ingroup tinyalsa-pcm
+ */
 int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
 {
     struct snd_xferi x;
@@ -456,6 +524,16 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
     }
 }
 
+/** Reads audio samples from PCM.
+ * If the PCM has not been started, it is started in this function.
+ * This function is only valid for PCMs opened with the @ref PCM_IN flag.
+ * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
+ * @param pcm A PCM handle.
+ * @param data The audio sample array
+ * @param count The number of bytes occupied by the sample array.
+ * @return On success, this function returns zero; otherwise, a negative number.
+ * @ingroup tinyalsa-pcm
+ */
 int pcm_read(struct pcm *pcm, void *data, unsigned int count)
 {
     struct snd_xferi x;
@@ -492,6 +570,18 @@ static struct pcm bad_pcm = {
     .fd = -1,
 };
 
+/** Gets the hardware parameters of a PCM, without created a PCM handle.
+ * @param card The card of the PCM.
+ *  The default card is zero.
+ * @param device The device of the PCM.
+ *  The default device is zero.
+ * @param flags Specifies whether the PCM is an input or output.
+ *  May be one of the following:
+ *   - @ref PCM_IN
+ *   - @ref PCM_OUT
+ * @return On success, the hardware parameters of the PCM; on failure, NULL.
+ * @ingroup tinyalsa-pcm
+ */
 struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
                                   unsigned int flags)
 {
@@ -530,6 +620,11 @@ err_open:
     return NULL;
 }
 
+/** Frees the hardware parameters returned by @ref pcm_params_open.
+ * @param pcm_params Hardware parameters of a PCM.
+ *  May be NULL.
+ * @ingroup tinyalsa-pcm
+ */
 void pcm_params_free(struct pcm_params *pcm_params)
 {
     struct snd_pcm_hw_params *params = (struct snd_pcm_hw_params *)pcm_params;
@@ -589,6 +684,13 @@ static int pcm_param_to_alsa(enum pcm_param param)
     }
 }
 
+/** Gets a mask from a PCM's hardware parameters.
+ * @param pcm_params A PCM's hardware parameters.
+ * @param param The parameter to get.
+ * @return If @p pcm_params is NULL or @p param is not a mask, NULL is returned.
+ *  Otherwise, the mask associated with @p param is returned.
+ * @ingroup tinyalsa-pcm
+ */
 struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
                                      enum pcm_param param)
 {
@@ -638,6 +740,12 @@ unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
     return param_get_max(params, p);
 }
 
+/** Closes a PCM returned by @ref pcm_open.
+ * @param pcm A PCM returned by @ref pcm_open.
+ *  May not be NULL.
+ * @return Always returns zero.
+ * @ingroup tinyalsa-pcm
+ */
 int pcm_close(struct pcm *pcm)
 {
     if (pcm == &bad_pcm)
@@ -660,6 +768,23 @@ int pcm_close(struct pcm *pcm)
     return 0;
 }
 
+/** Opens a PCM.
+ * @param card The card that the pcm belongs to.
+ *  The default card is zero.
+ * @param device The device that the pcm belongs to.
+ *  The default device is zero.
+ * @param flags Specify characteristics and functionality about the pcm.
+ *  May be a bitwise AND of the following:
+ *   - @ref PCM_IN
+ *   - @ref PCM_OUT
+ *   - @ref PCM_MMAP
+ *   - @ref PCM_NOIRQ
+ *   - @ref PCM_MONOTONIC
+ * @param config The hardware and software parameters to open the PCM with.
+ * @returns On success, returns an initialized pcm, ready for reading or writing.
+ *  On error, returns NULL.
+ * @ingroup tinyalsa-pcm
+ */
 struct pcm *pcm_open(unsigned int card, unsigned int device,
                      unsigned int flags, struct pcm_config *config)
 {
@@ -814,11 +939,22 @@ fail_close:
     return pcm;
 }
 
+/** Checks if a PCM file has been opened without error.
+ * @param pcm A PCM handle.
+ * @return If a PCM's file descriptor is not valid, it returns zero.
+ *  Otherwise, the function returns one.
+ * @ingroup tinyalsa-pcm
+ */
 int pcm_is_ready(struct pcm *pcm)
 {
     return pcm->fd >= 0;
 }
 
+/** Prepares a PCM, if it has not been prepared already.
+ * @param pcm A PCM handle.
+ * @return On success, zero; on failure, a negative number.
+ * @ingroup tinyalsa-pcm
+ */
 int pcm_prepare(struct pcm *pcm)
 {
     if (pcm->prepared)
@@ -831,6 +967,13 @@ int pcm_prepare(struct pcm *pcm)
     return 0;
 }
 
+/** Starts a PCM.
+ * If the PCM has not been prepared,
+ * it is prepared in this function.
+ * @param pcm A PCM handle.
+ * @return On success, zero; on failure, a negative number.
+ * @ingroup tinyalsa-pcm
+ */
 int pcm_start(struct pcm *pcm)
 {
     int prepare_error = pcm_prepare(pcm);
@@ -847,6 +990,11 @@ int pcm_start(struct pcm *pcm)
     return 0;
 }
 
+/** Stops a PCM.
+ * @param pcm A PCM handle.
+ * @return On success, zero; on failure, a negative number.
+ * @ingroup tinyalsa-pcm
+ */
 int pcm_stop(struct pcm *pcm)
 {
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DROP) < 0)
@@ -1095,3 +1243,4 @@ long pcm_get_delay(struct pcm *pcm)
 
     return pcm->pcm_delay;
 }
+
