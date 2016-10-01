@@ -8,19 +8,8 @@ CROSS_COMPILE =
 PREFIX = /usr/local
 
 .PHONY: all
-all: $(LIB) $(SHLIB) tinyplay tinycap tinymix tinypcminfo
-
-tinyplay: $(SHLIB) tinyplay.o
-	$(CROSS_COMPILE)$(CC) $(LDFLAGS) tinyplay.o -L. -ltinyalsa -o tinyplay
-
-tinycap: $(SHLIB) tinycap.o
-	$(CROSS_COMPILE)$(CC) $(LDFLAGS) tinycap.o -L. -ltinyalsa -o tinycap
-
-tinymix: $(SHLIB) tinymix.o
-	$(CROSS_COMPILE)$(CC) $(LDFLAGS) tinymix.o -L. -ltinyalsa -o tinymix
-
-tinypcminfo: $(SHLIB) tinypcminfo.o
-	$(CROSS_COMPILE)$(CC) $(LDFLAGS) tinypcminfo.o -L. -ltinyalsa -o tinypcminfo
+all: $(LIB) $(SHLIB)
+	$(MAKE) -C utils
 
 $(SHLIB): $(OBJECTS)
 	$(CROSS_COMPILE)$(CC) $(LDFLAGS) -shared $(OBJECTS) -o $(SHLIB)
@@ -33,8 +22,8 @@ $(LIB): $(OBJECTS)
 
 .PHONY: clean
 clean:
-	-rm $(LIB) $(SHLIB) $(OBJECTS) tinyplay.o tinyplay tinycap.o tinycap \
-	tinymix.o tinymix tinypcminfo.o tinypcminfo
+	-rm $(LIB) $(SHLIB) $(OBJECTS)
+	$(MAKE) -C utils clean
 
 .PHONY: install
 install: $(LIB) $(SHLIB)
