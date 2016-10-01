@@ -10,11 +10,13 @@ export CROSS_COMPILE =
 all:
 	$(MAKE) -C src
 	$(MAKE) -C utils
+	$(MAKE) -C doxygen
 
 .PHONY: clean
 clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C utils clean
+	$(MAKE) -C doxygen clean
 
 .PHONY: install
 install: $(LIB) $(SHLIB)
@@ -22,4 +24,5 @@ install: $(LIB) $(SHLIB)
 	cp -Ru $(INCDIR)/tinyalsa $(PREFIX)/include/
 	$(MAKE) -C src install
 	$(MAKE) -C utils install
+	$(MAKE) -C doxygen install
 
