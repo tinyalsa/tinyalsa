@@ -1,0 +1,57 @@
+.TH TINYPCMINFO 1 "October 2, 2016" "tinypcminfo" "TinyALSA"
+
+.SH NAME
+tinypcminfo \- prints the hardware parameters of a PCM.
+
+.SH SYNOPSIS
+.B tinypcminfo\fR [ \fIoptions\fR ]
+
+.SH Description
+
+\fBtinypcminfo\fR prints the hardware parameters of a PCM, specified by it's card and device number.
+
+.SH OPTIONS
+
+.TP
+\fB\-D\fR \fIcard\fR
+Card number of the PCM.
+The default is 0.
+
+.TP
+\fB\-d\fR \fIdevice\fR
+Device number of the PCM.
+The default is 0.
+
+.SH EXAMPLES
+
+.TP
+\fBtinypcminfo\fR
+Prints hardware parameters for the PCM of card 0 and device 0.
+
+.TP
+\fBtinypcminfo -D 1
+Prints hardware parameters for the PCM of card 1 and device 0.
+
+.TP
+\fBtinypcminfo -d 1
+Prints hardware parameters for the PCM of card 0 and device 1.
+
+.TP
+\fBtinypcminfo -D 1 -d 1
+Prints hardware parameters for the PCM of card 1 and device 1.
+
+.SH BUGS
+
+Please report bugs to https://github.com/tinyalsa/tinyalsa/issues.
+
+.SH SEE ALSO
+
+.BR tinycap(1),
+.BR tinyplay(1),
+.BR tinymix(1)
+
+.SH AUTHORS
+Simon Wilson
+.P
+For a complete list of authors, visit the project page at https://github.com/tinyalsa/tinyalsa.
+
