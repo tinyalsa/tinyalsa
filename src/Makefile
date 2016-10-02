@@ -1,15 +1,14 @@
 TOPDIR ?= ..
-SRCDIR ?= $(TOPDIR)/src
 INCDIR ?= $(TOPDIR)/include
+
+DEB_HOST_MULTIARCH := $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
 DESTDIR ?=
 PREFIX ?= /usr/local
 CROSS_COMPILE =
 
 CC = $(CROSS_COMPILE)gcc
-CFLAGS = -Wall -Wextra -Werror -Wfatal-errors
-CFLAGS += -I $(INCDIR)
-CFLAGS += -fPIC
+override CFLAGS := -Wall -Wextra -Werror -Wfatal-errors -I $(INCDIR) -fPIC $(CFLAGS)
 
 AR = $(CROSS_COMPILE)ar
 ARFLAGS = rcs
@@ -40,6 +39,7 @@ clean:
 
 .PHONY: install
 install: libtinyalsa.a libtinyalsa.so
-	cp -u libtinyalsa.a $(DESTDIR)$(PREFIX)/lib/
-	cp -u libtinyalsa.so $(DESTDIR)$(PREFIX)/lib/
+	mkdir -p $(DESTDIR)$(PREFIX)/lib/$(DEB_HOST_MULTIARCH)
+	cp -u libtinyalsa.a $(DESTDIR)$(PREFIX)/lib/$(DEB_HOST_MULTIARCH)
+	cp -u libtinyalsa.so $(DESTDIR)$(PREFIX)/lib/$(DEB_HOST_MULTIARCH)
 
