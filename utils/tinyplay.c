@@ -154,7 +154,11 @@ int main(int argc, char **argv)
     }
 
     if ( !is_raw ) {
-        fread(&riff_wave_header, sizeof(riff_wave_header), 1, file);
+        if (fread(&riff_wave_header, sizeof(riff_wave_header), 1, file) != 1){
+            fprintf(stderr, "Error: '%s' does not contain a riff/wave header\n", filename);
+            fclose(file);
+            return 1;
+        }
         if ((riff_wave_header.riff_id != ID_RIFF) ||
             (riff_wave_header.wave_id != ID_WAVE)) {
             fprintf(stderr, "Error: '%s' is not a riff/wave file\n", filename);
@@ -162,10 +166,18 @@ int main(int argc, char **argv)
             return 1;
         }
         do {
-            fread(&chunk_header, sizeof(chunk_header), 1, file);
+            if (fread(&chunk_header, sizeof(chunk_header), 1, file) != 1){
+                fprintf(stderr, "Error: '%s' does not contain a data chunk\n", filename);
+                fclose(file);
+                return 1;
+            }
             switch (chunk_header.id) {
             case ID_FMT:
-                fread(&chunk_fmt, sizeof(chunk_fmt), 1, file);
+                if (fread(&chunk_fmt, sizeof(chunk_fmt), 1, file) != 1){
+                    fprintf(stderr, "Error: '%s' has incomplete format chunk\n", filename);
+                    fclose(file);
+                    return 1;
+                }
                 /* If the format header is larger, skip the rest */
                 if (chunk_header.sz > sizeof(chunk_fmt))
                     fseek(file, chunk_header.sz - sizeof(chunk_fmt), SEEK_CUR);
