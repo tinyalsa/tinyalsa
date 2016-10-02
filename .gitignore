@@ -3,6 +3,7 @@ doxygen/man
 
 *.o
 *.so
+*.so.*
 *.a
 utils/tinyplay
 utils/tinycap
