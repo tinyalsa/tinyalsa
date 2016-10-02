@@ -1,5 +1,6 @@
 DESTDIR ?=
 PREFIX ?= /usr/local
+MANDIR ?= $(PREFIX)/share/man
 
 DOXYGEN ?= doxygen
 DOXYGENFLAGS =
@@ -15,7 +16,7 @@ clean:
 
 .PHONY: install
 install:
-	mkdir -p $(DESTDIR)$(PREFIX)/share/man/man3
-	cp -u man/man3/tinyalsa-pcm.3 $(DESTDIR)$(PREFIX)/share/man/man3
-	cp -u man/man3/tinyalsa-mixer.3 $(DESTDIR)$(PREFIX)/share/man/man3
+	mkdir -p $(DESTDIR)$(MANDIR)/man3
+	cp -u man/man3/tinyalsa-pcm.3 $(DESTDIR)$(MANDIR)/man3
+	cp -u man/man3/tinyalsa-mixer.3 $(DESTDIR)$(MANDIR)/man3
 
