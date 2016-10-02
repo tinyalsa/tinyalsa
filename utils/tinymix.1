@@ -1,0 +1,59 @@
+.TH TINYMIX 1 "October 2, 2016" "tinymix" "TinyALSA"
+
+.SH NAME
+tinymix \- view and edit mixer controls for a specified mixer.
+
+.SH SYNOPSIS
+.B tinymix\fR [ \fIoptions\fR ] [ \fIcontrol-id\fR ] [ \fIcontrol-value\fR ]
+
+.SH Description
+
+\fBtinymix\fR can be used to view and/or edit a list of mixer controls for a specified mixer.
+Running \fBtinymix\fR with no arguments will print a list of mixer controls for the default mixer.
+With one argument, the argument is interpreted as a control ID and detailed information for that control is printed.
+With two arguments, the arguments are interpreted as a control ID and value pair, setting the control to the value specified.
+
+.SH OPTIONS
+
+.TP
+\fB\-D\fR \fIcard\fR
+Card number of the mixer.
+The default is 0.
+
+.SH EXAMPLES
+
+.TP
+\fBtinymix\fR
+Prints a list of control IDs for the mixer of card 0.
+
+.TP
+\fBtinymix -D 1\fR
+Prints a list of control IDs for the mixer of card 1.
+
+.TP
+\fBtinymix 0\fR
+Prints default information about control 0.
+
+.TP
+\fBtinymix 0 4\fR
+Sets control 0 to the value of 4.
+
+.TP
+\fBtinymix -D 1 2 32
+Sets control 2 of card 1 to the value of 32.
+
+.SH BUGS
+
+Please report bugs to https://github.com/tinyalsa/tinyalsa/issues.
+
+.SH SEE ALSO
+
+.BR tinycap(1),
+.BR tinyplay(1),
+.BR tinypcminfo(1)
+
+.SH AUTHORS
+Simon Wilson
+.P
+For a complete list of authors, visit the project page at https://github.com/tinyalsa/tinyalsa.
+
