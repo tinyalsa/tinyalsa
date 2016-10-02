@@ -1,4 +1,8 @@
 debian/tmp/usr/bin/tinyplay usr/bin/
 debian/tmp/usr/bin/tinycap usr/bin/
-debian/tmp/usr/bin/tinypcminfo usr/bin/
 debian/tmp/usr/bin/tinymix usr/bin/
+debian/tmp/usr/bin/tinypcminfo usr/bin/
+debian/tmp/usr/share/man/man1/tinyplay.1 usr/share/man/man1/
+debian/tmp/usr/share/man/man1/tinycap.1 usr/share/man/man1/
+debian/tmp/usr/share/man/man1/tinymix.1 usr/share/man/man1/
+debian/tmp/usr/share/man/man1/tinypcminfo.1 usr/share/man/man1/
