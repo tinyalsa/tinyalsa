@@ -20,6 +20,7 @@ To build and install with Make, run the commands:
 ```
 make
 sudo make install
+sudo ldconfig
 ```
 
 ### Documentation
