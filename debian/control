@@ -2,27 +2,36 @@ Source: tinyalsa
 Section: sound
 Priority: optional
 Maintainer: Taylor Holberton <taylorcholberton@gmail.com>
-Build-Depends: debhelper, build-essential, doxygen
+Build-Depends: debhelper, doxygen
 Vcs-Git: git://github.com/tinyalsa/tinyalsa
 Vcs-Browser: https://github.com/tinyalsa/tinyalsa
+Standards-Version: 3.9.7
 
 Package: tinyalsa
 Architecture: any
 Section: sound
-Depends: libtinyalsa (= ${binary:Version}), ${misc:Depends}, ${shlibs:Depends}
+Depends: libtinyalsa (= ${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: A collection of small programs to interface with ALSA in the Linux kernel.
+ TinyALSA is a lightweight interface to ALSA in the Linux kernel.
 
 Package: libtinyalsa
 Architecture: any
 Multi-Arch: same
 Section: libs
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
 Description: A small C library for interfacing with ALSA in the Linux kernel.
+ The TinyALSA library is a lightweight, bare metal version of the ALSA library.
 
 Package: libtinyalsa-dev
 Architecture: any
 Multi-Arch: same
 Section: libdevel
-Depends: libtinyalsa ${misc:Depends}
+Depends: libtinyalsa,
+         ${misc:Depends},
+         ${shlibs:Depends}
 Description: Development files for the TinyALSA library.
+ The TinyALSA library is a lightweight, bare metal version of the ALSA library.
 
