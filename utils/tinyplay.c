@@ -146,6 +146,12 @@ int main(int argc, char **argv)
             if (*argv) {
                 if (strcasecmp(*argv, "raw") == 0) {
                     is_raw = 1;
+                } else if (strcasecmp(*argv, "wav") == 0) {
+                    is_raw = 0;
+                } else {
+                    fprintf(stderr, "Error: file type '%s' not supported\n", *argv);
+                    fclose(file);
+                    return 1;
                 }
             }
         }
