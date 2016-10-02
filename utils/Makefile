@@ -1,29 +1,30 @@
-TOPDIR ?= ..
-SRCDIR ?= $(TOPDIR)/src
-INCDIR ?= $(TOPDIR)/include
-
 DESTDIR ?=
 PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+
 CROSS_COMPILE ?=
-
 CC = $(CROSS_COMPILE)gcc
-override CFLAGS := -Wall -Wextra -Werror -Wfatal-errors -I $(INCDIR) -L $(SRCDIR) -g -O2 $(CFLAGS)
 
-VPATH = $(SRCDIR)
+WARNINGS = -Wall -Wextra -Werror -Wfatal-errors
+INCLUDE_DIRS = -I ../include
+LIBRARY_DIRS = -L ../src
+override CFLAGS := $(WARNINGS) $(INCLUDE_DIRS) $(LIBRARY_DIRS) -g -O2 $(CFLAGS)
+
+VPATH = ../src:../include/tinyalsa
 
 .PHONY: all
 all: -ltinyalsa tinyplay tinycap tinymix tinypcminfo
 
-tinyplay: tinyplay.c -ltinyalsa
+tinyplay: tinyplay.c pcm.h mixer.h asoundlib.h -ltinyalsa
 	$(CC) $(CFLAGS) $< -o $@ -ltinyalsa
 
-tinycap: tinycap.c
+tinycap: tinycap.c pcm.h mixer.h asoundlib.h
 	$(CC) $(CFLAGS) $< -o $@ -ltinyalsa
 
-tinymix: tinymix.c
+tinymix: tinymix.c pcm.h mixer.h asoundlib.h
 	$(CC) $(CFLAGS) $< -o $@ -ltinyalsa
 
-tinypcminfo: tinypcminfo.c
+tinypcminfo: tinypcminfo.c pcm.h mixer.h asoundlib.h
 	$(CC) $(CFLAGS) $< -o $@ -ltinyalsa
 
 .PHONY: clean
@@ -34,9 +35,9 @@ clean:
 
 .PHONY: install
 install: tinyplay tinycap tinymix tinypcminfo
-	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	cp -u tinyplay $(DESTDIR)$(PREFIX)/bin/
-	cp -u tinycap $(DESTDIR)$(PREFIX)/bin/
-	cp -u tinymix $(DESTDIR)$(PREFIX)/bin/
-	cp -u tinypcminfo $(DESTDIR)$(PREFIX)/bin/
+	mkdir -p $(DESTDIR)$(BINDIR)
+	cp -u tinyplay $(DESTDIR)$(BINDIR)/
+	cp -u tinycap $(DESTDIR)$(BINDIR)/
+	cp -u tinymix $(DESTDIR)$(BINDIR)/
+	cp -u tinypcminfo $(DESTDIR)$(BINDIR)/
 
