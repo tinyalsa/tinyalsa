@@ -20,8 +20,8 @@ clean:
 
 .PHONY: install
 install: $(LIB) $(SHLIB)
-	mkdir -p $(PREFIX)/include/tinyalsa
-	cp -Ru $(INCDIR)/tinyalsa $(PREFIX)/include/
+	mkdir -p $(DESTDIR)$(PREFIX)/include
+	cp -Ru $(INCDIR)/tinyalsa $(DESTDIR)$(PREFIX)/include/
 	$(MAKE) -C src install
 	$(MAKE) -C utils install
 	$(MAKE) -C doxygen install
