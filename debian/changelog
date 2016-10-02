@@ -1,3 +1,9 @@
+tinyalsa (1.0.2) xenial; urgency=medium
+
+  * Removed install of libtinyalsa.so in package libtinyalsa
+
+ -- Taylor Holberton <taylorcholberton@gmail.com>  Sun, 02 Oct 2016 13:46:33 -0400
+
 tinyalsa (1.0.1) xenial; urgency=medium
 
   * Added man pages for tinycap, tinyplay, tinymix and tinypcminfo.
