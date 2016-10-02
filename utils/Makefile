@@ -1,6 +1,7 @@
 DESTDIR ?=
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
+MANDIR ?= $(PREFIX)/man
 
 CROSS_COMPILE ?=
 CC = $(CROSS_COMPILE)gcc
@@ -40,4 +41,9 @@ install: tinyplay tinycap tinymix tinypcminfo
 	cp -u tinycap $(DESTDIR)$(BINDIR)/
 	cp -u tinymix $(DESTDIR)$(BINDIR)/
 	cp -u tinypcminfo $(DESTDIR)$(BINDIR)/
+	mkdir -p $(DESTDIR)$(MANDIR)/man1
+	cp -u tinyplay.1 $(DESTDIR)$(MANDIR)/man1/
+	cp -u tinycap.1 $(DESTDIR)$(MANDIR)/man1/
+	cp -u tinymix.1 $(DESTDIR)$(MANDIR)/man1/
+	cp -u tinypcminfo.1 $(DESTDIR)$(MANDIR)/man1/
 
