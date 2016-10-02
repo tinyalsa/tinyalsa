@@ -1,3 +1,10 @@
+tinyalsa (1.0.1) xenial; urgency=medium
+
+  * Added man pages for tinycap, tinyplay, tinymix and tinypcminfo.
+  * Fixed overwrite of shared library in package libtinyalsa-dev
+
+ -- Taylor Holberton <taylorcholberton@gmail.com>  Sun, 02 Oct 2016 12:24:28 -0400
+
 tinyalsa (1.0.0) xenial; urgency=medium
 
   * Initial debian release.
