@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     unsigned int card = 0;
     unsigned int device = 0;
     unsigned int channels = 2;
-    unsigned int rate = 44100;
+    unsigned int rate = 48000;
     unsigned int bits = 16;
     unsigned int frames;
     unsigned int period_size = 1024;
