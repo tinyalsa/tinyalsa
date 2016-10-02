@@ -65,15 +65,14 @@ int main(int argc, char **argv)
     }
 
 
+    printf("Mixer name: '%s'\n", mixer_get_name(mixer));
+    tinymix_list_controls(mixer);
     if (argc == 1) {
-        printf("Mixer name: '%s'\n", mixer_get_name(mixer));
-        tinymix_list_controls(mixer);
+        printf("Usage: tinymix [-D card] [control id] [value to set]\n");
     } else if (argc == 2) {
         tinymix_detail_control(mixer, argv[1], 1);
     } else if (argc >= 3) {
         tinymix_set_value(mixer, argv[1], &argv[2], argc - 2);
-    } else {
-        printf("Usage: tinymix [-D card] [control id] [value to set]\n");
     }
 
     mixer_close(mixer);
