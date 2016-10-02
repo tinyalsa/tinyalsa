@@ -103,7 +103,7 @@ int main(int argc, char **argv)
     unsigned int card = 0;
     int i;
 
-    if (argc < 3) {
+    if ((argc == 2) && (strcmp(argv[1], "--help") == 0)) {
         fprintf(stderr, "Usage: %s -D card -d device\n", argv[0]);
         return 1;
     }
