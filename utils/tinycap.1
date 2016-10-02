@@ -1,0 +1,79 @@
+.TH TINYCAP 1 "October 2, 2016" "tinycap" "TinyALSA"
+
+.SH NAME
+tinycap \- captures audio from an audio device
+
+.SH SYNOPSIS
+.B tinycap\fR [ \fIfile\fR ] [ \fIoptions\fR ]
+
+.SH Description
+
+\fBtinycap\fR can record audio from an audio device to a wav file or standard output (as raw samples).
+Options can be used to specify various hardware parameters to open the PCM with.
+
+.SH OPTIONS
+
+.TP
+\fB\-D\fR \fIcard\fR
+Card number of the PCM.
+
+.TP
+\fB\-d\fR \fIdevice\fR
+Device number of the PCM.
+
+.TP
+\fB\-c\fR \fIchannels\fR
+Number of channels the PCM will have.
+
+.TP
+\fB\-r\fR \fIrate\fR
+Number of frames per second of the PCM.
+
+.TP
+\fB\-b\fR \fIbits\fR
+Number of bits per sample the PCM will have.
+.TP
+\fB\-p\fR \fIperiod_size\fR
+Number of frames in a period.
+
+.TP
+\fB\-n\fR \fIperiods\fR
+Number of periods the PCM will have.
+
+.TP
+\fB\-t\fR \fIseconds\fR
+Number of seconds to record audio.
+
+.SH SIGNALS
+
+When capturing audio, SIGINT will stop the recording and close the file.
+
+.SH EXAMPLES
+
+.TP
+\fBtinycap output.wav\fR
+Records a file called output.wav until an interupt signal is caught.
+
+.TP
+\fBtinycap output.wav -D 1 -t 2
+Records a file called output.wav from card 1 for two seconds or until an interupt signal is caught.
+
+.TP
+\fBtinycap -- -t 3
+Records to standard output for three seconds or until an interupt signal is caught.
+
+.SH BUGS
+
+Please report bugs to https://github.com/tinyalsa/tinyalsa/issues.
+
+.SH SEE ALSO
+
+.BR tinyplay(1),
+.BR tinymix(1),
+.BR tinypcminfo(1)
+
+.SH AUTHORS
+Simon Wilson
+.P
+For a complete list of authors, visit the project page at https://github.com/tinyalsa/tinyalaa.
+
