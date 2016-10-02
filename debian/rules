@@ -1,0 +1,31 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#DH_VERBOSE = 1
+
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
+PREPROCESS_FILES := $(wildcard debian/*.in)
+
+$(PREPROCESS_FILES:.in=): %: %.in
+	sed 's,/@DEB_HOST_MULTIARCH@,$(DEB_HOST_MULTIARCH:%=/%),g' $< > $@
+
+.PHONY: override_dh_auto_clean
+override_dh_auto_clean:
+	dh_auto_clean
+	rm -rf $(PREPROCESS_FILES:.in=)
+
+.PHONY: override_dh_shlibdeps
+override_dh_shlibdeps:
+	dh_shlibdeps -l$(shell pwd)/src
+
+.PHONY: override_dh_auto_install
+override_dh_auto_install: $(PREPROCESS_FILES:.in=)
+	dh_auto_install -- PREFIX=/usr
+
+.PHONY: override_dh_auto_test
+override_dh_auto_test:
+
+%:
+	dh $@
+

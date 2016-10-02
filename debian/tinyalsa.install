@@ -1,0 +1,4 @@
+debian/tmp/usr/bin/tinyplay usr/bin/
+debian/tmp/usr/bin/tinycap usr/bin/
+debian/tmp/usr/bin/tinypcminfo usr/bin/
+debian/tmp/usr/bin/tinymix usr/bin/

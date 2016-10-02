@@ -1,0 +1,6 @@
+tinyalsa (1.0.0) xenial; urgency=medium
+
+  * Initial debian release.
+
+ -- Taylor Holberton <taylorcholberton@gmail.com>  Sat, 01 Oct 2016 20:31:04 -0400
+
