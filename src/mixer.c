@@ -45,7 +45,7 @@
 #define __user
 #include <sound/asound.h>
 
-#include <tinyalsa/asoundlib.h>
+#include <tinyalsa/mixer.h>
 
 /** A mixer control.
  * @ingroup tinyalsa-mixer
