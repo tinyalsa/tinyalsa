@@ -796,10 +796,22 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     int rc;
 
     pcm = calloc(1, sizeof(struct pcm));
-    if (!pcm || !config)
-        return &bad_pcm; /* TODO: could support default config here */
+    if (!pcm)
+        return &bad_pcm;
 
-    pcm->config = *config;
+    if (config == NULL) {
+        config = &pcm->config;
+        config->channels = 2;
+        config->rate = 48000;
+        config->period_size = 1024;
+        config->period_count = 4;
+        config->format = PCM_FORMAT_S16_LE;
+        config->start_threshold = config->period_count * config->period_size;
+        config->stop_threshold = config->period_count * config->period_size;
+        config->silence_threshold = 0;
+    } else {
+        pcm->config = *config;
+    }
 
     snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,
              flags & PCM_IN ? 'c' : 'p');
