@@ -2,21 +2,28 @@ DESTDIR ?=
 PREFIX ?= /usr/local
 MANDIR ?= $(PREFIX)/share/man
 
-DOXYGEN ?= doxygen
+DOXYGEN := $(shell command -v doxygen 2> /dev/null)
 DOXYGENFLAGS =
 
 .PHONY: all
 all:
+ifndef DOXYGEN
+	$(warning "doxygen is not available please install it")
+else
 	$(DOXYGEN) $(DOXYGENFLAGS)
+endif
 
 .PHONY: clean
 clean:
+ifdef DOXYGEN
 	rm -Rf html
 	rm -Rf man
+endif
 
 .PHONY: install
 install:
+ifdef DOXYGEN
 	mkdir -p $(DESTDIR)$(MANDIR)/man3
 	cp -u man/man3/tinyalsa-pcm.3 $(DESTDIR)$(MANDIR)/man3
 	cp -u man/man3/tinyalsa-mixer.3 $(DESTDIR)$(MANDIR)/man3
-
+endif
