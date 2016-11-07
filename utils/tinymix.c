@@ -30,10 +30,14 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <getopt.h>
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
-#include <errno.h>
+
+
+/* Flag set by ‘--verbose’. */
+int verbose_flag = 0;
 
 static void tinymix_list_controls(struct mixer *mixer);
 static void tinymix_detail_control(struct mixer *mixer, const char *control,
@@ -42,19 +46,50 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
                               char **values, unsigned int num_values);
 static void tinymix_print_enum(struct mixer_ctl *ctl, int print_all);
 
+void usage(void)
+{
+   printf("Usage: tinymix [--verbose] [--help] [-D card] [-c control id] [value to set]\n");
+}
+
 int main(int argc, char **argv)
 {
     struct mixer *mixer;
     int card = 0;
+    char control_id[32];
 
-    if ((argc > 2) && (strcmp(argv[1], "-D") == 0)) {
-        argv++;
-        if (argv[1]) {
-            card = atoi(argv[1]);
-            argv++;
-            argc -= 2;
-        } else {
-            argc -= 1;
+    while (1) {
+        static struct option long_options[] = {
+            /* These options set a flag. */
+            // FIXME - need to figure out how to pull in version?
+            // {"version", no_argument,       &verbose_flag, 1},
+            {"verbose", no_argument,       &verbose_flag, 1},
+            {"help",    no_argument,       NULL, 'h'},
+            {0, 0, 0, 0}
+        };
+
+        /* getopt_long stores the option index here. */
+        int option_index = 0;
+        int c = 0;
+
+        c = getopt_long (argc, argv, "c:D:h", long_options, &option_index);
+
+        /* Detect the end of the options. */
+        if (c == -1)
+            break;
+
+        switch (c) {
+        case 'c':
+            strncpy(control_id, optarg, sizeof(control_id));
+            break;
+
+        case 'D':
+            card = atoi(optarg);
+            break;
+
+        case 'h':
+            usage();
+            exit(0);
+            break;
         }
     }
 
@@ -64,16 +99,15 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-
     printf("Mixer name: '%s'\n", mixer_get_name(mixer));
-    tinymix_list_controls(mixer);
-    if (argc == 1) {
-        printf("Usage: tinymix [-D card] [control id] [value to set]\n");
-    } else if (argc == 2) {
-        tinymix_detail_control(mixer, argv[1], 1);
+    if (argc == 2) {
+        tinymix_detail_control(mixer, control_id, verbose_flag);
     } else if (argc >= 3) {
         tinymix_set_value(mixer, argv[1], &argv[2], argc - 2);
     }
+
+    if (verbose_flag)
+        tinymix_list_controls(mixer);
 
     mixer_close(mixer);
 
