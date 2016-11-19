@@ -157,7 +157,7 @@ static void param_init(struct snd_pcm_hw_params *p)
 #define PCM_ERROR_MAX 128
 
 /** A PCM handle.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 struct pcm {
     /** The PCM's file descriptor */
@@ -189,7 +189,7 @@ struct pcm {
 /** Gets the buffer size of the PCM.
  * @param pcm A PCM handle.
  * @return The buffer size of the PCM.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 unsigned int pcm_get_buffer_size(struct pcm *pcm)
 {
@@ -199,7 +199,7 @@ unsigned int pcm_get_buffer_size(struct pcm *pcm)
 /** Gets the file descriptor of the PCM.
  * Useful for extending functionality of the PCM when needed.
  * @return The file descriptor of the PCM.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 int pcm_get_file_descriptor(struct pcm *pcm)
 {
@@ -210,7 +210,7 @@ int pcm_get_file_descriptor(struct pcm *pcm)
  * If no error occured and this function is called, the results are undefined.
  * @param pcm A PCM handle.
  * @return The error message of the last error that occured.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 const char* pcm_get_error(struct pcm *pcm)
 {
@@ -274,7 +274,7 @@ static unsigned int pcm_format_to_alsa(enum pcm_format format)
 /** Determines the number of bits occupied by a @ref pcm_format.
  * @param format A PCM format.
  * @return The number of bits associated with @p format
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 unsigned int pcm_format_to_bits(enum pcm_format format)
 {
@@ -300,7 +300,7 @@ unsigned int pcm_format_to_bits(enum pcm_format format)
  * @param pcm A PCM handle.
  * @param bytes The number of bytes.
  * @return The number of frames that may fit into @p bytes
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes)
 {
@@ -312,7 +312,7 @@ unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes)
  * @param pcm A PCM handle.
  * @param frames The number of frames of a PCM.
  * @return The bytes occupied by @p frames.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames)
 {
@@ -483,7 +483,7 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
  * @param data The audio sample array
  * @param count The number of bytes occupied by the sample array.
  * @return On success, this function returns zero; otherwise, a negative number.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
 {
@@ -532,7 +532,7 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
  * @param data The audio sample array
  * @param count The number of bytes occupied by the sample array.
  * @return On success, this function returns zero; otherwise, a negative number.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 int pcm_read(struct pcm *pcm, void *data, unsigned int count)
 {
@@ -580,7 +580,7 @@ static struct pcm bad_pcm = {
  *   - @ref PCM_IN
  *   - @ref PCM_OUT
  * @return On success, the hardware parameters of the PCM; on failure, NULL.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
                                   unsigned int flags)
@@ -623,7 +623,7 @@ err_open:
 /** Frees the hardware parameters returned by @ref pcm_params_open.
  * @param pcm_params Hardware parameters of a PCM.
  *  May be NULL.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 void pcm_params_free(struct pcm_params *pcm_params)
 {
@@ -689,7 +689,7 @@ static int pcm_param_to_alsa(enum pcm_param param)
  * @param param The parameter to get.
  * @return If @p pcm_params is NULL or @p param is not a mask, NULL is returned.
  *  Otherwise, the mask associated with @p param is returned.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
                                      enum pcm_param param)
@@ -744,7 +744,7 @@ unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
  * @param pcm A PCM returned by @ref pcm_open.
  *  May not be NULL.
  * @return Always returns zero.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 int pcm_close(struct pcm *pcm)
 {
@@ -783,7 +783,7 @@ int pcm_close(struct pcm *pcm)
  * @param config The hardware and software parameters to open the PCM with.
  * @returns On success, returns an initialized pcm, ready for reading or writing.
  *  On error, returns NULL.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 struct pcm *pcm_open(unsigned int card, unsigned int device,
                      unsigned int flags, struct pcm_config *config)
@@ -955,7 +955,7 @@ fail_close:
  * @param pcm A PCM handle.
  * @return If a PCM's file descriptor is not valid, it returns zero.
  *  Otherwise, the function returns one.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 int pcm_is_ready(struct pcm *pcm)
 {
@@ -965,7 +965,7 @@ int pcm_is_ready(struct pcm *pcm)
 /** Prepares a PCM, if it has not been prepared already.
  * @param pcm A PCM handle.
  * @return On success, zero; on failure, a negative number.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 int pcm_prepare(struct pcm *pcm)
 {
@@ -984,7 +984,7 @@ int pcm_prepare(struct pcm *pcm)
  * it is prepared in this function.
  * @param pcm A PCM handle.
  * @return On success, zero; on failure, a negative number.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 int pcm_start(struct pcm *pcm)
 {
@@ -1005,7 +1005,7 @@ int pcm_start(struct pcm *pcm)
 /** Stops a PCM.
  * @param pcm A PCM handle.
  * @return On success, zero; on failure, a negative number.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 int pcm_stop(struct pcm *pcm)
 {

@@ -28,7 +28,7 @@
 
 /** @file */
 
-/** @defgroup tinyalsa-pcm PCM Interface
+/** @defgroup libtinyalsa-pcm PCM Interface
  * @brief All macros, structures and functions that make up the PCM interface.
  */
 
@@ -45,27 +45,27 @@ extern "C" {
 /** A flag that specifies that the PCM is an output.
  * May not be bitwise AND'd with @ref PCM_IN.
  * Used in @ref pcm_open.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 #define PCM_OUT 0x00000000
 
 /** Specifies that the PCM is an input.
  * May not be bitwise AND'd with @ref PCM_OUT.
  * Used in @ref pcm_open.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 #define PCM_IN 0x10000000
 
 /** Specifies that the PCM will use mmap read and write methods.
  * Used in @ref pcm_open.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 #define PCM_MMAP 0x00000001
 
 /** Specifies no interrupt requests.
  * May only be bitwise AND'd with @ref PCM_MMAP.
  * Used in @ref pcm_open.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 #define PCM_NOIRQ 0x00000002
 
@@ -78,19 +78,19 @@ extern "C" {
  * call to pcm_write will attempt to restart
  * the stream.
  * Used in @ref pcm_open.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 #define PCM_NORESTART 0x00000004
 
 /** Specifies monotonic timestamps.
  * Used in @ref pcm_open.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 #define PCM_MONOTONIC 0x00000008
 
 /** For inputs, this means the PCM is recording audio samples.
  * For outputs, this means the PCM is playing audio samples.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 #define	PCM_STATE_RUNNING	0x03
 
@@ -105,12 +105,12 @@ extern "C" {
 #define	PCM_STATE_DRAINING 0x05
 
 /** Means a PCM is suspended.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 #define	PCM_STATE_SUSPENDED 0x07
 
 /** Means a PCM has been disconnected.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 #define	PCM_STATE_DISCONNECTED 0x08
 
@@ -122,7 +122,7 @@ extern "C" {
  * The letters 'LE' mean little endian.
  * The letters 'BE' mean big endian.
  * This enumeration is used in the @ref config structure.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 enum pcm_format {
     /** Signed, 8-bit */
@@ -154,7 +154,7 @@ struct pcm_mask {
 };
 
 /** Encapsulates the hardware and software parameters of a PCM.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 struct pcm_config {
     /** The number of channels in a frame */
@@ -185,7 +185,7 @@ struct pcm_config {
 
 /** Enumeration of a PCM's hardware parameters.
  * Each of these parameters is either a mask or an interval.
- * @ingroup tinyalsa-pcm
+ * @ingroup libtinyalsa-pcm
  */
 enum pcm_param
 {
