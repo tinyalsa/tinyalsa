@@ -48,7 +48,7 @@
 #include <tinyalsa/mixer.h>
 
 /** A mixer control.
- * @ingroup tinyalsa-mixer
+ * @ingroup libtinyalsa-mixer
  */
 struct mixer_ctl {
     /** The mixer that the mixer control belongs to */
@@ -58,7 +58,7 @@ struct mixer_ctl {
 };
 
 /** A mixer handle.
- * @ingroup tinyalsa-mixer
+ * @ingroup libtinyalsa-mixer
  */
 struct mixer {
     /** File descriptor for the card */
@@ -73,7 +73,7 @@ struct mixer {
 
 /** Closes a mixer returned by @ref mixer_open.
  * @param mixer A mixer handle.
- * @ingroup tinyalsa-mixer
+ * @ingroup libtinyalsa-mixer
  */
 void mixer_close(struct mixer *mixer)
 {
@@ -104,7 +104,7 @@ void mixer_close(struct mixer *mixer)
 
 /** Opens a mixer for a given card.
  * @param card The card to open the mixer for.
- * @ingroup tinyalsa-mixer
+ * @ingroup libtinyalsa-mixer
  */
 struct mixer *mixer_open(unsigned int card)
 {
