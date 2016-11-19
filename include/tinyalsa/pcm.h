@@ -42,8 +42,6 @@
 extern "C" {
 #endif
 
-struct pcm;
-
 /** A flag that specifies that the PCM is an output.
  * May not be bitwise AND'd with @ref PCM_IN.
  * Used in @ref pcm_open.
@@ -177,8 +175,11 @@ struct pcm_config {
      * stop_threshold    : period_count * period_size
      * silence_threshold : 0
      */
+    /** The minimum number of frames required to start the PCM */
     unsigned int start_threshold;
+    /** The minimum number of frames required to stop the PCM */
     unsigned int stop_threshold;
+    /** The minimum number of frames to silence the PCM */
     unsigned int silence_threshold;
 };
 
@@ -196,7 +197,7 @@ enum pcm_param
     PCM_PARAM_SUBFORMAT,
     /** An interval representing the range of sample bits available (e.g. 8 to 32) */
     PCM_PARAM_SAMPLE_BITS,
-		/** An interval representing the range of frame bits available (e.g. 8 to 64) */
+    /** An interval representing the range of frame bits available (e.g. 8 to 64) */
     PCM_PARAM_FRAME_BITS,
     /** An interval representing the range of channels available (e.g. 1 to 2) */
     PCM_PARAM_CHANNELS,
@@ -205,6 +206,7 @@ enum pcm_param
     PCM_PARAM_PERIOD_TIME,
     /** The number of frames in a period */
     PCM_PARAM_PERIOD_SIZE,
+    /** The number of bytes in a period */
     PCM_PARAM_PERIOD_BYTES,
     /** The number of periods for a PCM */
     PCM_PARAM_PERIODS,
@@ -212,23 +214,31 @@ enum pcm_param
     PCM_PARAM_BUFFER_SIZE,
     PCM_PARAM_BUFFER_BYTES,
     PCM_PARAM_TICK_TIME,
-};
+}; /* enum pcm_param */
 
-struct pcm *pcm_open(unsigned int card, unsigned int device,
-                     unsigned int flags, struct pcm_config *config);
-int pcm_close(struct pcm *pcm);
-int pcm_is_ready(struct pcm *pcm);
+struct pcm_params;
 
 struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
                                   unsigned int flags);
+
 void pcm_params_free(struct pcm_params *pcm_params);
 
-struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
-        enum pcm_param param);
-unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
-                                enum pcm_param param);
-unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
-                                enum pcm_param param);
+struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params, enum pcm_param param);
+
+unsigned int pcm_params_get_min(struct pcm_params *pcm_params, enum pcm_param param);
+
+unsigned int pcm_params_get_max(struct pcm_params *pcm_params, enum pcm_param param);
+
+struct pcm;
+
+struct pcm *pcm_open(unsigned int card,
+                     unsigned int device,
+                     unsigned int flags,
+                     struct pcm_config *config);
+
+int pcm_close(struct pcm *pcm);
+	
+int pcm_is_ready(struct pcm *pcm);
 
 int pcm_get_file_descriptor(struct pcm *pcm);
 
@@ -237,25 +247,31 @@ const char *pcm_get_error(struct pcm *pcm);
 unsigned int pcm_format_to_bits(enum pcm_format format);
 
 unsigned int pcm_get_buffer_size(struct pcm *pcm);
+
 unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames);
+
 unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes);
 
-int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
-                       struct timespec *tstamp);
+int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail, struct timespec *tstamp);
 
 unsigned int pcm_get_subdevice(struct pcm *pcm);
 
 int pcm_write(struct pcm *pcm, const void *data, unsigned int count);
+
 int pcm_read(struct pcm *pcm, void *data, unsigned int count);
 
 int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count);
+
 int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count);
-int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset,
-                   unsigned int *frames);
+
+int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset, unsigned int *frames);
+
 int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
 
 int pcm_prepare(struct pcm *pcm);
+
 int pcm_start(struct pcm *pcm);
+
 int pcm_stop(struct pcm *pcm);
 
 int pcm_wait(struct pcm *pcm, int timeout);

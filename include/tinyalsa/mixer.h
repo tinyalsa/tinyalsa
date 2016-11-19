@@ -28,7 +28,7 @@
 
 /** @file */
 
-/** @defgroup tinyalsa-mixer Mixer Interface
+/** @defgroup libtinyalsa-mixer Mixer Interface
  * @brief All macros, structures and functions that make up the mixer interface.
  */
 
@@ -42,44 +42,58 @@ extern "C" {
 #endif
 
 struct mixer;
+
 struct mixer_ctl;
 
-/* Mixer control types */
+/** Mixer control type.
+ * @ingroup libtinyalsa-mixer
+ */
 enum mixer_ctl_type {
+    /** boolean control type */
     MIXER_CTL_TYPE_BOOL,
+    /** integer control type */
     MIXER_CTL_TYPE_INT,
+    /** an enumerated control type */
     MIXER_CTL_TYPE_ENUM,
     MIXER_CTL_TYPE_BYTE,
     MIXER_CTL_TYPE_IEC958,
+    /** a 64 bit integer control type */
     MIXER_CTL_TYPE_INT64,
+    /** unknown control type */
     MIXER_CTL_TYPE_UNKNOWN,
+    /** end of the enumeration (not a control type) */
     MIXER_CTL_TYPE_MAX,
 };
 
-/* Open and close a mixer */
 struct mixer *mixer_open(unsigned int card);
+
 void mixer_close(struct mixer *mixer);
 
-/* Get info about a mixer */
 const char *mixer_get_name(struct mixer *mixer);
 
-/* Obtain mixer controls */
 unsigned int mixer_get_num_ctls(struct mixer *mixer);
+
 struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id);
+
 struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name);
+
 struct mixer_ctl *mixer_get_ctl_by_name_and_index(struct mixer *mixer,
                                                   const char *name,
                                                   unsigned int index);
 
-/* Get info about mixer controls */
 unsigned int mixer_ctl_get_id(struct mixer_ctl *ctl);
+
 const char *mixer_ctl_get_name(struct mixer_ctl *ctl);
+
 enum mixer_ctl_type mixer_ctl_get_type(struct mixer_ctl *ctl);
+
 const char *mixer_ctl_get_type_string(struct mixer_ctl *ctl);
+
 unsigned int mixer_ctl_get_num_values(struct mixer_ctl *ctl);
+
 unsigned int mixer_ctl_get_num_enums(struct mixer_ctl *ctl);
-const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl,
-                                      unsigned int enum_id);
+
+const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl, unsigned int enum_id);
 
 /* Some sound cards update their controls due to external events,
  * such as HDMI EDID byte data changing when an HDMI cable is
@@ -89,16 +103,22 @@ void mixer_ctl_update(struct mixer_ctl *ctl);
 
 /* Set and get mixer controls */
 int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id);
+
 int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent);
 
 int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id);
+
 int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count);
+
 int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value);
+
 int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count);
+
 int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string);
 
 /* Determe range of integer mixer controls */
 int mixer_ctl_get_range_min(struct mixer_ctl *ctl);
+
 int mixer_ctl_get_range_max(struct mixer_ctl *ctl);
 
 #if defined(__cplusplus)
