@@ -14,47 +14,48 @@ Options can be used to specify various hardware parameters to open the PCM with.
 .SH OPTIONS
 
 .TP
-\fB\-D\fR \fIcard\fR
+\fB\-D, --card\fR \fIcard\fR
 Card number of the PCM.
 The default is 0.
 
 .TP
-\fB\-d\fR \fIdevice\fR
+\fB\-d, --device\fR \fIdevice\fR
 Device number of the PCM.
 The default is 0.
 
 .TP
-\fB\-c\fR \fIchannels\fR
+\fB\-c, --channels\fR \fIchannels\fR
 Number of channels the PCM will have.
 This option is only valid for raw file types.
 The default is 2 for raw file types.
 
 .TP
-\fB\-r\fR \fIrate\fR
+\fB\-r, --rate\fR \fIrate\fR
 Number of frames per second of the PCM.
 This option is only valid for raw file types.
 The default is 48000 for raw file types.
 
 .TP
-\fB\-i\fR \fIfile-type\fR
+\fB\-i, --file-type\fR \fIfile-type\fR
 The file type used for playback.
 Available types are \fIraw\fR and \fIwav\fR.
 Specifying \fIraw\fR means that \fIchannels\fR, \fIrate\fR and \fIbits\fR may have to be specified as well.
-The default is \fIwav\fR.
+By default, the file type is determined by the file name.
+Specifying the file type with this option will take precedent over the one determined by the file name.
 
 .TP
-\fB\-b\fR \fIbits\fR
+\fB\-b, --bits\fR \fIbits\fR
 Number of bits per sample the PCM will have.
 This option is only valid for raw file types.
 The default is 16 for raw file types.
 
 .TP
-\fB\-p\fR \fIperiod_size\fR
+\fB\-p, --period-size\fR \fIperiod_size\fR
 Number of frames in a period.
 The default is 1024.
 
 .TP
-\fB\-n\fR \fIperiods\fR
+\fB\-n, --period-count\fR \fIperiods\fR
 Number of periods the PCM will have.
 The default is 4.
 
