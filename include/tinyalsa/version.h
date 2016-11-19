@@ -1,4 +1,4 @@
-/* asoundlib.h
+/* version.h
 **
 ** Copyright 2011, The Android Open Source Project
 **
@@ -26,12 +26,18 @@
 ** DAMAGE.
 */
 
-#ifndef TINYALSA_ASOUNDLIB_H
-#define TINYALSA_ASOUNDLIB_H
+#ifndef TINYALSA_VERSION_H
+#define TINYALSA_VERSION_H
 
-#include "mixer.h"
-#include "pcm.h"
-#include "version.h"
+#define TINYALSA_VERSION_MAJOR 1
 
-#endif
+#define TINYALSA_VERSION_MINOR 0
+
+#define TINYALSA_VERSION_PATCH 3
+
+#define TINYALSA_VERSION 0x010003UL
+
+#define TINYALSA_VERSION_STRING "1.0.3"
+
+#endif /* TINYALSA_VERSION_H */
 
