@@ -35,61 +35,67 @@
 #include <string.h>
 #include <limits.h>
 
+static void tinymix_list_controls(struct mixer *mixer, int print_all);
 
-/* Flag set by ‘--verbose’. */
-int verbose_flag = 0;
+static void tinymix_detail_control(struct mixer *mixer, const char *control);
 
-static void tinymix_list_controls(struct mixer *mixer);
-static void tinymix_detail_control(struct mixer *mixer, const char *control,
-                                   int print_all);
 static void tinymix_set_value(struct mixer *mixer, const char *control,
                               char **values, unsigned int num_values);
-static void tinymix_print_enum(struct mixer_ctl *ctl, int print_all);
+
+static void tinymix_print_enum(struct mixer_ctl *ctl);
 
 void usage(void)
 {
-   printf("Usage: tinymix [--verbose] [--help] [-D card] [-c control id] [value to set]\n");
+    printf("usage: tinymix [options] <command>\n");
+    printf("options:\n");
+    printf("\t-h, --help        : prints this help message and exists\n");
+    printf("\t-v, --version     : prints this version of tinymix and exists\n");
+    printf("\t-D, --card NUMBER : specifies the card number of the mixer\n");
+    printf("commands:\n");
+    printf("\tget NAME|ID       : prints the values of a control\n");
+    printf("\tset NAME|ID VALUE : sets the value of a control\n");
+    printf("\tcontrols          : lists controls of the mixer\n");
+    printf("\tcontents          : lists controls of the mixer and their contents\n");
+}
+
+void version(void)
+{
+    printf("tinymix version 2.0 (tinyalsa version %s)\n", TINYALSA_VERSION_STRING);
 }
 
 int main(int argc, char **argv)
 {
     struct mixer *mixer;
     int card = 0;
-    char control_id[32];
+    char *cmd;
 
     while (1) {
         static struct option long_options[] = {
-            /* These options set a flag. */
-            // FIXME - need to figure out how to pull in version?
-            // {"version", no_argument,       &verbose_flag, 1},
-            {"verbose", no_argument,       &verbose_flag, 1},
-            {"help",    no_argument,       NULL, 'h'},
-            {0, 0, 0, 0}
+            { "version", no_argument, NULL, 'v' },
+            { "help",    no_argument, NULL, 'h' },
+            { 0, 0, 0, 0 }
         };
 
         /* getopt_long stores the option index here. */
         int option_index = 0;
         int c = 0;
 
-        c = getopt_long (argc, argv, "c:D:h", long_options, &option_index);
+        c = getopt_long (argc, argv, "c:D:hv", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (c == -1)
             break;
 
         switch (c) {
-        case 'c':
-            strncpy(control_id, optarg, sizeof(control_id));
-            break;
-
         case 'D':
             card = atoi(optarg);
             break;
-
         case 'h':
             usage();
-            exit(0);
-            break;
+            return EXIT_SUCCESS;
+        case 'v':
+            version();
+            return EXIT_SUCCESS;
         }
     }
 
@@ -99,22 +105,41 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    printf("Mixer name: '%s'\n", mixer_get_name(mixer));
-    if (argc == 2) {
-        tinymix_detail_control(mixer, control_id, verbose_flag);
-    } else if (argc >= 3) {
-        tinymix_set_value(mixer, argv[1], &argv[2], argc - 2);
+    cmd = argv[optind];
+    if (cmd == NULL) {
+        fprintf(stderr, "no command specified (see --help)\n");
+        mixer_close(mixer);
+        return EXIT_FAILURE;
+    } else if (strcmp(cmd, "get") == 0) {
+        if ((optind + 1) >= argc) {
+            fprintf(stderr, "no control specified\n");
+            mixer_close(mixer);
+            return EXIT_FAILURE;
+        }
+        tinymix_detail_control(mixer, argv[optind + 1]);
+        printf("\n");
+    } else if (strcmp(cmd, "set") == 0) {
+        if ((optind + 1) >= argc) {
+            fprintf(stderr, "no control specified\n");
+            mixer_close(mixer);
+            return EXIT_FAILURE;
+        }
+        tinymix_set_value(mixer, argv[optind + 1], &argv[optind + 2], argc - 2);
+    } else if (strcmp(cmd, "controls") == 0) {
+        tinymix_list_controls(mixer, 0);
+    } else if (strcmp(cmd, "contents") == 0) {
+        tinymix_list_controls(mixer, 1);
+    } else {
+        fprintf(stderr, "unknown command '%s' (see --help)\n", cmd);
+        mixer_close(mixer);
+        return EXIT_FAILURE;
     }
 
-    if (verbose_flag)
-        tinymix_list_controls(mixer);
-
     mixer_close(mixer);
-
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-static void tinymix_list_controls(struct mixer *mixer)
+static void tinymix_list_controls(struct mixer *mixer, int print_all)
 {
     struct mixer_ctl *ctl;
     const char *name, *type;
@@ -125,7 +150,11 @@ static void tinymix_list_controls(struct mixer *mixer)
 
     printf("Number of controls: %u\n", num_ctls);
 
-    printf("ctl\ttype\tnum\t%-40s value\n", "name");
+    if (print_all)
+        printf("ctl\ttype\tnum\t%-40svalue\n", "name");
+    else
+        printf("ctl\ttype\tnum\t%-40s\n", "name");
+
     for (i = 0; i < num_ctls; i++) {
         ctl = mixer_get_ctl(mixer, i);
 
@@ -133,11 +162,13 @@ static void tinymix_list_controls(struct mixer *mixer)
         type = mixer_ctl_get_type_string(ctl);
         num_values = mixer_ctl_get_num_values(ctl);
         printf("%u\t%s\t%u\t%-40s", i, type, num_values, name);
-        tinymix_detail_control(mixer, name, 0);
+        if (print_all)
+				    tinymix_detail_control(mixer, name);
+        printf("\n");
     }
 }
 
-static void tinymix_print_enum(struct mixer_ctl *ctl, int print_all)
+static void tinymix_print_enum(struct mixer_ctl *ctl)
 {
     unsigned int num_enums;
     unsigned int i;
@@ -147,16 +178,12 @@ static void tinymix_print_enum(struct mixer_ctl *ctl, int print_all)
 
     for (i = 0; i < num_enums; i++) {
         string = mixer_ctl_get_enum_string(ctl, i);
-        if (print_all)
-            printf("\t%s%s", mixer_ctl_get_value(ctl, 0) == (int)i ? ">" : "",
-                   string);
-        else if (mixer_ctl_get_value(ctl, 0) == (int)i)
-            printf(" %-s", string);
+        printf("%s%s", mixer_ctl_get_value(ctl, 0) == (int)i ? ", " : "",
+               string);
     }
 }
 
-static void tinymix_detail_control(struct mixer *mixer, const char *control,
-                                   int print_all)
+static void tinymix_detail_control(struct mixer *mixer, const char *control)
 {
     struct mixer_ctl *ctl;
     enum mixer_ctl_type type;
@@ -194,41 +221,37 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control,
         }
     }
 
-    if (print_all)
-        printf("%s:", mixer_ctl_get_name(ctl));
-
     for (i = 0; i < num_values; i++) {
         switch (type)
         {
         case MIXER_CTL_TYPE_INT:
-            printf(" %d", mixer_ctl_get_value(ctl, i));
+            printf("%d", mixer_ctl_get_value(ctl, i));
             break;
         case MIXER_CTL_TYPE_BOOL:
-            printf(" %s", mixer_ctl_get_value(ctl, i) ? "On" : "Off");
+            printf("%s", mixer_ctl_get_value(ctl, i) ? "On" : "Off");
             break;
         case MIXER_CTL_TYPE_ENUM:
-            tinymix_print_enum(ctl, print_all);
+            tinymix_print_enum(ctl);
             break;
         case MIXER_CTL_TYPE_BYTE:
             printf("%02x", buf[i]);
             break;
         default:
-            printf(" unknown");
+            printf("unknown");
             break;
         };
-    }
-
-    if (print_all) {
-        if (type == MIXER_CTL_TYPE_INT) {
-            min = mixer_ctl_get_range_min(ctl);
-            max = mixer_ctl_get_range_max(ctl);
-            printf(" (range %d->%d)", min, max);
+        if ((i + 1) < num_values) {
+           printf(", ");
         }
     }
 
-    free(buf);
+    if (type == MIXER_CTL_TYPE_INT) {
+        min = mixer_ctl_get_range_min(ctl);
+        max = mixer_ctl_get_range_max(ctl);
+        printf(" (range %d->%d)", min, max);
+    }
 
-    printf("\n");
+    free(buf);
 }
 
 static void tinymix_set_byte_ctl(struct mixer_ctl *ctl,

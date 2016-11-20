@@ -4,42 +4,69 @@
 tinymix \- view and edit mixer controls for a specified mixer.
 
 .SH SYNOPSIS
-.B tinymix\fR [ \fIoptions\fR ] [ \fIcontrol-id\fR ] [ \fIcontrol-value\fR ]
+.B tinymix\fR [ \fIoptions\fR ] \fIcommand\fR
 
 .SH Description
 
 \fBtinymix\fR can be used to view and/or edit a list of mixer controls for a specified mixer.
-Running \fBtinymix\fR with no arguments will print a list of mixer controls for the default mixer.
-With one argument, the argument is interpreted as a control ID and detailed information for that control is printed.
-With two arguments, the arguments are interpreted as a control ID and value pair, setting the control to the value specified.
 
 .SH OPTIONS
 
 .TP
-\fB\-D\fR \fIcard\fR
+\fB\-D, --card\fR \fIcard\fR
 Card number of the mixer.
 The default is 0.
+
+.TP
+\fB\-h, --help\fR
+Print help contents and exit.
+
+.TP
+\fB\-v, --version\fR
+Print the current version of tinymix and exit.
+
+.SH COMMANDS
+
+.TP
+\fBget <control-id|control-name>\fR
+Prints the value of a specified control
+
+.TP
+\fBset <control-id|control-name> <control-value>\fR
+Sets the value of a specified control
+
+.TP
+\fBcontents\fR
+Prints the contents of all mixer controls.
+
+.TP
+\fBcontrols\fR
+Prints the names and IDs of all mixer controls.
 
 .SH EXAMPLES
 
 .TP
-\fBtinymix\fR
+\fBtinymix controls\fR
 Prints a list of control IDs for the mixer of card 0.
 
 .TP
-\fBtinymix -D 1\fR
+\fBtinymix -D 1 controls\fR
 Prints a list of control IDs for the mixer of card 1.
 
 .TP
-\fBtinymix 0\fR
-Prints default information about control 0.
+\fBtinymix get 0\fR
+Prints information about control 0.
 
 .TP
-\fBtinymix 0 4\fR
+\fBtinymix get "Headphone Playback Volume"\fR
+Prints information about a control called "Headphone Playback Volume"\fR
+
+.TP
+\fBtinymix set 0 4\fR
 Sets control 0 to the value of 4.
 
 .TP
-\fBtinymix -D 1 2 32
+\fBtinymix --card 1 set 2 32
 Sets control 2 of card 1 to the value of 32.
 
 .SH BUGS
