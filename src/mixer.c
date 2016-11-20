@@ -104,6 +104,7 @@ void mixer_close(struct mixer *mixer)
 
 /** Opens a mixer for a given card.
  * @param card The card to open the mixer for.
+ * @returns An initialized mixer handle.
  * @ingroup libtinyalsa-mixer
  */
 struct mixer *mixer_open(unsigned int card)
@@ -168,11 +169,21 @@ fail:
     return 0;
 }
 
+/** Gets the name of the mixer's card.
+ * @param mixer An initialized mixer handle.
+ * @returns The name of the mixer's card.
+ * @ingroup libtinyalsa-mixer
+ */
 const char *mixer_get_name(struct mixer *mixer)
 {
     return (const char *)mixer->card_info.name;
 }
 
+/** Gets the number of mixer controls for a given mixer.
+ * @param mixer An initialized mixer handle.
+ * @returns The number of mixer controls for the given mixer.
+ * @ingroup libtinyalsa-mixer
+ */
 unsigned int mixer_get_num_ctls(struct mixer *mixer)
 {
     if (!mixer)
@@ -181,6 +192,12 @@ unsigned int mixer_get_num_ctls(struct mixer *mixer)
     return mixer->count;
 }
 
+/** Gets a mixer control handle, by the mixer control's id.
+ * @param mixer An initialized mixer handle.
+ * @param id The control's id in the given mixer.
+ * @returns A handle to the mixer control.
+ * @ingroup libtinyalsa-mixer
+ */
 struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id)
 {
     if (mixer && (id < mixer->count))
@@ -189,11 +206,25 @@ struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id)
     return NULL;
 }
 
+/** Gets the first instance of mixer control handle, by the mixer control's name.
+ * @param mixer An initialized mixer handle.
+ * @param name The control's name in the given mixer.
+ * @returns A handle to the mixer control.
+ * @ingroup libtinyalsa-mixer
+ */
 struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name)
 {
     return mixer_get_ctl_by_name_and_index(mixer, name, 0);
 }
 
+/** Gets an instance of mixer control handle, by the mixer control's name and index.
+ *  For instance, if two controls have the name of 'Volume', then and index of 1 would return the second control.
+ * @param mixer An initialized mixer handle.
+ * @param name The control's name in the given mixer.
+ * @param index The control's index.
+ * @returns A handle to the mixer control.
+ * @ingroup libtinyalsa-mixer
+ */
 struct mixer_ctl *mixer_get_ctl_by_name_and_index(struct mixer *mixer,
                                                   const char *name,
                                                   unsigned int index)
@@ -214,11 +245,22 @@ struct mixer_ctl *mixer_get_ctl_by_name_and_index(struct mixer *mixer,
     return NULL;
 }
 
+/** Updates the control's info.
+ * This is useful for a program that may be idle for a period of time.
+ * @param ctl An initialized control handle.
+ * @ingroup libtinyalsa-mixer
+ */
 void mixer_ctl_update(struct mixer_ctl *ctl)
 {
     ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_INFO, ctl->info);
 }
 
+/** Gets the control's ID.
+ * @param ctl An initialized control handle.
+ * @returns On success, the control's ID is returned.
+ *  On error, UINT_MAX is returned instead.
+ * @ingroup libtinyalsa-mixer
+ */
 unsigned int mixer_ctl_get_id(struct mixer_ctl *ctl)
 {
     if (!ctl)
@@ -230,6 +272,12 @@ unsigned int mixer_ctl_get_id(struct mixer_ctl *ctl)
     return ctl->info.id.numid - 1;
 }
 
+/** Gets the name of the control.
+ * @param ctl An initialized control handle.
+ * @returns On success, the name of the control.
+ *  On error, NULL.
+ * @ingroup libtinyalsa-mixer
+ */
 const char *mixer_ctl_get_name(struct mixer_ctl *ctl)
 {
     if (!ctl)
@@ -238,6 +286,12 @@ const char *mixer_ctl_get_name(struct mixer_ctl *ctl)
     return (const char *)ctl->info.id.name;
 }
 
+/** Gets the value type of the control.
+ * @param ctl An initialized control handle
+ * @returns On success, the type of mixer control.
+ *  On failure, it returns @ref MIXER_CTL_TYPE_UNKNOWN
+ * @ingroup libtinyalsa-mixer
+ */
 enum mixer_ctl_type mixer_ctl_get_type(struct mixer_ctl *ctl)
 {
     if (!ctl)
@@ -254,6 +308,11 @@ enum mixer_ctl_type mixer_ctl_get_type(struct mixer_ctl *ctl)
     };
 }
 
+/** Gets the string that describes the value type of the control.
+ * @param ctl An initialized control handle
+ * @returns On success, a string describing type of mixer control.
+ * @ingroup libtinyalsa-mixer
+ */
 const char *mixer_ctl_get_type_string(struct mixer_ctl *ctl)
 {
     if (!ctl)
@@ -270,6 +329,11 @@ const char *mixer_ctl_get_type_string(struct mixer_ctl *ctl)
     };
 }
 
+/** Gets the number of values in the control.
+ * @param ctl An initialized control handle
+ * @returns The number of values in the mixer control
+ * @ingroup libtinyalsa-mixer
+ */
 unsigned int mixer_ctl_get_num_values(struct mixer_ctl *ctl)
 {
     if (!ctl)

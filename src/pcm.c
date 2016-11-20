@@ -620,7 +620,7 @@ err_open:
     return NULL;
 }
 
-/** Frees the hardware parameters returned by @ref pcm_params_open.
+/** Frees the hardware parameters returned by @ref pcm_params_get.
  * @param pcm_params Hardware parameters of a PCM.
  *  May be NULL.
  * @ingroup libtinyalsa-pcm
