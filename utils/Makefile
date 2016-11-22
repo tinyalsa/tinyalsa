@@ -36,14 +36,14 @@ clean:
 
 .PHONY: install
 install: tinyplay tinycap tinymix tinypcminfo
-	mkdir -p $(DESTDIR)$(BINDIR)
-	cp -u tinyplay $(DESTDIR)$(BINDIR)/
-	cp -u tinycap $(DESTDIR)$(BINDIR)/
-	cp -u tinymix $(DESTDIR)$(BINDIR)/
-	cp -u tinypcminfo $(DESTDIR)$(BINDIR)/
-	mkdir -p $(DESTDIR)$(MANDIR)/man1
-	cp -u tinyplay.1 $(DESTDIR)$(MANDIR)/man1/
-	cp -u tinycap.1 $(DESTDIR)$(MANDIR)/man1/
-	cp -u tinymix.1 $(DESTDIR)$(MANDIR)/man1/
-	cp -u tinypcminfo.1 $(DESTDIR)$(MANDIR)/man1/
+	install -d $(DESTDIR)$(BINDIR)
+	install tinyplay $(DESTDIR)$(BINDIR)/
+	install tinycap $(DESTDIR)$(BINDIR)/
+	install tinymix $(DESTDIR)$(BINDIR)/
+	install tinypcminfo $(DESTDIR)$(BINDIR)/
+	install -d $(DESTDIR)$(MANDIR)/man1
+	install tinyplay.1 $(DESTDIR)$(MANDIR)/man1/
+	install tinycap.1 $(DESTDIR)$(MANDIR)/man1/
+	install tinymix.1 $(DESTDIR)$(MANDIR)/man1/
+	install tinypcminfo.1 $(DESTDIR)$(MANDIR)/man1/
 

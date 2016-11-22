@@ -40,8 +40,8 @@ clean:
 
 .PHONY: install
 install: libtinyalsa.a libtinyalsa.so.1
-	mkdir -p $(DESTDIR)$(LIBDIR)/
+	install -d $(DESTDIR)$(LIBDIR)/
 	ln -sf libtinyalsa.so.1 $(DESTDIR)$(LIBDIR)/libtinyalsa.so
-	cp -u libtinyalsa.a $(DESTDIR)$(LIBDIR)/
-	cp -u libtinyalsa.so.1 $(DESTDIR)$(LIBDIR)/
+	install libtinyalsa.a $(DESTDIR)$(LIBDIR)/
+	install libtinyalsa.so.1 $(DESTDIR)$(LIBDIR)/
 

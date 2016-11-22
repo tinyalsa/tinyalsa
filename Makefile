@@ -23,8 +23,11 @@ clean:
 
 .PHONY: install
 install:
-	mkdir -p $(DESTDIR)$(INCDIR)/tinyalsa
-	cp -Ru include/tinyalsa $(DESTDIR)$(INCDIR)/
+	install -d $(DESTDIR)$(INCDIR)/tinyalsa
+	install include/tinyalsa/pcm.h $(DESTDIR)$(INCDIR)/
+	install include/tinyalsa/mixer.h $(DESTDIR)$(INCDIR)/
+	install include/tinyalsa/asoundlib.h $(DESTDIR)$(INCDIR)/
+	install include/tinyalsa/version.h $(DESTDIR)$(INCDIR)/
 	$(MAKE) -C src install
 	$(MAKE) -C utils install
 	$(MAKE) -C doxygen install
