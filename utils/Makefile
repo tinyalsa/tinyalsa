@@ -6,10 +6,10 @@ MANDIR ?= $(PREFIX)/man
 CROSS_COMPILE ?=
 CC = $(CROSS_COMPILE)gcc
 
-WARNINGS = -Wall -Wextra -Werror -Wfatal-errors
-INCLUDE_DIRS = -I ../include
-LIBRARY_DIRS = -L ../src
-override CFLAGS := $(WARNINGS) $(INCLUDE_DIRS) $(LIBRARY_DIRS) -g -O2 $(CFLAGS)
+CFLAGS += -Wall -Wextra -Werror -Wfatal-errors
+CFLAGS += -I ../include
+CFLAGS += -L ../src
+CFLAGS += -O2
 
 VPATH = ../src:../include/tinyalsa
 
