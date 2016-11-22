@@ -326,8 +326,9 @@ static int pcm_sync_ptr(struct pcm *pcm, int flags)
         pcm->sync_ptr->flags = flags;
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SYNC_PTR, pcm->sync_ptr) < 0)
             return -1;
+        return 0;
     }
-    return 0;
+    return -1;
 }
 
 static int pcm_hw_mmap_status(struct pcm *pcm)
@@ -1088,12 +1089,16 @@ int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset,
 
 int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames)
 {
+    int ret;
+
     /* not used */
     (void) offset;
 
     /* update the application pointer in userspace and kernel */
     pcm_mmap_appl_forward(pcm, frames);
-    pcm_sync_ptr(pcm, 0);
+    ret = pcm_sync_ptr(pcm, 0);
+    if (ret != 0)
+        return ret;
 
     return frames;
 }
