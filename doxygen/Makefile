@@ -23,7 +23,7 @@ endif
 .PHONY: install
 install:
 ifdef DOXYGEN
-	mkdir -p $(DESTDIR)$(MANDIR)/man3
-	cp -u man/man3/tinyalsa-pcm.3 $(DESTDIR)$(MANDIR)/man3
-	cp -u man/man3/tinyalsa-mixer.3 $(DESTDIR)$(MANDIR)/man3
+	install -d $(DESTDIR)$(MANDIR)/man3
+	install man/man3/libtinyalsa-pcm.3 $(DESTDIR)$(MANDIR)/man3
+	install man/man3/libtinyalsa-mixer.3 $(DESTDIR)$(MANDIR)/man3
 endif
