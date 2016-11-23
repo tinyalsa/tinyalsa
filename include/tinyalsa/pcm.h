@@ -121,7 +121,7 @@ extern "C" {
  * Following the underscore, specifiers whether the sample is big endian or little endian.
  * The letters 'LE' mean little endian.
  * The letters 'BE' mean big endian.
- * This enumeration is used in the @ref config structure.
+ * This enumeration is used in the @ref pcm_config structure.
  * @ingroup libtinyalsa-pcm
  */
 enum pcm_format {
