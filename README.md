@@ -51,7 +51,7 @@ man tinyplay
 man tinycap
 man tinymix
 man tinypcminfo
-man tinyalsa-pcm
-man tinyalsa-mixer
+man libtinyalsa-pcm
+man libtinyalsa-mixer
 ```
 
