@@ -69,7 +69,7 @@ extern "C" {
  */
 #define PCM_NOIRQ 0x00000002
 
-/* When set, calls to @ref pcm_write
+/** When set, calls to @ref pcm_write
  * for a playback stream will not attempt
  * to restart the stream in the case of an
  * underflow, but will return -EPIPE instead.
