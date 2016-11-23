@@ -53,7 +53,9 @@
 struct mixer_ctl {
     /** The mixer that the mixer control belongs to */
     struct mixer *mixer;
+    /** Information on the control's value (i.e. type, number of values) */
     struct snd_ctl_elem_info info;
+    /** A list of string representations of enumerated values (only valid for enumerated controls) */
     char **ename;
 };
 
