@@ -9,5 +9,9 @@ addons:
             - doxygen
             - graphviz
 
+before_script:
+    - mkdir $HOME/install
+
 script:
     - make
+    - make PREFIX=$HOME/install install
