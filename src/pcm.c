@@ -201,6 +201,7 @@ unsigned int pcm_get_buffer_size(struct pcm *pcm)
 
 /** Gets the file descriptor of the PCM.
  * Useful for extending functionality of the PCM when needed.
+ * @param pcm A PCM handle.
  * @return The file descriptor of the PCM.
  * @ingroup libtinyalsa-pcm
  */
