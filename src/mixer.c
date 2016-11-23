@@ -363,6 +363,13 @@ static int int_to_percent(struct snd_ctl_elem_info *ei, int value)
     return ((value - ei->value.integer.min) / range) * 100;
 }
 
+/** Gets a percentage representation of a specified control value.
+ * @param ctl An initialized control handle.
+ * @param id The index of the value within the control.
+ * @returns On success, the percentage representation of the control value.
+ *  On failure, -EINVAL is returned.
+ * @ingroup libtinyalsa-mixer
+ */
 int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id)
 {
     if (!ctl || (ctl->info.type != SNDRV_CTL_ELEM_TYPE_INTEGER))
@@ -371,6 +378,14 @@ int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id)
     return int_to_percent(&ctl->info, mixer_ctl_get_value(ctl, id));
 }
 
+/** Sets the value of a control by percent, specified by the value index.
+ * @param ctl An initialized control handle.
+ * @param id The index of the value to set
+ * @param percent A percentage value between 0 and 100.
+ * @returns On success, zero is returned.
+ *  On failure, non-zero is returned.
+ * @ingroup libtinyalsa-mixer
+ */
 int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent)
 {
     if (!ctl || (ctl->info.type != SNDRV_CTL_ELEM_TYPE_INTEGER))
@@ -379,6 +394,13 @@ int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent)
     return mixer_ctl_set_value(ctl, id, percent_to_int(&ctl->info, percent));
 }
 
+/** Gets the value of a control.
+ * @param ctl An initialized control handle.
+ * @param id The index of the control value.
+ * @returns On success, the specified value is returned.
+ *  On failure, -EINVAL is returned.
+ * @ingroup libtinyalsa-mixer
+ */
 int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id)
 {
     struct snd_ctl_elem_value ev;
@@ -413,6 +435,18 @@ int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id)
     return 0;
 }
 
+/** Gets the contents of a control's value array.
+ * @param ctl An initialized control handle.
+ * @param array A pointer to write the array data to.
+ *  The size of this array must be equal to the number of items in the array
+ *  multiplied by the size of each item.
+ * @param count The number of items in the array.
+ *  This parameter must match the number of items in the control.
+ *  The number of items in the control may be accessed via @ref mixer_ctl_get_num_values
+ * @returns On success, zero.
+ *  On failure, non-zero.
+ * @ingroup libtinyalsa-mixer
+ */
 int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count)
 {
     struct snd_ctl_elem_value ev;
@@ -475,6 +509,16 @@ int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count)
     return 0;
 }
 
+/** Sets the value of a control, specified by the value index.
+ * @param ctl An initialized control handle.
+ * @param id The index of the value within the control.
+ * @param value The value to set.
+ *  This must be in a range specified by @ref mixer_ctl_get_range_min
+ *  and @ref mixer_ctl_get_range_max.
+ * @returns On success, zero is returned.
+ *  On failure, non-zero is returned.
+ * @ingroup libtinyalsa-mixer
+ */
 int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
 {
     struct snd_ctl_elem_value ev;
@@ -518,6 +562,16 @@ int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
     return ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
 }
 
+/** Sets the contents of a control's value array.
+ * @param ctl An initialized control handle.
+ * @param array The array containing control values.
+ * @param count The number of values in the array.
+ *  This must match the number of values in the control.
+ *  The number of values in a control may be accessed via @ref mixer_ctl_get_num_values
+ * @returns On success, zero.
+ *  On failure, non-zero.
+ * @ingroup libtinyalsa-mixer
+ */
 int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
 {
     struct snd_ctl_elem_value ev;
@@ -570,6 +624,14 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
     return ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
 }
 
+/** Gets the minimum value of an control.
+ * The control must have an integer type.
+ * The type of the control can be checked with @ref mixer_ctl_get_type.
+ * @param ctl An initialized control handle.
+ * @returns On success, the minimum value of the control.
+ *  On failure, -EINVAL.
+ * @ingroup libtinyalsa-mixer
+ */
 int mixer_ctl_get_range_min(struct mixer_ctl *ctl)
 {
     if (!ctl || (ctl->info.type != SNDRV_CTL_ELEM_TYPE_INTEGER))
@@ -578,6 +640,14 @@ int mixer_ctl_get_range_min(struct mixer_ctl *ctl)
     return ctl->info.value.integer.min;
 }
 
+/** Gets the maximum value of an control.
+ * The control must have an integer type.
+ * The type of the control can be checked with @ref mixer_ctl_get_type.
+ * @param ctl An initialized control handle.
+ * @returns On success, the maximum value of the control.
+ *  On failure, -EINVAL.
+ * @ingroup libtinyalsa-mixer
+ */
 int mixer_ctl_get_range_max(struct mixer_ctl *ctl)
 {
     if (!ctl || (ctl->info.type != SNDRV_CTL_ELEM_TYPE_INTEGER))
@@ -586,6 +656,11 @@ int mixer_ctl_get_range_max(struct mixer_ctl *ctl)
     return ctl->info.value.integer.max;
 }
 
+/** Get the number of enumerated items in the control.
+ * @param ctl An initialized control handle.
+ * @returns The number of enumerated items in the control.
+ * @ingroup libtinyalsa-mixer
+ */
 unsigned int mixer_ctl_get_num_enums(struct mixer_ctl *ctl)
 {
     if (!ctl)
@@ -632,6 +707,12 @@ fail:
     return -1;
 }
 
+/** Gets the string representation of an enumerated item.
+ * @param ctl An initialized control handle.
+ * @param enum_id The index of the enumerated value.
+ * @returns A string representation of the enumerated item.
+ * @ingroup libtinyalsa-mixer
+ */
 const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl,
                                       unsigned int enum_id)
 {
@@ -643,6 +724,13 @@ const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl,
     return (const char *)ctl->ename[enum_id];
 }
 
+/** Set an enumeration value by string value.
+ * @param ctl An enumerated mixer control.
+ * @param string The string representation of an enumeration.
+ * @returns On success, zero.
+ *  On failure, zero.
+ * @ingroup libtinyalsa-mixer
+ */
 int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string)
 {
     unsigned int i, num_enums;
