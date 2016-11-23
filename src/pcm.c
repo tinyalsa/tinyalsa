@@ -172,6 +172,7 @@ struct pcm {
     int underruns;
     /** Size of the buffer */
     unsigned int buffer_size;
+    /** The boundary for ring buffer pointers */
     unsigned int boundary;
     /** Description of the last error that occured */
     char error[PCM_ERROR_MAX];
@@ -182,7 +183,9 @@ struct pcm {
     struct snd_pcm_sync_ptr *sync_ptr;
     void *mmap_buffer;
     unsigned int noirq_frames_per_msec;
+    /** The delay of the PCM, in terms of frames */
     long pcm_delay;
+    /** The subdevice corresponding to the PCM */
     unsigned int subdevice;
 };
 
@@ -709,6 +712,12 @@ struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
     return (struct pcm_mask *)param_to_mask(params, p);
 }
 
+/** Get the minimum of a specified PCM parameter.
+ * @param pcm_params A PCM parameters structure.
+ * @param param The specified parameter to get the minimum of.
+ * @returns On success, the parameter minimum.
+ *  On failure, zero.
+ */
 unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
                                 enum pcm_param param)
 {
@@ -725,6 +734,12 @@ unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
     return param_get_min(params, p);
 }
 
+/** Get the maximum of a specified PCM parameter.
+ * @param pcm_params A PCM parameters structure.
+ * @param param The specified parameter to get the maximum of.
+ * @returns On success, the parameter maximum.
+ *  On failure, zero.
+ */
 unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
                                 enum pcm_param param)
 {
@@ -1118,6 +1133,14 @@ int pcm_state(struct pcm *pcm)
     return pcm->mmap_status->state;
 }
 
+/** Waits for frames to be available for read or write operations.
+ * @param pcm A PCM handle.
+ * @param timeout The maximum amount of time to wait for, in terms of milliseconds.
+ * @returns If frames became available, one is returned.
+ *  If a timeout occured, zero is returned.
+ *  If an error occured, a negative number is returned.
+ * @ingroup libtinyalsa-pcm
+ */
 int pcm_wait(struct pcm *pcm, int timeout)
 {
     struct pollfd pfd;
@@ -1253,6 +1276,12 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
     return pcm_mmap_transfer(pcm, data, count);
 }
 
+/** Gets the delay of the PCM, in terms of frames.
+ * @param pcm A PCM handle.
+ * @returns On success, the delay of the PCM.
+ *  On failure, a negative number.
+ * @ingroup libtinyalsa-pcm
+ */
 long pcm_get_delay(struct pcm *pcm)
 {
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DELAY, &pcm->pcm_delay) < 0)
