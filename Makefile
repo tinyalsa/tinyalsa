@@ -2,12 +2,10 @@ export DESTDIR ?=
 export PREFIX ?= /usr/local
 export CROSS_COMPILE =
 
-export INCDIR ?= $(PREFIX)/include
+export INCDIR ?= $(PREFIX)/include/tinyalsa
 export LIBDIR ?= $(PREFIX)/lib
 export BINDIR ?= $(PREFIX)/bin
 export MANDIR ?= $(PREFIX)/share/man
-
-INCDIR ?= $(PREFIX)/include
 
 .PHONY: all
 all:
@@ -23,7 +21,7 @@ clean:
 
 .PHONY: install
 install:
-	install -d $(DESTDIR)$(INCDIR)/tinyalsa
+	install -d $(DESTDIR)$(INCDIR)/
 	install include/tinyalsa/pcm.h $(DESTDIR)$(INCDIR)/
 	install include/tinyalsa/mixer.h $(DESTDIR)$(INCDIR)/
 	install include/tinyalsa/asoundlib.h $(DESTDIR)$(INCDIR)/
