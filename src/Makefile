@@ -1,6 +1,5 @@
 DESTDIR ?=
 PREFIX ?= /usr/local
-INCDIR ?= $(PREFIX)/include
 LIBDIR ?= $(PREFIX)/lib
 BINDIR ?= $(PREFIX)/bin
 ifdef DEB_HOST_MULTIARCH
