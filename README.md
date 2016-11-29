@@ -1,6 +1,8 @@
 TinyALSA
 ========
 
+[![Build Status](https://travis-ci.org/tinyalsa/tinyalsa.svg?branch=master)](https://travis-ci.org/tinyalsa/tinyalsa)
+
 TinyALSA is a small library to interface with ALSA in the Linux kernel.
 
 The aims are:
