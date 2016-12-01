@@ -223,11 +223,11 @@ struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
 
 void pcm_params_free(struct pcm_params *pcm_params);
 
-struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params, enum pcm_param param);
+const struct pcm_mask *pcm_params_get_mask(const struct pcm_params *pcm_params, enum pcm_param param);
 
-unsigned int pcm_params_get_min(struct pcm_params *pcm_params, enum pcm_param param);
+unsigned int pcm_params_get_min(const struct pcm_params *pcm_params, enum pcm_param param);
 
-unsigned int pcm_params_get_max(struct pcm_params *pcm_params, enum pcm_param param);
+unsigned int pcm_params_get_max(const struct pcm_params *pcm_params, enum pcm_param param);
 
 struct pcm;
 
