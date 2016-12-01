@@ -64,6 +64,11 @@ static inline int param_is_interval(int p)
         (p <= SNDRV_PCM_HW_PARAM_LAST_INTERVAL);
 }
 
+static inline const struct snd_interval *param_get_interval(const struct snd_pcm_hw_params *p, int n)
+{
+	return &(p->intervals[n - SNDRV_PCM_HW_PARAM_FIRST_INTERVAL]);
+}
+
 static inline struct snd_interval *param_to_interval(struct snd_pcm_hw_params *p, int n)
 {
     return &(p->intervals[n - SNDRV_PCM_HW_PARAM_FIRST_INTERVAL]);
@@ -94,19 +99,19 @@ static void param_set_min(struct snd_pcm_hw_params *p, int n, unsigned int val)
     }
 }
 
-static unsigned int param_get_min(struct snd_pcm_hw_params *p, int n)
+static unsigned int param_get_min(const struct snd_pcm_hw_params *p, int n)
 {
     if (param_is_interval(n)) {
-        struct snd_interval *i = param_to_interval(p, n);
+        const struct snd_interval *i = param_get_interval(p, n);
         return i->min;
     }
     return 0;
 }
 
-static unsigned int param_get_max(struct snd_pcm_hw_params *p, int n)
+static unsigned int param_get_max(const struct snd_pcm_hw_params *p, int n)
 {
     if (param_is_interval(n)) {
-        struct snd_interval *i = param_to_interval(p, n);
+        const struct snd_interval *i = param_get_interval(p, n);
         return i->max;
     }
     return 0;
@@ -696,7 +701,7 @@ static int pcm_param_to_alsa(enum pcm_param param)
  *  Otherwise, the mask associated with @p param is returned.
  * @ingroup libtinyalsa-pcm
  */
-struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
+const struct pcm_mask *pcm_params_get_mask(const struct pcm_params *pcm_params,
                                      enum pcm_param param)
 {
     int p;
@@ -710,7 +715,7 @@ struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
         return NULL;
     }
 
-    return (struct pcm_mask *)param_to_mask(params, p);
+    return (const struct pcm_mask *)param_to_mask(params, p);
 }
 
 /** Get the minimum of a specified PCM parameter.
@@ -719,7 +724,7 @@ struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
  * @returns On success, the parameter minimum.
  *  On failure, zero.
  */
-unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
+unsigned int pcm_params_get_min(const struct pcm_params *pcm_params,
                                 enum pcm_param param)
 {
     struct snd_pcm_hw_params *params = (struct snd_pcm_hw_params *)pcm_params;
@@ -741,10 +746,10 @@ unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
  * @returns On success, the parameter maximum.
  *  On failure, zero.
  */
-unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
+unsigned int pcm_params_get_max(const struct pcm_params *pcm_params,
                                 enum pcm_param param)
 {
-    struct snd_pcm_hw_params *params = (struct snd_pcm_hw_params *)pcm_params;
+    const struct snd_pcm_hw_params *params = (const struct snd_pcm_hw_params *)pcm_params;
     int p;
 
     if (!params)
