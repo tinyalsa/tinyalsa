@@ -262,9 +262,9 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail, struct timespec *ts
 
 unsigned int pcm_get_subdevice(const struct pcm *pcm);
 
-int pcm_writei(struct pcm *pcm, const void *data, unsigned int count);
+int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count);
 
-int pcm_readi(struct pcm *pcm, void *data, unsigned int count);
+int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count);
 
 #ifdef __GNUC__
 

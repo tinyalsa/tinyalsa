@@ -522,11 +522,11 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
  * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
  * @param pcm A PCM handle.
  * @param data The audio sample array
- * @param count The number of bytes occupied by the sample array.
+ * @param frame_count The number of frames occupied by the sample array.
  * @return On success, this function returns the number of frames written; otherwise, a negative number.
  * @ingroup libtinyalsa-pcm
  */
-int pcm_writei(struct pcm *pcm, const void *data, unsigned int count)
+int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
 {
     struct snd_xferi x;
 
@@ -534,8 +534,7 @@ int pcm_writei(struct pcm *pcm, const void *data, unsigned int count)
         return -EINVAL;
 
     x.buf = (void*)data;
-    x.frames = count / (pcm->config.channels *
-                        pcm_format_to_bits(pcm->config.format) / 8);
+    x.frames = frame_count;
     x.result = 0;
     for (;;) {
         if (!pcm->running) {
@@ -571,11 +570,11 @@ int pcm_writei(struct pcm *pcm, const void *data, unsigned int count)
  * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
  * @param pcm A PCM handle.
  * @param data The audio sample array
- * @param count The number of bytes occupied by the sample array.
+ * @param count The number of frames occupied by the sample array.
  * @return On success, this function returns the number of frames written; otherwise, a negative number.
  * @ingroup libtinyalsa-pcm
  */
-int pcm_readi(struct pcm *pcm, void *data, unsigned int count)
+int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count)
 {
     struct snd_xferi x;
 
@@ -583,8 +582,7 @@ int pcm_readi(struct pcm *pcm, void *data, unsigned int count)
         return -EINVAL;
 
     x.buf = data;
-    x.frames = count / (pcm->config.channels *
-                        pcm_format_to_bits(pcm->config.format) / 8);
+    x.frames = frame_count;
     x.result = 0;
     for (;;) {
         if (!pcm->running) {
@@ -620,7 +618,7 @@ int pcm_readi(struct pcm *pcm, void *data, unsigned int count)
  */
 int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
 {
-    int ret = pcm_writei(pcm, data, count);
+    int ret = pcm_writei(pcm, data, pcm_bytes_to_frames(pcm, count));
     if (ret < 0){
         return ret;
     }
@@ -640,7 +638,7 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
  */
 int pcm_read(struct pcm *pcm, void *data, unsigned int count)
 {
-    int ret = pcm_readi(pcm, data, count);
+    int ret = pcm_readi(pcm, data, pcm_bytes_to_frames(pcm, count));
     if (ret < 0) {
         return ret;
     }
