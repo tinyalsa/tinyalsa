@@ -808,7 +808,7 @@ int pcm_close(struct pcm *pcm)
  * @ingroup libtinyalsa-pcm
  */
 struct pcm *pcm_open(unsigned int card, unsigned int device,
-                     unsigned int flags, struct pcm_config *config)
+                     unsigned int flags, const struct pcm_config *config)
 {
     struct pcm *pcm;
     struct snd_pcm_info info;
@@ -823,14 +823,14 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 
     if (config == NULL) {
         config = &pcm->config;
-        config->channels = 2;
-        config->rate = 48000;
-        config->period_size = 1024;
-        config->period_count = 4;
-        config->format = PCM_FORMAT_S16_LE;
-        config->start_threshold = config->period_count * config->period_size;
-        config->stop_threshold = config->period_count * config->period_size;
-        config->silence_threshold = 0;
+        pcm->config.channels = 2;
+        pcm->config.rate = 48000;
+        pcm->config.period_size = 1024;
+        pcm->config.period_count = 4;
+        pcm->config.format = PCM_FORMAT_S16_LE;
+        pcm->config.start_threshold = config->period_count * config->period_size;
+        pcm->config.stop_threshold = config->period_count * config->period_size;
+        pcm->config.silence_threshold = 0;
     } else {
         pcm->config = *config;
     }
@@ -890,8 +890,8 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     }
 
     /* get our refined hw_params */
-    config->period_size = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE);
-    config->period_count = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIODS);
+    pcm->config.period_size = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE);
+    pcm->config.period_count = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIODS);
     pcm->buffer_size = config->period_count * config->period_size;
 
     if (flags & PCM_MMAP) {
