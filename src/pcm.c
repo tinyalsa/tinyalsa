@@ -979,7 +979,7 @@ fail_close:
  *  Otherwise, the function returns one.
  * @ingroup libtinyalsa-pcm
  */
-int pcm_is_ready(struct pcm *pcm)
+int pcm_is_ready(const struct pcm *pcm)
 {
     return pcm->fd >= 0;
 }

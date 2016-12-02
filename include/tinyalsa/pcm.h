@@ -238,7 +238,7 @@ struct pcm *pcm_open(unsigned int card,
 
 int pcm_close(struct pcm *pcm);
 	
-int pcm_is_ready(struct pcm *pcm);
+int pcm_is_ready(const struct pcm *pcm);
 
 int pcm_get_file_descriptor(struct pcm *pcm);
 
