@@ -1,3 +1,17 @@
+tinyalsa (1.1.0) xenial; urgency=medium
+
+  * Finished most of the PCM and mixer API documentation
+  * Added const specifiers where necessary
+  * Added pcm_readi() and pcm_writei()
+  * Deprecated pcm_read() and pcm_write()
+  * Added mixer_get_num_ctls_by_name()
+  * Added pcm_get_channels(), pcm_get_rate() and pcm_get_format()
+  * Made libtinyalsa.so.x a symbol link, using libtinyalsa.so.x.y.z as library name
+  * Added long option names in tinyplay
+  * Using amixer-style interface for tinymix
+
+ -- Taylor Holberton <taylorcholberton@gmail.com>  Thu, 01 Dec 2016 21:38:12 -0800
+
 tinyalsa (1.0.2) xenial; urgency=medium
 
   * Removed install of libtinyalsa.so in package libtinyalsa
