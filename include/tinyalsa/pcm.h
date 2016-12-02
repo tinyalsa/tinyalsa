@@ -223,38 +223,38 @@ struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
 
 void pcm_params_free(struct pcm_params *pcm_params);
 
-struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params, enum pcm_param param);
+const struct pcm_mask *pcm_params_get_mask(const struct pcm_params *pcm_params, enum pcm_param param);
 
-unsigned int pcm_params_get_min(struct pcm_params *pcm_params, enum pcm_param param);
+unsigned int pcm_params_get_min(const struct pcm_params *pcm_params, enum pcm_param param);
 
-unsigned int pcm_params_get_max(struct pcm_params *pcm_params, enum pcm_param param);
+unsigned int pcm_params_get_max(const struct pcm_params *pcm_params, enum pcm_param param);
 
 struct pcm;
 
 struct pcm *pcm_open(unsigned int card,
                      unsigned int device,
                      unsigned int flags,
-                     struct pcm_config *config);
+                     const struct pcm_config *config);
 
 int pcm_close(struct pcm *pcm);
 	
-int pcm_is_ready(struct pcm *pcm);
+int pcm_is_ready(const struct pcm *pcm);
 
-int pcm_get_file_descriptor(struct pcm *pcm);
+int pcm_get_file_descriptor(const struct pcm *pcm);
 
-const char *pcm_get_error(struct pcm *pcm);
+const char *pcm_get_error(const struct pcm *pcm);
 
 unsigned int pcm_format_to_bits(enum pcm_format format);
 
-unsigned int pcm_get_buffer_size(struct pcm *pcm);
+unsigned int pcm_get_buffer_size(const struct pcm *pcm);
 
-unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames);
+unsigned int pcm_frames_to_bytes(const struct pcm *pcm, unsigned int frames);
 
-unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes);
+unsigned int pcm_bytes_to_frames(const struct pcm *pcm, unsigned int bytes);
 
 int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail, struct timespec *tstamp);
 
-unsigned int pcm_get_subdevice(struct pcm *pcm);
+unsigned int pcm_get_subdevice(const struct pcm *pcm);
 
 int pcm_write(struct pcm *pcm, const void *data, unsigned int count);
 
