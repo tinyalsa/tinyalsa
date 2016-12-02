@@ -234,7 +234,7 @@ struct pcm;
 struct pcm *pcm_open(unsigned int card,
                      unsigned int device,
                      unsigned int flags,
-                     struct pcm_config *config);
+                     const struct pcm_config *config);
 
 int pcm_close(struct pcm *pcm);
 	
