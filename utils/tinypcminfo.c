@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 
     for (i = 0; i < 2; i++) {
         struct pcm_params *params;
-        struct pcm_mask *m;
+        const struct pcm_mask *m;
         unsigned int min;
         unsigned int max;
 

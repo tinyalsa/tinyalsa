@@ -409,7 +409,7 @@ int play_sample(struct ctx *ctx)
     do {
         num_read = fread(buffer, 1, size, ctx->file);
         if (num_read > 0) {
-            if (pcm_write(ctx->pcm, buffer, num_read)) {
+            if (pcm_writei(ctx->pcm, buffer, num_read) < 0) {
                 fprintf(stderr, "error playing sample\n");
                 break;
             }

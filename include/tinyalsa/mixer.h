@@ -69,9 +69,13 @@ struct mixer *mixer_open(unsigned int card);
 
 void mixer_close(struct mixer *mixer);
 
-const char *mixer_get_name(struct mixer *mixer);
+const char *mixer_get_name(const struct mixer *mixer);
 
-unsigned int mixer_get_num_ctls(struct mixer *mixer);
+unsigned int mixer_get_num_ctls(const struct mixer *mixer);
+
+unsigned int mixer_get_num_ctls_by_name(const struct mixer *mixer, const char *name);
+
+const struct mixer_ctl *mixer_get_ctl_const(const struct mixer *mixer, unsigned int id);
 
 struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id);
 
@@ -81,17 +85,17 @@ struct mixer_ctl *mixer_get_ctl_by_name_and_index(struct mixer *mixer,
                                                   const char *name,
                                                   unsigned int index);
 
-unsigned int mixer_ctl_get_id(struct mixer_ctl *ctl);
+unsigned int mixer_ctl_get_id(const struct mixer_ctl *ctl);
 
-const char *mixer_ctl_get_name(struct mixer_ctl *ctl);
+const char *mixer_ctl_get_name(const struct mixer_ctl *ctl);
 
-enum mixer_ctl_type mixer_ctl_get_type(struct mixer_ctl *ctl);
+enum mixer_ctl_type mixer_ctl_get_type(const struct mixer_ctl *ctl);
 
-const char *mixer_ctl_get_type_string(struct mixer_ctl *ctl);
+const char *mixer_ctl_get_type_string(const struct mixer_ctl *ctl);
 
-unsigned int mixer_ctl_get_num_values(struct mixer_ctl *ctl);
+unsigned int mixer_ctl_get_num_values(const struct mixer_ctl *ctl);
 
-unsigned int mixer_ctl_get_num_enums(struct mixer_ctl *ctl);
+unsigned int mixer_ctl_get_num_enums(const struct mixer_ctl *ctl);
 
 const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl, unsigned int enum_id);
 
@@ -102,13 +106,13 @@ const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl, unsigned int enum_i
 void mixer_ctl_update(struct mixer_ctl *ctl);
 
 /* Set and get mixer controls */
-int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id);
+int mixer_ctl_get_percent(const struct mixer_ctl *ctl, unsigned int id);
 
 int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent);
 
-int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id);
+int mixer_ctl_get_value(const struct mixer_ctl *ctl, unsigned int id);
 
-int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count);
+int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count);
 
 int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value);
 
@@ -117,9 +121,9 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count);
 int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string);
 
 /* Determe range of integer mixer controls */
-int mixer_ctl_get_range_min(struct mixer_ctl *ctl);
+int mixer_ctl_get_range_min(const struct mixer_ctl *ctl);
 
-int mixer_ctl_get_range_max(struct mixer_ctl *ctl);
+int mixer_ctl_get_range_max(const struct mixer_ctl *ctl);
 
 #if defined(__cplusplus)
 }  /* extern "C" */

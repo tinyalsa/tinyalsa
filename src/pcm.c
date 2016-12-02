@@ -64,6 +64,11 @@ static inline int param_is_interval(int p)
         (p <= SNDRV_PCM_HW_PARAM_LAST_INTERVAL);
 }
 
+static inline const struct snd_interval *param_get_interval(const struct snd_pcm_hw_params *p, int n)
+{
+	return &(p->intervals[n - SNDRV_PCM_HW_PARAM_FIRST_INTERVAL]);
+}
+
 static inline struct snd_interval *param_to_interval(struct snd_pcm_hw_params *p, int n)
 {
     return &(p->intervals[n - SNDRV_PCM_HW_PARAM_FIRST_INTERVAL]);
@@ -94,19 +99,19 @@ static void param_set_min(struct snd_pcm_hw_params *p, int n, unsigned int val)
     }
 }
 
-static unsigned int param_get_min(struct snd_pcm_hw_params *p, int n)
+static unsigned int param_get_min(const struct snd_pcm_hw_params *p, int n)
 {
     if (param_is_interval(n)) {
-        struct snd_interval *i = param_to_interval(p, n);
+        const struct snd_interval *i = param_get_interval(p, n);
         return i->min;
     }
     return 0;
 }
 
-static unsigned int param_get_max(struct snd_pcm_hw_params *p, int n)
+static unsigned int param_get_max(const struct snd_pcm_hw_params *p, int n)
 {
     if (param_is_interval(n)) {
-        struct snd_interval *i = param_to_interval(p, n);
+        const struct snd_interval *i = param_get_interval(p, n);
         return i->max;
     }
     return 0;
@@ -194,9 +199,40 @@ struct pcm {
  * @return The buffer size of the PCM.
  * @ingroup libtinyalsa-pcm
  */
-unsigned int pcm_get_buffer_size(struct pcm *pcm)
+unsigned int pcm_get_buffer_size(const struct pcm *pcm)
 {
     return pcm->buffer_size;
+}
+
+/** Gets the channel count of the PCM.
+ * @param pcm A PCM handle.
+ * @return The channel count of the PCM.
+ * @ingroup libtinyalsa-pcm
+ */
+unsigned int pcm_get_channels(const struct pcm *pcm)
+{
+	return pcm->config.channels;
+}
+
+/** Gets the rate of the PCM.
+ * The rate is given in frames per second.
+ * @param pcm A PCM handle.
+ * @return The rate of the PCM.
+ * @ingroup libtinyalsa-pcm
+ */
+unsigned int pcm_get_rate(const struct pcm *pcm)
+{
+	return pcm->config.rate;
+}
+
+/** Gets the format of the PCM.
+ * @param pcm A PCM handle.
+ * @return The format of the PCM.
+ * @ingroup libtinyalsa-pcm
+ */
+enum pcm_format pcm_get_format(const struct pcm *pcm)
+{
+	return pcm->config.format;
 }
 
 /** Gets the file descriptor of the PCM.
@@ -205,7 +241,7 @@ unsigned int pcm_get_buffer_size(struct pcm *pcm)
  * @return The file descriptor of the PCM.
  * @ingroup libtinyalsa-pcm
  */
-int pcm_get_file_descriptor(struct pcm *pcm)
+int pcm_get_file_descriptor(const struct pcm *pcm)
 {
     return pcm->fd;
 }
@@ -216,7 +252,7 @@ int pcm_get_file_descriptor(struct pcm *pcm)
  * @return The error message of the last error that occured.
  * @ingroup libtinyalsa-pcm
  */
-const char* pcm_get_error(struct pcm *pcm)
+const char* pcm_get_error(const struct pcm *pcm)
 {
     return pcm->error;
 }
@@ -224,7 +260,7 @@ const char* pcm_get_error(struct pcm *pcm)
 /** Gets the subdevice on which the pcm has been opened.
  * @param pcm A PCM handle.
  * @return The subdevice on which the pcm has been opened */
-unsigned int pcm_get_subdevice(struct pcm *pcm)
+unsigned int pcm_get_subdevice(const struct pcm *pcm)
 {
     return pcm->subdevice;
 }
@@ -306,7 +342,7 @@ unsigned int pcm_format_to_bits(enum pcm_format format)
  * @return The number of frames that may fit into @p bytes
  * @ingroup libtinyalsa-pcm
  */
-unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes)
+unsigned int pcm_bytes_to_frames(const struct pcm *pcm, unsigned int bytes)
 {
     return bytes / (pcm->config.channels *
         (pcm_format_to_bits(pcm->config.format) >> 3));
@@ -318,7 +354,7 @@ unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes)
  * @return The bytes occupied by @p frames.
  * @ingroup libtinyalsa-pcm
  */
-unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames)
+unsigned int pcm_frames_to_bytes(const struct pcm *pcm, unsigned int frames)
 {
     return frames * pcm->config.channels *
         (pcm_format_to_bits(pcm->config.format) >> 3);
@@ -486,11 +522,11 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
  * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
  * @param pcm A PCM handle.
  * @param data The audio sample array
- * @param count The number of bytes occupied by the sample array.
- * @return On success, this function returns zero; otherwise, a negative number.
+ * @param frame_count The number of frames occupied by the sample array.
+ * @return On success, this function returns the number of frames written; otherwise, a negative number.
  * @ingroup libtinyalsa-pcm
  */
-int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
+int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
 {
     struct snd_xferi x;
 
@@ -498,8 +534,7 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
         return -EINVAL;
 
     x.buf = (void*)data;
-    x.frames = count / (pcm->config.channels *
-                        pcm_format_to_bits(pcm->config.format) / 8);
+    x.frames = frame_count;
     x.result = 0;
     for (;;) {
         if (!pcm->running) {
@@ -525,7 +560,7 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
             }
             return oops(pcm, errno, "cannot write stream data");
         }
-        return 0;
+        return x.result;
     }
 }
 
@@ -535,11 +570,11 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
  * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
  * @param pcm A PCM handle.
  * @param data The audio sample array
- * @param count The number of bytes occupied by the sample array.
- * @return On success, this function returns zero; otherwise, a negative number.
+ * @param frame_count The number of frames occupied by the sample array.
+ * @return On success, this function returns the number of frames written; otherwise, a negative number.
  * @ingroup libtinyalsa-pcm
  */
-int pcm_read(struct pcm *pcm, void *data, unsigned int count)
+int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count)
 {
     struct snd_xferi x;
 
@@ -547,8 +582,7 @@ int pcm_read(struct pcm *pcm, void *data, unsigned int count)
         return -EINVAL;
 
     x.buf = data;
-    x.frames = count / (pcm->config.channels *
-                        pcm_format_to_bits(pcm->config.format) / 8);
+    x.frames = frame_count;
     x.result = 0;
     for (;;) {
         if (!pcm->running) {
@@ -567,8 +601,48 @@ int pcm_read(struct pcm *pcm, void *data, unsigned int count)
             }
             return oops(pcm, errno, "cannot read stream data");
         }
-        return 0;
+        return x.result;
     }
+}
+
+/** Writes audio samples to PCM.
+ * If the PCM has not been started, it is started in this function.
+ * This function is only valid for PCMs opened with the @ref PCM_OUT flag.
+ * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
+ * @param pcm A PCM handle.
+ * @param data The audio sample array
+ * @param count The number of bytes occupied by the sample array.
+ * @return On success, this function returns zero; otherwise, a negative number.
+ * @deprecated
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
+{
+    int ret = pcm_writei(pcm, data, pcm_bytes_to_frames(pcm, count));
+    if (ret < 0){
+        return ret;
+    }
+    return 0;
+}
+
+/** Reads audio samples from PCM.
+ * If the PCM has not been started, it is started in this function.
+ * This function is only valid for PCMs opened with the @ref PCM_IN flag.
+ * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
+ * @param pcm A PCM handle.
+ * @param data The audio sample array
+ * @param count The number of bytes occupied by the sample array.
+ * @return On success, this function returns zero; otherwise, a negative number.
+ * @deprecated
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_read(struct pcm *pcm, void *data, unsigned int count)
+{
+    int ret = pcm_readi(pcm, data, pcm_bytes_to_frames(pcm, count));
+    if (ret < 0) {
+        return ret;
+    }
+    return 0;
 }
 
 static struct pcm bad_pcm = {
@@ -696,7 +770,7 @@ static int pcm_param_to_alsa(enum pcm_param param)
  *  Otherwise, the mask associated with @p param is returned.
  * @ingroup libtinyalsa-pcm
  */
-struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
+const struct pcm_mask *pcm_params_get_mask(const struct pcm_params *pcm_params,
                                      enum pcm_param param)
 {
     int p;
@@ -710,7 +784,7 @@ struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
         return NULL;
     }
 
-    return (struct pcm_mask *)param_to_mask(params, p);
+    return (const struct pcm_mask *)param_to_mask(params, p);
 }
 
 /** Get the minimum of a specified PCM parameter.
@@ -719,7 +793,7 @@ struct pcm_mask *pcm_params_get_mask(struct pcm_params *pcm_params,
  * @returns On success, the parameter minimum.
  *  On failure, zero.
  */
-unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
+unsigned int pcm_params_get_min(const struct pcm_params *pcm_params,
                                 enum pcm_param param)
 {
     struct snd_pcm_hw_params *params = (struct snd_pcm_hw_params *)pcm_params;
@@ -741,10 +815,10 @@ unsigned int pcm_params_get_min(struct pcm_params *pcm_params,
  * @returns On success, the parameter maximum.
  *  On failure, zero.
  */
-unsigned int pcm_params_get_max(struct pcm_params *pcm_params,
+unsigned int pcm_params_get_max(const struct pcm_params *pcm_params,
                                 enum pcm_param param)
 {
-    struct snd_pcm_hw_params *params = (struct snd_pcm_hw_params *)pcm_params;
+    const struct snd_pcm_hw_params *params = (const struct snd_pcm_hw_params *)pcm_params;
     int p;
 
     if (!params)
@@ -803,7 +877,7 @@ int pcm_close(struct pcm *pcm)
  * @ingroup libtinyalsa-pcm
  */
 struct pcm *pcm_open(unsigned int card, unsigned int device,
-                     unsigned int flags, struct pcm_config *config)
+                     unsigned int flags, const struct pcm_config *config)
 {
     struct pcm *pcm;
     struct snd_pcm_info info;
@@ -818,14 +892,14 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 
     if (config == NULL) {
         config = &pcm->config;
-        config->channels = 2;
-        config->rate = 48000;
-        config->period_size = 1024;
-        config->period_count = 4;
-        config->format = PCM_FORMAT_S16_LE;
-        config->start_threshold = config->period_count * config->period_size;
-        config->stop_threshold = config->period_count * config->period_size;
-        config->silence_threshold = 0;
+        pcm->config.channels = 2;
+        pcm->config.rate = 48000;
+        pcm->config.period_size = 1024;
+        pcm->config.period_count = 4;
+        pcm->config.format = PCM_FORMAT_S16_LE;
+        pcm->config.start_threshold = config->period_count * config->period_size;
+        pcm->config.stop_threshold = config->period_count * config->period_size;
+        pcm->config.silence_threshold = 0;
     } else {
         pcm->config = *config;
     }
@@ -885,8 +959,8 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     }
 
     /* get our refined hw_params */
-    config->period_size = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE);
-    config->period_count = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIODS);
+    pcm->config.period_size = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE);
+    pcm->config.period_count = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIODS);
     pcm->buffer_size = config->period_count * config->period_size;
 
     if (flags & PCM_MMAP) {
@@ -974,7 +1048,7 @@ fail_close:
  *  Otherwise, the function returns one.
  * @ingroup libtinyalsa-pcm
  */
-int pcm_is_ready(struct pcm *pcm)
+int pcm_is_ready(const struct pcm *pcm)
 {
     return pcm->fd >= 0;
 }
