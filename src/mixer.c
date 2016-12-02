@@ -176,7 +176,7 @@ fail:
  * @returns The name of the mixer's card.
  * @ingroup libtinyalsa-mixer
  */
-const char *mixer_get_name(struct mixer *mixer)
+const char *mixer_get_name(const struct mixer *mixer)
 {
     return (const char *)mixer->card_info.name;
 }
@@ -186,7 +186,7 @@ const char *mixer_get_name(struct mixer *mixer)
  * @returns The number of mixer controls for the given mixer.
  * @ingroup libtinyalsa-mixer
  */
-unsigned int mixer_get_num_ctls(struct mixer *mixer)
+unsigned int mixer_get_num_ctls(const struct mixer *mixer)
 {
     if (!mixer)
         return 0;
@@ -263,7 +263,7 @@ void mixer_ctl_update(struct mixer_ctl *ctl)
  *  On error, UINT_MAX is returned instead.
  * @ingroup libtinyalsa-mixer
  */
-unsigned int mixer_ctl_get_id(struct mixer_ctl *ctl)
+unsigned int mixer_ctl_get_id(const struct mixer_ctl *ctl)
 {
     if (!ctl)
         return UINT_MAX;
@@ -280,7 +280,7 @@ unsigned int mixer_ctl_get_id(struct mixer_ctl *ctl)
  *  On error, NULL.
  * @ingroup libtinyalsa-mixer
  */
-const char *mixer_ctl_get_name(struct mixer_ctl *ctl)
+const char *mixer_ctl_get_name(const struct mixer_ctl *ctl)
 {
     if (!ctl)
         return NULL;
@@ -294,7 +294,7 @@ const char *mixer_ctl_get_name(struct mixer_ctl *ctl)
  *  On failure, it returns @ref MIXER_CTL_TYPE_UNKNOWN
  * @ingroup libtinyalsa-mixer
  */
-enum mixer_ctl_type mixer_ctl_get_type(struct mixer_ctl *ctl)
+enum mixer_ctl_type mixer_ctl_get_type(const struct mixer_ctl *ctl)
 {
     if (!ctl)
         return MIXER_CTL_TYPE_UNKNOWN;
@@ -315,7 +315,7 @@ enum mixer_ctl_type mixer_ctl_get_type(struct mixer_ctl *ctl)
  * @returns On success, a string describing type of mixer control.
  * @ingroup libtinyalsa-mixer
  */
-const char *mixer_ctl_get_type_string(struct mixer_ctl *ctl)
+const char *mixer_ctl_get_type_string(const struct mixer_ctl *ctl)
 {
     if (!ctl)
         return "";
@@ -336,7 +336,7 @@ const char *mixer_ctl_get_type_string(struct mixer_ctl *ctl)
  * @returns The number of values in the mixer control
  * @ingroup libtinyalsa-mixer
  */
-unsigned int mixer_ctl_get_num_values(struct mixer_ctl *ctl)
+unsigned int mixer_ctl_get_num_values(const struct mixer_ctl *ctl)
 {
     if (!ctl)
         return 0;
@@ -344,7 +344,7 @@ unsigned int mixer_ctl_get_num_values(struct mixer_ctl *ctl)
     return ctl->info.count;
 }
 
-static int percent_to_int(struct snd_ctl_elem_info *ei, int percent)
+static int percent_to_int(const struct snd_ctl_elem_info *ei, int percent)
 {
     if ((percent > 100) || (percent < 0)) {
         return -EINVAL;
@@ -355,7 +355,7 @@ static int percent_to_int(struct snd_ctl_elem_info *ei, int percent)
     return ei->value.integer.min + (range * percent) / 100;
 }
 
-static int int_to_percent(struct snd_ctl_elem_info *ei, int value)
+static int int_to_percent(const struct snd_ctl_elem_info *ei, int value)
 {
     int range = (ei->value.integer.max - ei->value.integer.min);
 
@@ -372,7 +372,7 @@ static int int_to_percent(struct snd_ctl_elem_info *ei, int value)
  *  On failure, -EINVAL is returned.
  * @ingroup libtinyalsa-mixer
  */
-int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id)
+int mixer_ctl_get_percent(const struct mixer_ctl *ctl, unsigned int id)
 {
     if (!ctl || (ctl->info.type != SNDRV_CTL_ELEM_TYPE_INTEGER))
         return -EINVAL;
@@ -403,7 +403,7 @@ int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent)
  *  On failure, -EINVAL is returned.
  * @ingroup libtinyalsa-mixer
  */
-int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id)
+int mixer_ctl_get_value(const struct mixer_ctl *ctl, unsigned int id)
 {
     struct snd_ctl_elem_value ev;
     int ret;
@@ -449,7 +449,7 @@ int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id)
  *  On failure, non-zero.
  * @ingroup libtinyalsa-mixer
  */
-int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count)
+int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
 {
     struct snd_ctl_elem_value ev;
     int ret = 0;
@@ -634,7 +634,7 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
  *  On failure, -EINVAL.
  * @ingroup libtinyalsa-mixer
  */
-int mixer_ctl_get_range_min(struct mixer_ctl *ctl)
+int mixer_ctl_get_range_min(const struct mixer_ctl *ctl)
 {
     if (!ctl || (ctl->info.type != SNDRV_CTL_ELEM_TYPE_INTEGER))
         return -EINVAL;
@@ -650,7 +650,7 @@ int mixer_ctl_get_range_min(struct mixer_ctl *ctl)
  *  On failure, -EINVAL.
  * @ingroup libtinyalsa-mixer
  */
-int mixer_ctl_get_range_max(struct mixer_ctl *ctl)
+int mixer_ctl_get_range_max(const struct mixer_ctl *ctl)
 {
     if (!ctl || (ctl->info.type != SNDRV_CTL_ELEM_TYPE_INTEGER))
         return -EINVAL;
@@ -663,7 +663,7 @@ int mixer_ctl_get_range_max(struct mixer_ctl *ctl)
  * @returns The number of enumerated items in the control.
  * @ingroup libtinyalsa-mixer
  */
-unsigned int mixer_ctl_get_num_enums(struct mixer_ctl *ctl)
+unsigned int mixer_ctl_get_num_enums(const struct mixer_ctl *ctl)
 {
     if (!ctl)
         return 0;
