@@ -523,10 +523,10 @@ int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
  * @param pcm A PCM handle.
  * @param data The audio sample array
  * @param count The number of bytes occupied by the sample array.
- * @return On success, this function returns zero; otherwise, a negative number.
+ * @return On success, this function returns the number of frames written; otherwise, a negative number.
  * @ingroup libtinyalsa-pcm
  */
-int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
+int pcm_writei(struct pcm *pcm, const void *data, unsigned int count)
 {
     struct snd_xferi x;
 
@@ -561,7 +561,7 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
             }
             return oops(pcm, errno, "cannot write stream data");
         }
-        return 0;
+        return x.result;
     }
 }
 
@@ -572,10 +572,10 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
  * @param pcm A PCM handle.
  * @param data The audio sample array
  * @param count The number of bytes occupied by the sample array.
- * @return On success, this function returns zero; otherwise, a negative number.
+ * @return On success, this function returns the number of frames written; otherwise, a negative number.
  * @ingroup libtinyalsa-pcm
  */
-int pcm_read(struct pcm *pcm, void *data, unsigned int count)
+int pcm_readi(struct pcm *pcm, void *data, unsigned int count)
 {
     struct snd_xferi x;
 
@@ -603,8 +603,48 @@ int pcm_read(struct pcm *pcm, void *data, unsigned int count)
             }
             return oops(pcm, errno, "cannot read stream data");
         }
-        return 0;
+        return x.result;
     }
+}
+
+/** Writes audio samples to PCM.
+ * If the PCM has not been started, it is started in this function.
+ * This function is only valid for PCMs opened with the @ref PCM_OUT flag.
+ * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
+ * @param pcm A PCM handle.
+ * @param data The audio sample array
+ * @param count The number of bytes occupied by the sample array.
+ * @return On success, this function returns zero; otherwise, a negative number.
+ * @deprecated
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
+{
+    int ret = pcm_writei(pcm, data, count);
+    if (ret < 0){
+        return ret;
+    }
+    return 0;
+}
+
+/** Reads audio samples from PCM.
+ * If the PCM has not been started, it is started in this function.
+ * This function is only valid for PCMs opened with the @ref PCM_IN flag.
+ * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
+ * @param pcm A PCM handle.
+ * @param data The audio sample array
+ * @param count The number of bytes occupied by the sample array.
+ * @return On success, this function returns zero; otherwise, a negative number.
+ * @deprecated
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_read(struct pcm *pcm, void *data, unsigned int count)
+{
+    int ret = pcm_readi(pcm, data, count);
+    if (ret < 0) {
+        return ret;
+    }
+    return 0;
 }
 
 static struct pcm bad_pcm = {
