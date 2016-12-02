@@ -73,6 +73,8 @@ const char *mixer_get_name(const struct mixer *mixer);
 
 unsigned int mixer_get_num_ctls(const struct mixer *mixer);
 
+unsigned int mixer_get_num_ctls_by_name(const struct mixer *mixer, const char *name);
+
 const struct mixer_ctl *mixer_get_ctl_const(const struct mixer *mixer, unsigned int id);
 
 struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id);

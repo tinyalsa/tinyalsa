@@ -194,6 +194,30 @@ unsigned int mixer_get_num_ctls(const struct mixer *mixer)
     return mixer->count;
 }
 
+/** Gets the number of mixer controls, that go by a specified name, for a given mixer.
+ * @param mixer An initialized mixer handle.
+ * @param name The name of the mixer control
+ * @returns The number of mixer controls, specified by @p name, for the given mixer.
+ * @ingroup libtinyalsa-mixer
+ */
+unsigned int mixer_get_num_ctls_by_name(const struct mixer *mixer, const char *name)
+{
+    unsigned int n;
+    unsigned int count = 0;
+    struct mixer_ctl *ctl;
+
+    if (!mixer)
+        return 0;
+
+    ctl = mixer->ctl;
+
+    for (n = 0; n < mixer->count; n++)
+        if (!strcmp(name, (char*) ctl[n].info.id.name))
+            count++;
+
+    return count;
+}
+
 /** Gets a mixer control handle, by the mixer control's id.
  * For non-const access, see @ref mixer_get_ctl
  * @param mixer An initialized mixer handle.
