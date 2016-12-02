@@ -199,7 +199,7 @@ struct pcm {
  * @return The buffer size of the PCM.
  * @ingroup libtinyalsa-pcm
  */
-unsigned int pcm_get_buffer_size(struct pcm *pcm)
+unsigned int pcm_get_buffer_size(const struct pcm *pcm)
 {
     return pcm->buffer_size;
 }
@@ -210,7 +210,7 @@ unsigned int pcm_get_buffer_size(struct pcm *pcm)
  * @return The file descriptor of the PCM.
  * @ingroup libtinyalsa-pcm
  */
-int pcm_get_file_descriptor(struct pcm *pcm)
+int pcm_get_file_descriptor(const struct pcm *pcm)
 {
     return pcm->fd;
 }
@@ -221,7 +221,7 @@ int pcm_get_file_descriptor(struct pcm *pcm)
  * @return The error message of the last error that occured.
  * @ingroup libtinyalsa-pcm
  */
-const char* pcm_get_error(struct pcm *pcm)
+const char* pcm_get_error(const struct pcm *pcm)
 {
     return pcm->error;
 }
@@ -229,7 +229,7 @@ const char* pcm_get_error(struct pcm *pcm)
 /** Gets the subdevice on which the pcm has been opened.
  * @param pcm A PCM handle.
  * @return The subdevice on which the pcm has been opened */
-unsigned int pcm_get_subdevice(struct pcm *pcm)
+unsigned int pcm_get_subdevice(const struct pcm *pcm)
 {
     return pcm->subdevice;
 }
@@ -311,7 +311,7 @@ unsigned int pcm_format_to_bits(enum pcm_format format)
  * @return The number of frames that may fit into @p bytes
  * @ingroup libtinyalsa-pcm
  */
-unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes)
+unsigned int pcm_bytes_to_frames(const struct pcm *pcm, unsigned int bytes)
 {
     return bytes / (pcm->config.channels *
         (pcm_format_to_bits(pcm->config.format) >> 3));
@@ -323,7 +323,7 @@ unsigned int pcm_bytes_to_frames(struct pcm *pcm, unsigned int bytes)
  * @return The bytes occupied by @p frames.
  * @ingroup libtinyalsa-pcm
  */
-unsigned int pcm_frames_to_bytes(struct pcm *pcm, unsigned int frames)
+unsigned int pcm_frames_to_bytes(const struct pcm *pcm, unsigned int frames)
 {
     return frames * pcm->config.channels *
         (pcm_format_to_bits(pcm->config.format) >> 3);
