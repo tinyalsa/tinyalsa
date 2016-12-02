@@ -195,6 +195,22 @@ unsigned int mixer_get_num_ctls(const struct mixer *mixer)
 }
 
 /** Gets a mixer control handle, by the mixer control's id.
+ * For non-const access, see @ref mixer_get_ctl
+ * @param mixer An initialized mixer handle.
+ * @param id The control's id in the given mixer.
+ * @returns A handle to the mixer control.
+ * @ingroup libtinyalsa-mixer
+ */
+const struct mixer_ctl *mixer_get_ctl_const(const struct mixer *mixer, unsigned int id)
+{
+    if (mixer && (id < mixer->count))
+        return mixer->ctl + id;
+
+    return NULL;
+}
+
+/** Gets a mixer control handle, by the mixer control's id.
+ * For const access, see @ref mixer_get_ctl_const
  * @param mixer An initialized mixer handle.
  * @param id The control's id in the given mixer.
  * @returns A handle to the mixer control.
