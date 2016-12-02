@@ -19,7 +19,7 @@ VPATH = ../include/tinyalsa
 OBJECTS = mixer.o pcm.o
 
 .PHONY: all
-all: libtinyalsa.a libtinyalsa.so.1
+all: libtinyalsa.a libtinyalsa.so
 
 pcm.o: pcm.c pcm.h
 
@@ -28,19 +28,28 @@ mixer.o: mixer.c mixer.h
 libtinyalsa.a: $(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $^
 
-libtinyalsa.so.1: $(OBJECTS)
-	$(LD) $(LDFLAGS) -shared $^ -o $@
+libtinyalsa.so: libtinyalsa.so.1
+	ln -sf $< $@
+
+libtinyalsa.so.1: libtinyalsa.so.1.1.0
+	ln -sf $< $@
+
+libtinyalsa.so.1.1.0: $(OBJECTS)
+	$(LD) $(LDFLAGS) -shared -Wl,-soname,libtinyalsa.so.1 $^ -o $@
 
 .PHONY: clean
 clean:
 	rm -f libtinyalsa.a
+	rm -f libtinyalsa.so
 	rm -f libtinyalsa.so.1
+	rm -f libtinyalsa.so.1.1.0
 	rm -f $(OBJECTS)
 
 .PHONY: install
 install: libtinyalsa.a libtinyalsa.so.1
 	install -d $(DESTDIR)$(LIBDIR)/
-	ln -sf libtinyalsa.so.1 $(DESTDIR)$(LIBDIR)/libtinyalsa.so
 	install libtinyalsa.a $(DESTDIR)$(LIBDIR)/
-	install libtinyalsa.so.1 $(DESTDIR)$(LIBDIR)/
+	install libtinyalsa.so.1.1.0 $(DESTDIR)$(LIBDIR)/
+	ln -sf libtinyalsa.so.1.1.0 $(DESTDIR)$(LIBDIR)/libtinyalsa.so.1
+	ln -sf libtinyalsa.so.1 $(DESTDIR)$(LIBDIR)/libtinyalsa.so
 
