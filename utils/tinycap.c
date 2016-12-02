@@ -244,7 +244,7 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
            pcm_format_to_bits(format));
     }
 
-    while (capturing && !pcm_read(pcm, buffer, size)) {
+    while (capturing && (pcm_readi(pcm, buffer, size) < 0)) {
         if (capture_time > 0 &&
             ((bytes_read + size) > pcm_frames_to_bytes(pcm, capture_time * rate))) {
             size = pcm_frames_to_bytes(pcm, capture_time * rate) - bytes_read;
