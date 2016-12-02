@@ -570,7 +570,7 @@ int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
  * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
  * @param pcm A PCM handle.
  * @param data The audio sample array
- * @param count The number of frames occupied by the sample array.
+ * @param frame_count The number of frames occupied by the sample array.
  * @return On success, this function returns the number of frames written; otherwise, a negative number.
  * @ingroup libtinyalsa-pcm
  */
