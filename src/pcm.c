@@ -204,6 +204,37 @@ unsigned int pcm_get_buffer_size(const struct pcm *pcm)
     return pcm->buffer_size;
 }
 
+/** Gets the channel count of the PCM.
+ * @param pcm A PCM handle.
+ * @return The channel count of the PCM.
+ * @ingroup libtinyalsa-pcm
+ */
+unsigned int pcm_get_channels(const struct pcm *pcm)
+{
+	return pcm->config.channels;
+}
+
+/** Gets the rate of the PCM.
+ * The rate is given in frames per second.
+ * @param pcm A PCM handle.
+ * @return The rate of the PCM.
+ * @ingroup libtinyalsa-pcm
+ */
+unsigned int pcm_get_rate(const struct pcm *pcm)
+{
+	return pcm->config.rate;
+}
+
+/** Gets the format of the PCM.
+ * @param pcm A PCM handle.
+ * @return The format of the PCM.
+ * @ingroup libtinyalsa-pcm
+ */
+enum pcm_format pcm_get_format(const struct pcm *pcm)
+{
+	return pcm->config.format;
+}
+
 /** Gets the file descriptor of the PCM.
  * Useful for extending functionality of the PCM when needed.
  * @param pcm A PCM handle.
