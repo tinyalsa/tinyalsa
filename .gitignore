@@ -5,6 +5,11 @@ doxygen/man
 *.so
 *.so.*
 *.a
+
+examples/audio.raw
+examples/pcm-readi
+examples/pcm-writei
+
 utils/tinyplay
 utils/tinycap
 utils/tinymix
