@@ -288,6 +288,10 @@ int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset, unsigned
 
 int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
 
+int pcm_link(struct pcm *pcm1, struct pcm *pcm2);
+
+int pcm_unlink(struct pcm *pcm);
+
 int pcm_prepare(struct pcm *pcm);
 
 int pcm_start(struct pcm *pcm);
