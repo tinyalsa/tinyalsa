@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror -Wfatal-errors
+CFLAGS = -Wall -Wextra -Werror -Wfatal-errors -I ../include
 
 VPATH = ../src
 
