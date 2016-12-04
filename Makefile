@@ -12,12 +12,14 @@ all:
 	$(MAKE) -C src
 	$(MAKE) -C utils
 	$(MAKE) -C doxygen
+	$(MAKE) -C examples
 
 .PHONY: clean
 clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C utils clean
 	$(MAKE) -C doxygen clean
+	$(MAKE) -C examples clean
 
 .PHONY: install
 install:
