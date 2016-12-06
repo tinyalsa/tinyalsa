@@ -225,6 +225,8 @@ void play_sample(FILE *file, unsigned int card, unsigned int device, unsigned in
     config.period_count = period_count;
     if (bits == 32)
         config.format = PCM_FORMAT_S32_LE;
+    else if (bits == 24)
+        config.format = PCM_FORMAT_S24_3LE;
     else if (bits == 16)
         config.format = PCM_FORMAT_S16_LE;
     config.start_threshold = 0;
