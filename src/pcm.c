@@ -859,6 +859,36 @@ int pcm_close(struct pcm *pcm)
     return 0;
 }
 
+/** Opens a PCM by it's name.
+ * @param name The name of the PCM.
+ *  The name is given in the format: <i>hw</i>:<b>card</b>,<b>device</b>
+ * @param flags Specify characteristics and functionality about the pcm.
+ *  May be a bitwise AND of the following:
+ *   - @ref PCM_IN
+ *   - @ref PCM_OUT
+ *   - @ref PCM_MMAP
+ *   - @ref PCM_NOIRQ
+ *   - @ref PCM_MONOTONIC
+ * @param config The hardware and software parameters to open the PCM with.
+ * @returns On success, returns an initialized pcm, ready for reading or writing.
+ *  On error, returns NULL.
+ * @ingroup libtinyalsa-pcm
+ */
+struct pcm *pcm_open_by_name(const char *name,
+                             unsigned int flags,
+                             const struct pcm_config *config)
+{
+  unsigned int card, device;
+  if ((name[0] != 'h')
+   || (name[1] != 'w')
+   || (name[2] != ':')) {
+    return NULL;
+  } else if (sscanf(&name[3], "%u,%u", &card, &device) != 2) {
+    return NULL;
+  }
+  return pcm_open(card, device, flags, config);
+}
+
 /** Opens a PCM.
  * @param card The card that the pcm belongs to.
  *  The default card is zero.

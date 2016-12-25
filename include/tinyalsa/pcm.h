@@ -236,6 +236,10 @@ struct pcm *pcm_open(unsigned int card,
                      unsigned int flags,
                      const struct pcm_config *config);
 
+struct pcm *pcm_open_by_name(const char *name,
+                             unsigned int flags,
+                             const struct pcm_config *config);
+
 int pcm_close(struct pcm *pcm);
 	
 int pcm_is_ready(const struct pcm *pcm);
