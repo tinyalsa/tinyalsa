@@ -94,8 +94,8 @@ extern "C" {
  */
 #define	PCM_STATE_RUNNING	0x03
 
-/** For inputs, this means an underrun occured.
- * For outputs, this means an overrun occured.
+/** For inputs, this means an overrun occured.
+ * For outputs, this means an underrun occured.
  */
 #define	PCM_STATE_XRUN 0x04
 
