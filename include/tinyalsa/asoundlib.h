@@ -300,6 +300,7 @@ int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id);
 int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent);
 
 int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id);
+int mixer_ctl_is_access_tlv_rw(struct mixer_ctl *ctl);
 int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count);
 int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value);
 int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count);

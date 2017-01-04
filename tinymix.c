@@ -147,7 +147,7 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control,
     num_values = mixer_ctl_get_num_values(ctl);
 
     if (type == MIXER_CTL_TYPE_BYTE) {
-        if (ctl->info->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
+        if (mixer_ctl_is_access_tlv_rw(ctl)) {
             tlv_header_size = TLV_HEADER_SIZE;
         }
         buf = calloc(1, num_values + tlv_header_size);
@@ -214,7 +214,7 @@ static void tinymix_set_byte_ctl(struct mixer_ctl *ctl,
     unsigned int *tlv, tlv_size;
     unsigned int tlv_header_size = 0;
 
-    if (ctl->info->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
+    if (mixer_ctl_is_access_tlv_rw(ctl)) {
         tlv_header_size = TLV_HEADER_SIZE;
     }
 
