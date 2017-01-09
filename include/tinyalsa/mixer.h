@@ -41,6 +41,9 @@
 extern "C" {
 #endif
 
+/* TLV header size*/
+#define TLV_HEADER_SIZE (2 * sizeof(unsigned int))
+
 struct mixer;
 
 struct mixer_ctl;
