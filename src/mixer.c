@@ -381,6 +381,17 @@ void mixer_ctl_update(struct mixer_ctl *ctl)
     ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_INFO, ctl->info);
 }
 
+/** Checks the control for TLV Read/Write access.
+ * @param ctl An initialized control handle.
+ * @returns On success, non-zero.
+ *  On failure, zero.
+ * @ingroup libtinyalsa-mixer
+ */
+int mixer_ctl_is_access_tlv_rw(const struct mixer_ctl *ctl)
+{
+    return (ctl->info.access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE);
+}
+
 /** Gets the control's ID.
  * @param ctl An initialized control handle.
  * @returns On success, the control's ID is returned.
@@ -598,7 +609,7 @@ int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
 
     case SNDRV_CTL_ELEM_TYPE_BYTES:
         /* check if this is new bytes TLV */
-        if (ctl->info.access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
+        if (mixer_ctl_is_access_tlv_rw(ctl)) {
             struct snd_ctl_tlv *tlv;
             int ret;
 
@@ -719,7 +730,7 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
 
     case SNDRV_CTL_ELEM_TYPE_BYTES:
         /* check if this is new bytes TLV */
-        if (ctl->info.access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
+        if (mixer_ctl_is_access_tlv_rw(ctl)) {
             struct snd_ctl_tlv *tlv;
             int ret = 0;
             if (count > SIZE_MAX - sizeof(*tlv))
