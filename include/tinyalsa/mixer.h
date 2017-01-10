@@ -41,6 +41,9 @@
 extern "C" {
 #endif
 
+/* TLV header size*/
+#define TLV_HEADER_SIZE (2 * sizeof(unsigned int))
+
 struct mixer;
 
 struct mixer_ctl;
@@ -106,6 +109,8 @@ const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl, unsigned int enum_i
  * connected. This API allows the count of elements to be updated.
  */
 void mixer_ctl_update(struct mixer_ctl *ctl);
+
+int mixer_ctl_is_access_tlv_rw(const struct mixer_ctl *ctl);
 
 /* Set and get mixer controls */
 int mixer_ctl_get_percent(const struct mixer_ctl *ctl, unsigned int id);
