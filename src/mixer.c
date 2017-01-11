@@ -321,8 +321,9 @@ int mixer_subscribe_events(struct mixer *mixer, int subscribe)
 /** Wait for mixer events.
  * @param mixer A mixer handle.
  * @param timeout timout value
- * @returns On success, zero.
- *  On failure, non-zero.
+ * @returns On success, 1.
+ *  On failure, -errno.
+ *  On timeout, 0
  * @ingroup libtinyalsa-mixer
  */
 int mixer_wait_event(struct mixer *mixer, int timeout)
