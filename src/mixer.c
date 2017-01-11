@@ -36,6 +36,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <time.h>
+#include <poll.h>
 
 #include <sys/ioctl.h>
 
@@ -300,6 +301,49 @@ unsigned int mixer_get_num_ctls_by_name(const struct mixer *mixer, const char *n
             count++;
 
     return count;
+}
+
+/** Subscribes for the mixer events.
+ * @param mixer A mixer handle.
+ * @param subscribe value indicating subscribe or unsubscribe for events
+ * @returns On success, zero.
+ *  On failure, non-zero.
+ * @ingroup libtinyalsa-mixer
+ */
+int mixer_subscribe_events(struct mixer *mixer, int subscribe)
+{
+    if (ioctl(mixer->fd, SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS, &subscribe) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+/** Wait for mixer events.
+ * @param mixer A mixer handle.
+ * @param timeout timout value
+ * @returns On success, zero.
+ *  On failure, non-zero.
+ * @ingroup libtinyalsa-mixer
+ */
+int mixer_wait_event(struct mixer *mixer, int timeout)
+{
+    struct pollfd pfd;
+
+    pfd.fd = mixer->fd;
+    pfd.events = POLLIN | POLLOUT | POLLERR | POLLNVAL;
+
+    for (;;) {
+        int err;
+        err = poll(&pfd, 1, timeout);
+        if (err < 0)
+            return -errno;
+        if (!err)
+            return 0;
+        if (pfd.revents & (POLLERR | POLLNVAL))
+            return -EIO;
+        if (pfd.revents & (POLLIN | POLLOUT))
+            return 1;
+    }
 }
 
 /** Gets a mixer control handle, by the mixer control's id.

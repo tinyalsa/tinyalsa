@@ -90,6 +90,10 @@ struct mixer_ctl *mixer_get_ctl_by_name_and_index(struct mixer *mixer,
                                                   const char *name,
                                                   unsigned int index);
 
+int mixer_subscribe_events(struct mixer *mixer, int subscribe);
+
+int mixer_wait_event(struct mixer *mixer, int timeout);
+
 unsigned int mixer_ctl_get_id(const struct mixer_ctl *ctl);
 
 const char *mixer_ctl_get_name(const struct mixer_ctl *ctl);
