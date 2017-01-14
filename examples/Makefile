@@ -1,4 +1,6 @@
-CC = gcc
+CROSS_COMPILE ?=
+
+CC = $(CROSS_COMPILE)gcc
 CFLAGS = -Wall -Wextra -Werror -Wfatal-errors -I ../include
 
 VPATH = ../src
