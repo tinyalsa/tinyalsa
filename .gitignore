@@ -6,6 +6,9 @@ doxygen/man
 *.so.*
 *.a
 
+libs
+obj
+
 examples/audio.raw
 examples/pcm-readi
 examples/pcm-writei
