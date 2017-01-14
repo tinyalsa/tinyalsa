@@ -364,8 +364,10 @@ static int pcm_sync_ptr(struct pcm *pcm, int flags)
 {
     if (pcm->sync_ptr) {
         pcm->sync_ptr->flags = flags;
-        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SYNC_PTR, pcm->sync_ptr) < 0)
+        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SYNC_PTR, pcm->sync_ptr) < 0) {
+            oops(pcm, errno, "failed to sync mmap ptr");
             return -1;
+        }
         return 0;
     }
     return -1;
@@ -870,8 +872,10 @@ int pcm_close(struct pcm *pcm)
  *   - @ref PCM_NOIRQ
  *   - @ref PCM_MONOTONIC
  * @param config The hardware and software parameters to open the PCM with.
- * @returns On success, returns an initialized pcm, ready for reading or writing.
- *  On error, returns NULL.
+ * @returns A PCM structure.
+ *  If an error occurs allocating memory for the PCM, NULL is returned.
+ *  Otherwise, client code should check that the PCM opened properly by calling @ref pcm_is_ready.
+ *  If @ref pcm_is_ready, check @ref pcm_get_error for more information.
  * @ingroup libtinyalsa-pcm
  */
 struct pcm *pcm_open_by_name(const char *name,
@@ -902,8 +906,10 @@ struct pcm *pcm_open_by_name(const char *name,
  *   - @ref PCM_NOIRQ
  *   - @ref PCM_MONOTONIC
  * @param config The hardware and software parameters to open the PCM with.
- * @returns On success, returns an initialized pcm, ready for reading or writing.
- *  On error, returns NULL.
+ * @returns A PCM structure.
+ *  If an error occurs allocating memory for the PCM, NULL is returned.
+ *  Otherwise, client code should check that the PCM opened properly by calling @ref pcm_is_ready.
+ *  If @ref pcm_is_ready, check @ref pcm_get_error for more information.
  * @ingroup libtinyalsa-pcm
  */
 struct pcm *pcm_open(unsigned int card, unsigned int device,
@@ -1074,13 +1080,17 @@ fail_close:
 
 /** Checks if a PCM file has been opened without error.
  * @param pcm A PCM handle.
- * @return If a PCM's file descriptor is not valid, it returns zero.
+ *  May be NULL.
+ * @return If a PCM's file descriptor is not valid or the pointer is NULL, it returns zero.
  *  Otherwise, the function returns one.
  * @ingroup libtinyalsa-pcm
  */
 int pcm_is_ready(const struct pcm *pcm)
 {
-    return pcm->fd >= 0;
+    if (pcm != NULL) {
+        return pcm->fd >= 0;
+    }
+    return 0;
 }
 
 /** Links two PCMs.
@@ -1249,8 +1259,10 @@ int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames)
     /* update the application pointer in userspace and kernel */
     pcm_mmap_appl_forward(pcm, frames);
     ret = pcm_sync_ptr(pcm, 0);
-    if (ret != 0)
+    if (ret != 0){
+        printf("%d\n", ret);
         return ret;
+    }
 
     return frames;
 }
