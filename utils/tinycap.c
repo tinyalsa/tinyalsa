@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include <signal.h>
 #include <string.h>
+#include <limits.h>
 
 #define ID_RIFF 0x46464952
 #define ID_WAVE 0x45564157
@@ -83,7 +84,7 @@ int main(int argc, char **argv)
     unsigned int frames;
     unsigned int period_size = 1024;
     unsigned int period_count = 4;
-    unsigned int capture_time = 0;
+    unsigned int capture_time = UINT_MAX;
     enum pcm_format format;
     int no_header = 0;
 
@@ -211,7 +212,9 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
     struct pcm *pcm;
     char *buffer;
     unsigned int size;
-    unsigned int bytes_read = 0;
+    unsigned int frames_read;
+    unsigned int total_frames_read;
+    unsigned int bytes_per_frame;
 
     memset(&config, 0, sizeof(config));
     config.channels = channels;
@@ -234,7 +237,6 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
     buffer = malloc(size);
     if (!buffer) {
         fprintf(stderr, "Unable to allocate %u bytes\n", size);
-        free(buffer);
         pcm_close(pcm);
         return 0;
     }
@@ -244,21 +246,23 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
            pcm_format_to_bits(format));
     }
 
-    while (capturing && (pcm_readi(pcm, buffer, size) < 0)) {
-        if (capture_time > 0 &&
-            ((bytes_read + size) > pcm_frames_to_bytes(pcm, capture_time * rate))) {
-            size = pcm_frames_to_bytes(pcm, capture_time * rate) - bytes_read;
+    bytes_per_frame = pcm_frames_to_bytes(pcm, 1);
+    total_frames_read = 0;
+    frames_read = 0;
+    while (capturing) {
+        frames_read = pcm_readi(pcm, buffer, pcm_get_buffer_size(pcm));
+        total_frames_read += frames_read;
+        if ((total_frames_read / rate) >= capture_time) {
             capturing = 0;
         }
-        if (fwrite(buffer, 1, size, file) != size) {
+        if (fwrite(buffer, bytes_per_frame, frames_read, file) != frames_read) {
             fprintf(stderr,"Error capturing sample\n");
             break;
         }
-        bytes_read += size;
     }
 
     free(buffer);
     pcm_close(pcm);
-    return pcm_bytes_to_frames(pcm, bytes_read);
+    return total_frames_read;
 }
 
