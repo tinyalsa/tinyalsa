@@ -16,17 +16,13 @@ VPATH = ../src:../include/tinyalsa
 .PHONY: all
 all: -ltinyalsa tinyplay tinycap tinymix tinypcminfo
 
-tinyplay: tinyplay.c pcm.h mixer.h asoundlib.h -ltinyalsa
-	$(CC) $(CFLAGS) $< -o $@ -ltinyalsa
+tinyplay: tinyplay.c pcm.h mixer.h asoundlib.h libtinyalsa.a
 
-tinycap: tinycap.c pcm.h mixer.h asoundlib.h
-	$(CC) $(CFLAGS) $< -o $@ -ltinyalsa
+tinycap: tinycap.c pcm.h mixer.h asoundlib.h libtinyalsa.a
 
-tinymix: tinymix.c pcm.h mixer.h asoundlib.h
-	$(CC) $(CFLAGS) $< -o $@ -ltinyalsa
+tinymix: tinymix.c pcm.h mixer.h asoundlib.h libtinyalsa.a
 
-tinypcminfo: tinypcminfo.c pcm.h mixer.h asoundlib.h
-	$(CC) $(CFLAGS) $< -o $@ -ltinyalsa
+tinypcminfo: tinypcminfo.c pcm.h mixer.h asoundlib.h libtinyalsa.a
 
 .PHONY: clean
 clean:
