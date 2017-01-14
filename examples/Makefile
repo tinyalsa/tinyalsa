@@ -5,10 +5,17 @@ CFLAGS = -Wall -Wextra -Werror -Wfatal-errors -I ../include
 
 VPATH = ../src
 
+EXAMPLES += pcm-readi
+EXAMPLES += pcm-writei
+
 .PHONY: all
-all: pcm-readi pcm-writei
+all: $(EXAMPLES)
 
 pcm-readi: pcm-readi.c -ltinyalsa
 
 pcm-writei: pcm-writei.c -ltinyalsa
+
+.PHONY: clean
+clean:
+	rm -f $(EXAMPLES)
 
