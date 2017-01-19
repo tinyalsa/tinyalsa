@@ -124,7 +124,7 @@ int main(int argc, char **argv)
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-	if ((optind + 2) >= argc) {
+        if ((optind + 2) >= argc) {
             fprintf(stderr, "no value(s) specified\n");
             mixer_close(mixer);
             return EXIT_FAILURE;
