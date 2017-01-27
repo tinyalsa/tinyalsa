@@ -332,6 +332,11 @@ int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id)
     return 0;
 }
 
+int mixer_ctl_is_access_tlv_rw(struct mixer_ctl *ctl)
+{
+    return (ctl->info->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE);
+}
+
 int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count)
 {
     struct snd_ctl_elem_value ev;
@@ -346,7 +351,7 @@ int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count)
     total_count = ctl->info->count;
 
     if ((ctl->info->type == SNDRV_CTL_ELEM_TYPE_BYTES) &&
-        (ctl->info->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE)) {
+        mixer_ctl_is_access_tlv_rw(ctl)) {
             /* Additional two words is for the TLV header */
             total_count += TLV_HEADER_SIZE;
     }
@@ -369,7 +374,7 @@ int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count)
 
     case SNDRV_CTL_ELEM_TYPE_BYTES:
         /* check if this is new bytes TLV */
-        if (ctl->info->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
+        if (mixer_ctl_is_access_tlv_rw(ctl)) {
             struct snd_ctl_tlv *tlv;
             int ret;
 
@@ -462,7 +467,7 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
     total_count = ctl->info->count;
 
     if ((ctl->info->type == SNDRV_CTL_ELEM_TYPE_BYTES) &&
-        (ctl->info->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE)) {
+        mixer_ctl_is_access_tlv_rw(ctl)) {
             /* Additional two words is for the TLV header */
             total_count += TLV_HEADER_SIZE;
     }
@@ -482,7 +487,7 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
 
     case SNDRV_CTL_ELEM_TYPE_BYTES:
         /* check if this is new bytes TLV */
-        if (ctl->info->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
+        if (mixer_ctl_is_access_tlv_rw(ctl)) {
             struct snd_ctl_tlv *tlv;
             int ret = 0;
             if (count > SIZE_MAX - sizeof(*tlv))
