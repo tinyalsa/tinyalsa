@@ -68,6 +68,9 @@ struct pcm;
 #define	PCM_STATE_SUSPENDED	7
 #define	PCM_STATE_DISCONNECTED	8
 
+/* TLV header size*/
+#define TLV_HEADER_SIZE (2 * sizeof(unsigned int))
+
 /* Bit formats */
 enum pcm_format {
     PCM_FORMAT_INVALID = -1,
