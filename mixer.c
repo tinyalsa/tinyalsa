@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
+#include <poll.h>
 
 #include <sys/ioctl.h>
 
@@ -332,14 +333,31 @@ int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id)
     return 0;
 }
 
+int mixer_ctl_is_access_tlv_rw(struct mixer_ctl *ctl)
+{
+    return (ctl->info->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE);
+}
+
 int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count)
 {
     struct snd_ctl_elem_value ev;
     int ret = 0;
     size_t size;
     void *source;
+    size_t total_count;
 
-    if (!ctl || (count > ctl->info->count) || !count || !array)
+    if ((!ctl) || !count || !array)
+        return -EINVAL;
+
+    total_count = ctl->info->count;
+
+    if ((ctl->info->type == SNDRV_CTL_ELEM_TYPE_BYTES) &&
+        mixer_ctl_is_access_tlv_rw(ctl)) {
+            /* Additional two words is for the TLV header */
+            total_count += TLV_HEADER_SIZE;
+    }
+
+    if (count > total_count)
         return -EINVAL;
 
     memset(&ev, 0, sizeof(ev));
@@ -357,7 +375,7 @@ int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count)
 
     case SNDRV_CTL_ELEM_TYPE_BYTES:
         /* check if this is new bytes TLV */
-        if (ctl->info->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
+        if (mixer_ctl_is_access_tlv_rw(ctl)) {
             struct snd_ctl_tlv *tlv;
             int ret;
 
@@ -442,8 +460,20 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
     struct snd_ctl_elem_value ev;
     size_t size;
     void *dest;
+    size_t total_count;
 
-    if (!ctl || (count > ctl->info->count) || !count || !array)
+    if ((!ctl) || !count || !array)
+        return -EINVAL;
+
+    total_count = ctl->info->count;
+
+    if ((ctl->info->type == SNDRV_CTL_ELEM_TYPE_BYTES) &&
+        mixer_ctl_is_access_tlv_rw(ctl)) {
+            /* Additional two words is for the TLV header */
+            total_count += TLV_HEADER_SIZE;
+    }
+
+    if (count > total_count)
         return -EINVAL;
 
     memset(&ev, 0, sizeof(ev));
@@ -458,7 +488,7 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
 
     case SNDRV_CTL_ELEM_TYPE_BYTES:
         /* check if this is new bytes TLV */
-        if (ctl->info->access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE) {
+        if (mixer_ctl_is_access_tlv_rw(ctl)) {
             struct snd_ctl_tlv *tlv;
             int ret = 0;
             if (count > SIZE_MAX - sizeof(*tlv))
@@ -553,3 +583,46 @@ int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string)
     return -EINVAL;
 }
 
+/** Subscribes for the mixer events.
+ * @param mixer A mixer handle.
+ * @param subscribe value indicating subscribe or unsubscribe for events
+ * @returns On success, zero.
+ *  On failure, non-zero.
+ * @ingroup libtinyalsa-mixer
+ */
+int mixer_subscribe_events(struct mixer *mixer, int subscribe)
+{
+    if (ioctl(mixer->fd, SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS, &subscribe) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+/** Wait for mixer events.
+ * @param mixer A mixer handle.
+ * @param timeout timout value
+ * @returns On success, 1.
+ *  On failure, -errno.
+ *  On timeout, 0
+ * @ingroup libtinyalsa-mixer
+ */
+int mixer_wait_event(struct mixer *mixer, int timeout)
+{
+    struct pollfd pfd;
+
+    pfd.fd = mixer->fd;
+    pfd.events = POLLIN | POLLOUT | POLLERR | POLLNVAL;
+
+    for (;;) {
+        int err;
+        err = poll(&pfd, 1, timeout);
+        if (err < 0)
+            return -errno;
+        if (!err)
+            return 0;
+        if (pfd.revents & (POLLERR | POLLNVAL))
+            return -EIO;
+        if (pfd.revents & (POLLIN | POLLOUT))
+            return 1;
+    }
+}

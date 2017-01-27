@@ -68,6 +68,9 @@ struct pcm;
 #define	PCM_STATE_SUSPENDED	7
 #define	PCM_STATE_DISCONNECTED	8
 
+/* TLV header size*/
+#define TLV_HEADER_SIZE (2 * sizeof(unsigned int))
+
 /* Bit formats */
 enum pcm_format {
     PCM_FORMAT_INVALID = -1,
@@ -220,6 +223,9 @@ unsigned int pcm_get_latency(struct pcm *pcm);
 int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
                        struct timespec *tstamp);
 
+/* Returns the subdevice on which the pcm has been opened */
+unsigned int pcm_get_subdevice(struct pcm *pcm);
+
 /* Write data to the fifo.
  * Will start playback on the first write or on a write that
  * occurs after a fifo underrun.
@@ -294,6 +300,7 @@ int mixer_ctl_get_percent(struct mixer_ctl *ctl, unsigned int id);
 int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent);
 
 int mixer_ctl_get_value(struct mixer_ctl *ctl, unsigned int id);
+int mixer_ctl_is_access_tlv_rw(struct mixer_ctl *ctl);
 int mixer_ctl_get_array(struct mixer_ctl *ctl, void *array, size_t count);
 int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value);
 int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count);
@@ -302,6 +309,9 @@ int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string);
 /* Determe range of integer mixer controls */
 int mixer_ctl_get_range_min(struct mixer_ctl *ctl);
 int mixer_ctl_get_range_max(struct mixer_ctl *ctl);
+
+int mixer_subscribe_events(struct mixer *mixer, int subscribe);
+int mixer_wait_event(struct mixer *mixer, int timeout);
 
 #if defined(__cplusplus)
 }  /* extern "C" */
