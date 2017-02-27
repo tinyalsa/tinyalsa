@@ -5,7 +5,7 @@ cc_library {
         "mixer.c",
         "pcm.c",
     ],
-    cflags: ["-Werror"],
+    cflags: ["-Werror", "-Wno-macro-redefined"],
     export_include_dirs: ["include"],
     local_include_dirs: ["include"],
 
