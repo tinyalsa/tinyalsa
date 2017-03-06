@@ -200,8 +200,8 @@ int sample_is_playable(unsigned int card, unsigned int device, unsigned int chan
     can_play = check_param(params, PCM_PARAM_RATE, rate, "Sample rate", "Hz");
     can_play &= check_param(params, PCM_PARAM_CHANNELS, channels, "Sample", " channels");
     can_play &= check_param(params, PCM_PARAM_SAMPLE_BITS, bits, "Bitrate", " bits");
-    can_play &= check_param(params, PCM_PARAM_PERIOD_SIZE, period_size, "Period size", "Hz");
-    can_play &= check_param(params, PCM_PARAM_PERIODS, period_count, "Period count", "Hz");
+    can_play &= check_param(params, PCM_PARAM_PERIOD_SIZE, period_size, "Period size", " frames");
+    can_play &= check_param(params, PCM_PARAM_PERIODS, period_count, "Period count", " periods");
 
     pcm_params_free(params);
 

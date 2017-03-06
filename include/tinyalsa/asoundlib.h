@@ -310,7 +310,7 @@ int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value);
 int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count);
 int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string);
 
-/* Determe range of integer mixer controls */
+/* Determine range of integer mixer controls */
 int mixer_ctl_get_range_min(struct mixer_ctl *ctl);
 int mixer_ctl_get_range_max(struct mixer_ctl *ctl);
 
