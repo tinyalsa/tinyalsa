@@ -48,6 +48,7 @@
 #include <sound/asound.h>
 
 #include <tinyalsa/pcm.h>
+#include <tinyalsa/limits.h>
 
 #define PARAM_MAX SNDRV_PCM_HW_PARAM_LAST_INTERVAL
 #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)
@@ -626,11 +627,7 @@ int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count)
  */
 int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
 {
-    int ret = pcm_writei(pcm, data, pcm_bytes_to_frames(pcm, count));
-    if (ret < 0){
-        return ret;
-    }
-    return 0;
+    return pcm_writei(pcm, data, pcm_bytes_to_frames(pcm, count));
 }
 
 /** Reads audio samples from PCM.
@@ -646,11 +643,7 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
  */
 int pcm_read(struct pcm *pcm, void *data, unsigned int count)
 {
-    int ret = pcm_readi(pcm, data, pcm_bytes_to_frames(pcm, count));
-    if (ret < 0) {
-        return ret;
-    }
-    return 0;
+    return pcm_readi(pcm, data, pcm_bytes_to_frames(pcm, count));
 }
 
 static struct pcm bad_pcm = {
