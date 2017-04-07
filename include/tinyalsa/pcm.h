@@ -241,7 +241,7 @@ struct pcm *pcm_open_by_name(const char *name,
                              const struct pcm_config *config);
 
 int pcm_close(struct pcm *pcm);
-	
+
 int pcm_is_ready(const struct pcm *pcm);
 
 unsigned int pcm_get_channels(const struct pcm *pcm);
