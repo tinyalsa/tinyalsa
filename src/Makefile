@@ -16,12 +16,14 @@ INCLUDE_DIRS = -I ../include
 override CFLAGS := $(WARNINGS) $(INCLUDE_DIRS) -fPIC $(CFLAGS)
 
 VPATH = ../include/tinyalsa
-OBJECTS = mixer.o pcm.o
+OBJECTS = limits.o mixer.o pcm.o
 
 .PHONY: all
 all: libtinyalsa.a libtinyalsa.so
 
 pcm.o: pcm.c pcm.h
+
+limits.o: limits.c limits.h
 
 mixer.o: mixer.c mixer.h
 
