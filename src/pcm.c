@@ -160,6 +160,36 @@ static void param_init(struct snd_pcm_hw_params *p)
     p->info = ~0U;
 }
 
+static unsigned int pcm_format_to_alsa(enum pcm_format format)
+{
+    switch (format) {
+
+    case PCM_FORMAT_S8:
+        return SNDRV_PCM_FORMAT_S8;
+
+    default:
+    case PCM_FORMAT_S16_LE:
+        return SNDRV_PCM_FORMAT_S16_LE;
+    case PCM_FORMAT_S16_BE:
+        return SNDRV_PCM_FORMAT_S16_BE;
+
+    case PCM_FORMAT_S24_LE:
+        return SNDRV_PCM_FORMAT_S24_LE;
+    case PCM_FORMAT_S24_BE:
+        return SNDRV_PCM_FORMAT_S24_BE;
+
+    case PCM_FORMAT_S24_3LE:
+        return SNDRV_PCM_FORMAT_S24_3LE;
+    case PCM_FORMAT_S24_3BE:
+        return SNDRV_PCM_FORMAT_S24_3BE;
+
+    case PCM_FORMAT_S32_LE:
+        return SNDRV_PCM_FORMAT_S32_LE;
+    case PCM_FORMAT_S32_BE:
+        return SNDRV_PCM_FORMAT_S32_BE;
+    };
+}
+
 #define PCM_ERROR_MAX 128
 
 /** A PCM handle.
@@ -194,6 +224,22 @@ struct pcm {
     /** The subdevice corresponding to the PCM */
     unsigned int subdevice;
 };
+
+static int oops(struct pcm *pcm, int e, const char *fmt, ...)
+{
+    va_list ap;
+    int sz;
+
+    va_start(ap, fmt);
+    vsnprintf(pcm->error, PCM_ERROR_MAX, fmt, ap);
+    va_end(ap);
+    sz = strlen(pcm->error);
+
+    if (errno)
+        snprintf(pcm->error + sz, PCM_ERROR_MAX - sz,
+                 ": %s", strerror(e));
+    return -1;
+}
 
 /** Gets the buffer size of the PCM.
  * @param pcm A PCM handle.
@@ -272,58 +318,138 @@ const char* pcm_get_error(const struct pcm *pcm)
     return pcm->error;
 }
 
+/** Sets the PCM configuration.
+ * @param pcm A PCM handle.
+ * @param config The configuration to use for the
+ *  PCM. This parameter may be NULL, in which case
+ *  the default configuration is used.
+ * @returns Zero on success, a negative errno value
+ *  on failure.
+ * @ingroup libtinyalsa-pcm
+ * */
+int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
+{
+    if (pcm == NULL)
+        return -EFAULT;
+    else if (config == NULL) {
+        config = &pcm->config;
+        pcm->config.channels = 2;
+        pcm->config.rate = 48000;
+        pcm->config.period_size = 1024;
+        pcm->config.period_count = 4;
+        pcm->config.format = PCM_FORMAT_S16_LE;
+        pcm->config.start_threshold = config->period_count * config->period_size;
+        pcm->config.stop_threshold = config->period_count * config->period_size;
+        pcm->config.silence_threshold = 0;
+    } else
+        pcm->config = *config;
+
+    struct snd_pcm_hw_params params;
+    param_init(&params);
+    param_set_mask(&params, SNDRV_PCM_HW_PARAM_FORMAT,
+                   pcm_format_to_alsa(config->format));
+    param_set_mask(&params, SNDRV_PCM_HW_PARAM_SUBFORMAT,
+                   SNDRV_PCM_SUBFORMAT_STD);
+    param_set_min(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE, config->period_size);
+    param_set_int(&params, SNDRV_PCM_HW_PARAM_SAMPLE_BITS,
+                  pcm_format_to_bits(config->format));
+    param_set_int(&params, SNDRV_PCM_HW_PARAM_FRAME_BITS,
+                  pcm_format_to_bits(config->format) * config->channels);
+    param_set_int(&params, SNDRV_PCM_HW_PARAM_CHANNELS,
+                  config->channels);
+    param_set_int(&params, SNDRV_PCM_HW_PARAM_PERIODS, config->period_count);
+    param_set_int(&params, SNDRV_PCM_HW_PARAM_RATE, config->rate);
+
+    if (pcm->flags & PCM_NOIRQ) {
+
+        if (!(pcm->flags & PCM_MMAP)) {
+            oops(pcm, -EINVAL, "noirq only currently supported with mmap().");
+            return -EINVAL;
+        }
+
+        params.flags |= SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP;
+        pcm->noirq_frames_per_msec = config->rate / 1000;
+    }
+
+    if (pcm->flags & PCM_MMAP)
+        param_set_mask(&params, SNDRV_PCM_HW_PARAM_ACCESS,
+                   SNDRV_PCM_ACCESS_MMAP_INTERLEAVED);
+    else
+        param_set_mask(&params, SNDRV_PCM_HW_PARAM_ACCESS,
+                   SNDRV_PCM_ACCESS_RW_INTERLEAVED);
+
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
+        int errno_copy = errno;
+        oops(pcm, -errno, "cannot set hw params");
+        return -errno_copy;
+    }
+
+    /* get our refined hw_params */
+    pcm->config.period_size = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE);
+    pcm->config.period_count = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIODS);
+    pcm->buffer_size = config->period_count * config->period_size;
+
+    if (pcm->flags & PCM_MMAP) {
+        pcm->mmap_buffer = mmap(NULL, pcm_frames_to_bytes(pcm, pcm->buffer_size),
+                                PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, pcm->fd, 0);
+        if (pcm->mmap_buffer == MAP_FAILED) {
+            int errno_copy = errno;
+            oops(pcm, -errno, "failed to mmap buffer %d bytes\n",
+                 pcm_frames_to_bytes(pcm, pcm->buffer_size));
+            return -errno_copy;
+        }
+    }
+
+    struct snd_pcm_sw_params sparams;
+    memset(&sparams, 0, sizeof(sparams));
+    sparams.tstamp_mode = SNDRV_PCM_TSTAMP_ENABLE;
+    sparams.period_step = 1;
+    sparams.avail_min = 1;
+
+    if (!config->start_threshold) {
+        if (pcm->flags & PCM_IN)
+            pcm->config.start_threshold = sparams.start_threshold = 1;
+        else
+            pcm->config.start_threshold = sparams.start_threshold =
+                config->period_count * config->period_size / 2;
+    } else
+        sparams.start_threshold = config->start_threshold;
+
+    /* pick a high stop threshold - todo: does this need further tuning */
+    if (!config->stop_threshold) {
+        if (pcm->flags & PCM_IN)
+            pcm->config.stop_threshold = sparams.stop_threshold =
+                config->period_count * config->period_size * 10;
+        else
+            pcm->config.stop_threshold = sparams.stop_threshold =
+                config->period_count * config->period_size;
+    }
+    else
+        sparams.stop_threshold = config->stop_threshold;
+
+    sparams.xfer_align = config->period_size / 2; /* needed for old kernels */
+    sparams.silence_size = 0;
+    sparams.silence_threshold = config->silence_threshold;
+    pcm->boundary = sparams.boundary = pcm->buffer_size;
+
+    while (pcm->boundary * 2 <= INT_MAX - pcm->buffer_size)
+        pcm->boundary *= 2;
+
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
+        int errno_copy = errno;
+        oops(pcm, -errno, "cannot set sw params");
+        return -errno_copy;
+    }
+
+    return 0;
+}
+
 /** Gets the subdevice on which the pcm has been opened.
  * @param pcm A PCM handle.
  * @return The subdevice on which the pcm has been opened */
 unsigned int pcm_get_subdevice(const struct pcm *pcm)
 {
     return pcm->subdevice;
-}
-
-static int oops(struct pcm *pcm, int e, const char *fmt, ...)
-{
-    va_list ap;
-    int sz;
-
-    va_start(ap, fmt);
-    vsnprintf(pcm->error, PCM_ERROR_MAX, fmt, ap);
-    va_end(ap);
-    sz = strlen(pcm->error);
-
-    if (errno)
-        snprintf(pcm->error + sz, PCM_ERROR_MAX - sz,
-                 ": %s", strerror(e));
-    return -1;
-}
-
-static unsigned int pcm_format_to_alsa(enum pcm_format format)
-{
-    switch (format) {
-
-    case PCM_FORMAT_S8:
-        return SNDRV_PCM_FORMAT_S8;
-
-    default:
-    case PCM_FORMAT_S16_LE:
-        return SNDRV_PCM_FORMAT_S16_LE;
-    case PCM_FORMAT_S16_BE:
-        return SNDRV_PCM_FORMAT_S16_BE;
-
-    case PCM_FORMAT_S24_LE:
-        return SNDRV_PCM_FORMAT_S24_LE;
-    case PCM_FORMAT_S24_BE:
-        return SNDRV_PCM_FORMAT_S24_BE;
-
-    case PCM_FORMAT_S24_3LE:
-        return SNDRV_PCM_FORMAT_S24_3LE;
-    case PCM_FORMAT_S24_3BE:
-        return SNDRV_PCM_FORMAT_S24_3BE;
-
-    case PCM_FORMAT_S32_LE:
-        return SNDRV_PCM_FORMAT_S32_LE;
-    case PCM_FORMAT_S32_BE:
-        return SNDRV_PCM_FORMAT_S32_BE;
-    };
 }
 
 /** Determines the number of bits occupied by a @ref pcm_format.
@@ -930,28 +1056,12 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 {
     struct pcm *pcm;
     struct snd_pcm_info info;
-    struct snd_pcm_hw_params params;
-    struct snd_pcm_sw_params sparams;
     char fn[256];
     int rc;
 
     pcm = calloc(1, sizeof(struct pcm));
     if (!pcm)
         return &bad_pcm;
-
-    if (config == NULL) {
-        config = &pcm->config;
-        pcm->config.channels = 2;
-        pcm->config.rate = 48000;
-        pcm->config.period_size = 1024;
-        pcm->config.period_count = 4;
-        pcm->config.format = PCM_FORMAT_S16_LE;
-        pcm->config.start_threshold = config->period_count * config->period_size;
-        pcm->config.stop_threshold = config->period_count * config->period_size;
-        pcm->config.silence_threshold = 0;
-    } else {
-        pcm->config = *config;
-    }
 
     snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,
              flags & PCM_IN ? 'c' : 'p');
@@ -969,98 +1079,8 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     }
     pcm->subdevice = info.subdevice;
 
-    param_init(&params);
-    param_set_mask(&params, SNDRV_PCM_HW_PARAM_FORMAT,
-                   pcm_format_to_alsa(config->format));
-    param_set_mask(&params, SNDRV_PCM_HW_PARAM_SUBFORMAT,
-                   SNDRV_PCM_SUBFORMAT_STD);
-    param_set_min(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE, config->period_size);
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_SAMPLE_BITS,
-                  pcm_format_to_bits(config->format));
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_FRAME_BITS,
-                  pcm_format_to_bits(config->format) * config->channels);
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_CHANNELS,
-                  config->channels);
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_PERIODS, config->period_count);
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_RATE, config->rate);
-
-    if (flags & PCM_NOIRQ) {
-
-        if (!(flags & PCM_MMAP)) {
-            oops(pcm, -EINVAL, "noirq only currently supported with mmap().");
-            goto fail;
-        }
-
-        params.flags |= SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP;
-        pcm->noirq_frames_per_msec = config->rate / 1000;
-    }
-
-    if (flags & PCM_MMAP)
-        param_set_mask(&params, SNDRV_PCM_HW_PARAM_ACCESS,
-                   SNDRV_PCM_ACCESS_MMAP_INTERLEAVED);
-    else
-        param_set_mask(&params, SNDRV_PCM_HW_PARAM_ACCESS,
-                   SNDRV_PCM_ACCESS_RW_INTERLEAVED);
-
-    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
-        oops(pcm, errno, "cannot set hw params");
+    if (pcm_set_config(pcm, config) != 0)
         goto fail_close;
-    }
-
-    /* get our refined hw_params */
-    pcm->config.period_size = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE);
-    pcm->config.period_count = param_get_int(&params, SNDRV_PCM_HW_PARAM_PERIODS);
-    pcm->buffer_size = config->period_count * config->period_size;
-
-    if (flags & PCM_MMAP) {
-        pcm->mmap_buffer = mmap(NULL, pcm_frames_to_bytes(pcm, pcm->buffer_size),
-                                PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, pcm->fd, 0);
-        if (pcm->mmap_buffer == MAP_FAILED) {
-            oops(pcm, -errno, "failed to mmap buffer %d bytes\n",
-                 pcm_frames_to_bytes(pcm, pcm->buffer_size));
-            goto fail_close;
-        }
-    }
-
-
-    memset(&sparams, 0, sizeof(sparams));
-    sparams.tstamp_mode = SNDRV_PCM_TSTAMP_ENABLE;
-    sparams.period_step = 1;
-    sparams.avail_min = 1;
-
-    if (!config->start_threshold) {
-        if (pcm->flags & PCM_IN)
-            pcm->config.start_threshold = sparams.start_threshold = 1;
-        else
-            pcm->config.start_threshold = sparams.start_threshold =
-                config->period_count * config->period_size / 2;
-    } else
-        sparams.start_threshold = config->start_threshold;
-
-    /* pick a high stop threshold - todo: does this need further tuning */
-    if (!config->stop_threshold) {
-        if (pcm->flags & PCM_IN)
-            pcm->config.stop_threshold = sparams.stop_threshold =
-                config->period_count * config->period_size * 10;
-        else
-            pcm->config.stop_threshold = sparams.stop_threshold =
-                config->period_count * config->period_size;
-    }
-    else
-        sparams.stop_threshold = config->stop_threshold;
-
-    sparams.xfer_align = config->period_size / 2; /* needed for old kernels */
-    sparams.silence_size = 0;
-    sparams.silence_threshold = config->silence_threshold;
-    pcm->boundary = sparams.boundary = pcm->buffer_size;
-
-    while (pcm->boundary * 2 <= INT_MAX - pcm->buffer_size)
-        pcm->boundary *= 2;
-
-    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
-        oops(pcm, errno, "cannot set sw params");
-        goto fail;
-    }
 
     rc = pcm_hw_mmap_status(pcm);
     if (rc < 0) {
