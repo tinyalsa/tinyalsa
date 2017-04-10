@@ -677,8 +677,11 @@ int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
 
     if (pcm->flags & PCM_IN)
         return -EINVAL;
-    else if ((frame_count > TINYALSA_FRAMES_MAX)
-          || (frame_count > INT_MAX))
+#if UINT_MAX > TINYALSA_FRAMES_MAX
+    if (frame_count > TINYALSA_FRAMES_MAX)
+        return -EINVAL;
+#endif
+    if (frame_count > INT_MAX)
         return -EINVAL;
 
     x.buf = (void*)data;
@@ -730,8 +733,11 @@ int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count)
 
     if (!(pcm->flags & PCM_IN))
         return -EINVAL;
-    else if ((frame_count > TINYALSA_FRAMES_MAX)
-          || (frame_count > INT_MAX))
+#if UINT_MAX > TINYALSA_FRAMES_MAX
+    if (frame_count > TINYALSA_FRAMES_MAX)
+        return -EINVAL;
+#endif
+    if (frame_count > INT_MAX)
         return -EINVAL;
 
     x.buf = data;
