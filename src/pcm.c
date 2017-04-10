@@ -67,7 +67,7 @@ static inline int param_is_interval(int p)
 
 static inline const struct snd_interval *param_get_interval(const struct snd_pcm_hw_params *p, int n)
 {
-	return &(p->intervals[n - SNDRV_PCM_HW_PARAM_FIRST_INTERVAL]);
+    return &(p->intervals[n - SNDRV_PCM_HW_PARAM_FIRST_INTERVAL]);
 }
 
 static inline struct snd_interval *param_to_interval(struct snd_pcm_hw_params *p, int n)
@@ -212,7 +212,7 @@ unsigned int pcm_get_buffer_size(const struct pcm *pcm)
  */
 unsigned int pcm_get_channels(const struct pcm *pcm)
 {
-	return pcm->config.channels;
+    return pcm->config.channels;
 }
 
 /** Gets the PCM configuration.
@@ -237,7 +237,7 @@ const struct pcm_config * pcm_get_config(const struct pcm *pcm)
  */
 unsigned int pcm_get_rate(const struct pcm *pcm)
 {
-	return pcm->config.rate;
+    return pcm->config.rate;
 }
 
 /** Gets the format of the PCM.
@@ -247,7 +247,7 @@ unsigned int pcm_get_rate(const struct pcm *pcm)
  */
 enum pcm_format pcm_get_format(const struct pcm *pcm)
 {
-	return pcm->config.format;
+    return pcm->config.format;
 }
 
 /** Gets the file descriptor of the PCM.
@@ -1055,7 +1055,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     pcm->boundary = sparams.boundary = pcm->buffer_size;
 
     while (pcm->boundary * 2 <= INT_MAX - pcm->buffer_size)
-		pcm->boundary *= 2;
+        pcm->boundary *= 2;
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
         oops(pcm, errno, "cannot set sw params");
@@ -1169,7 +1169,7 @@ int pcm_start(struct pcm *pcm)
         return prepare_error;
 
     if (pcm->flags & PCM_MMAP)
-	    pcm_sync_ptr(pcm, 0);
+        pcm_sync_ptr(pcm, 0);
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_START) < 0)
         return oops(pcm, errno, "cannot start channel");
@@ -1364,7 +1364,7 @@ int pcm_mmap_transfer(struct pcm *pcm, const void *buffer, unsigned int bytes)
         }
 
         /* start the audio if we reach the threshold */
-	    if (!pcm->running &&
+        if (!pcm->running &&
             (pcm->buffer_size - avail) >= pcm->config.start_threshold) {
             if (pcm_start(pcm) < 0) {
                fprintf(stderr, "start error: hw 0x%x app 0x%x avail 0x%x\n",
