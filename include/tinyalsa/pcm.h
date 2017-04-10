@@ -246,6 +246,8 @@ int pcm_is_ready(const struct pcm *pcm);
 
 unsigned int pcm_get_channels(const struct pcm *pcm);
 
+const struct pcm_config * pcm_get_config(const struct pcm *pcm);
+
 unsigned int pcm_get_rate(const struct pcm *pcm);
 
 enum pcm_format pcm_get_format(const struct pcm *pcm);
@@ -253,6 +255,8 @@ enum pcm_format pcm_get_format(const struct pcm *pcm);
 int pcm_get_file_descriptor(const struct pcm *pcm);
 
 const char *pcm_get_error(const struct pcm *pcm);
+
+int pcm_set_config(const struct pcm_config *config);
 
 unsigned int pcm_format_to_bits(enum pcm_format format);
 
