@@ -215,6 +215,20 @@ unsigned int pcm_get_channels(const struct pcm *pcm)
 	return pcm->config.channels;
 }
 
+/** Gets the PCM configuration.
+ * @param pcm A PCM handle.
+ * @return The PCM configuration.
+ *  This function only returns NULL if
+ *  @p pcm is NULL.
+ * @ingroup libtinyalsa-pcm
+ * */
+const struct pcm_config * pcm_get_config(const struct pcm *pcm)
+{
+    if (pcm == NULL)
+        return NULL;
+    return &pcm->config;
+}
+
 /** Gets the rate of the PCM.
  * The rate is given in frames per second.
  * @param pcm A PCM handle.
