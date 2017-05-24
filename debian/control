@@ -2,7 +2,7 @@ Source: tinyalsa
 Section: sound
 Priority: optional
 Maintainer: Taylor Holberton <taylorcholberton@gmail.com>
-Build-Depends: debhelper, doxygen
+Build-Depends: debhelper (>=7.0.50), doxygen
 Vcs-Git: git://github.com/tinyalsa/tinyalsa
 Vcs-Browser: https://github.com/tinyalsa/tinyalsa
 Standards-Version: 3.9.7
@@ -33,5 +33,14 @@ Depends: libtinyalsa,
          ${misc:Depends},
          ${shlibs:Depends}
 Description: Development files for the TinyALSA library.
+ The TinyALSA library is a lightweight, bare metal version of the ALSA library.
+
+Package: libtinyalsa-dbg
+Architecture: any
+Multi-Arch: same
+Section: debug
+Depends: libtinyalsa,
+         ${misc:Depends}
+Description: Debug files for the TinyALSA library.
  The TinyALSA library is a lightweight, bare metal version of the ALSA library.
 

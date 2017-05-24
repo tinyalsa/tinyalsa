@@ -23,6 +23,11 @@ override_dh_auto_install: $(PREPROCESS_FILES:.in=)
 .PHONY: override_dh_auto_test
 override_dh_auto_test:
 
+
+.PHONY: override_dh_strip
+override_dh_strip:
+	dh_strip --dbg-package=libtinyalsa-dbg
+
 %:
 	dh $@
 
