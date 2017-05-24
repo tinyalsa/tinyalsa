@@ -33,10 +33,10 @@ libtinyalsa.a: $(OBJECTS)
 libtinyalsa.so: libtinyalsa.so.1
 	ln -sf $< $@
 
-libtinyalsa.so.1: libtinyalsa.so.1.1.0
+libtinyalsa.so.1: libtinyalsa.so.1.1.1
 	ln -sf $< $@
 
-libtinyalsa.so.1.1.0: $(OBJECTS)
+libtinyalsa.so.1.1.1: $(OBJECTS)
 	$(LD) $(LDFLAGS) -shared -Wl,-soname,libtinyalsa.so.1 $^ -o $@
 
 .PHONY: clean
@@ -44,14 +44,14 @@ clean:
 	rm -f libtinyalsa.a
 	rm -f libtinyalsa.so
 	rm -f libtinyalsa.so.1
-	rm -f libtinyalsa.so.1.1.0
+	rm -f libtinyalsa.so.1.1.1
 	rm -f $(OBJECTS)
 
 .PHONY: install
 install: libtinyalsa.a libtinyalsa.so.1
 	install -d $(DESTDIR)$(LIBDIR)/
 	install libtinyalsa.a $(DESTDIR)$(LIBDIR)/
-	install libtinyalsa.so.1.1.0 $(DESTDIR)$(LIBDIR)/
-	ln -sf libtinyalsa.so.1.1.0 $(DESTDIR)$(LIBDIR)/libtinyalsa.so.1
+	install libtinyalsa.so.1.1.1 $(DESTDIR)$(LIBDIR)/
+	ln -sf libtinyalsa.so.1.1.1 $(DESTDIR)$(LIBDIR)/libtinyalsa.so.1
 	ln -sf libtinyalsa.so.1 $(DESTDIR)$(LIBDIR)/libtinyalsa.so
 

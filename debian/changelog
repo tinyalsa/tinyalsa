@@ -1,3 +1,10 @@
+tinyalsa (1.1.1) xenial; urgency=medium
+
+  * Fixed some minor bugs
+  * Added some protection from integer overflow
+
+ -- Taylor Holberton <taylorcholberton@gmail.com>  Tue, 23 May 2017 21:21:10 -0800
+
 tinyalsa (1.1.0) xenial; urgency=medium
 
   * Finished most of the PCM and mixer API documentation
