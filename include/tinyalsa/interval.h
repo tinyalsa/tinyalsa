@@ -30,6 +30,7 @@
 #define TINYALSA_INTERVAL_H
 
 #include <stdlib.h>
+#include <unistd.h>
 
 /** A closed range signed interval. */
 
