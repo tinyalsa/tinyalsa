@@ -45,6 +45,13 @@ cc_binary {
 }
 
 cc_binary {
+    name: "tinyhostless",
+    srcs: ["tinyhostless.c"],
+    shared_libs: ["libtinyalsa"],
+    cflags: ["-Werror"],
+}
+
+cc_binary {
     name: "tinypcminfo",
     srcs: ["tinypcminfo.c"],
     shared_libs: ["libtinyalsa"],
