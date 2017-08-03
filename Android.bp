@@ -2,6 +2,9 @@ cc_library {
     name: "libtinyalsa",
     host_supported: true,
     vendor_available: true,
+    vndk: {
+        enabled: true,
+    },
     srcs: [
         "mixer.c",
         "pcm.c",
