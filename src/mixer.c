@@ -637,7 +637,7 @@ int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
     void *source;
     size_t total_count;
 
-    if ((!ctl) || !count || !array)
+    if (!ctl || !count || !array)
         return -EINVAL;
 
     total_count = ctl->info.count;
