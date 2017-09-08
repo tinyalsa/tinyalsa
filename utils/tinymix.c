@@ -185,7 +185,7 @@ static void tinymix_print_enum(struct mixer_ctl *ctl)
 
     for (i = 0; i < num_enums; i++) {
         string = mixer_ctl_get_enum_string(ctl, i);
-        printf("%s%s", value == i ? ", " : "", string);
+        printf("%s%s, ", value == i ? "> " : "", string);
     }
 }
 
