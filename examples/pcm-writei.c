@@ -20,21 +20,21 @@ static size_t read_file(void ** frames){
     FILE * input_file = fopen("audio.raw", "rb");
     if (input_file == NULL) {
         perror("failed to open 'audio.raw' for writing");
-        return -1;
+        return 0;
     }
 
     long int size = file_size(input_file);
     if (size < 0) {
         perror("failed to get file size of 'audio.raw'");
         fclose(input_file);
-        return -1;
+        return 0;
     }
 
     *frames = malloc(size);
     if (*frames == NULL) {
         fprintf(stderr, "failed to allocate frames\n");
         fclose(input_file);
-        return -1;
+        return 0;
     }
 
     size = fread(*frames, 1, size, input_file);
