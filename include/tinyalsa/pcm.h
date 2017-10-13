@@ -92,27 +92,27 @@ extern "C" {
  * For outputs, this means the PCM is playing audio samples.
  * @ingroup libtinyalsa-pcm
  */
-#define	PCM_STATE_RUNNING	0x03
+#define PCM_STATE_RUNNING 0x03
 
 /** For inputs, this means an overrun occured.
  * For outputs, this means an underrun occured.
  */
-#define	PCM_STATE_XRUN 0x04
+#define PCM_STATE_XRUN 0x04
 
 /** For outputs, this means audio samples are played.
  * A PCM is in a draining state when it is coming to a stop.
  */
-#define	PCM_STATE_DRAINING 0x05
+#define PCM_STATE_DRAINING 0x05
 
 /** Means a PCM is suspended.
  * @ingroup libtinyalsa-pcm
  */
-#define	PCM_STATE_SUSPENDED 0x07
+#define PCM_STATE_SUSPENDED 0x07
 
 /** Means a PCM has been disconnected.
  * @ingroup libtinyalsa-pcm
  */
-#define	PCM_STATE_DISCONNECTED 0x08
+#define PCM_STATE_DISCONNECTED 0x08
 
 /** Audio sample format of a PCM.
  * The first letter specifiers whether the sample is signed or unsigned.
