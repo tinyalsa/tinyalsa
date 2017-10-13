@@ -1,20 +1,22 @@
-doxygen/html
-doxygen/man
+/doxygen/html
+/doxygen/man
+
+/build
 
 *.o
 *.so
 *.so.*
 *.a
 
-libs
-obj
+/libs
+/obj
 
-examples/audio.raw
-examples/pcm-readi
-examples/pcm-writei
+/examples/audio.raw
+/examples/pcm-readi
+/examples/pcm-writei
 
-utils/tinyplay
-utils/tinycap
-utils/tinymix
-utils/tinypcminfo
+/utils/tinyplay
+/utils/tinycap
+/utils/tinymix
+/utils/tinypcminfo
 
