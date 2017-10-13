@@ -818,9 +818,13 @@ struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
     snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,
              flags & PCM_IN ? 'c' : 'p');
 
-    fd = open(fn, O_RDWR);
+    if (flags & PCM_NONBLOCK)
+        fd = open(fn, O_RDWR | O_NONBLOCK);
+    else
+        fd = open(fn, O_RDWR);
+
     if (fd < 0) {
-        fprintf(stderr, "cannot open device '%s'\n", fn);
+        fprintf(stderr, "cannot open device '%s': %s\n", fn, strerror(errno));
         goto err_open;
     }
 
@@ -1073,7 +1077,12 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
              flags & PCM_IN ? 'c' : 'p');
 
     pcm->flags = flags;
-    pcm->fd = open(fn, O_RDWR);
+
+    if (flags & PCM_NONBLOCK)
+        pcm->fd = open(fn, O_RDWR | O_NONBLOCK);
+    else
+        pcm->fd = open(fn, O_RDWR);
+
     if (pcm->fd < 0) {
         oops(pcm, errno, "cannot open device '%s'", fn);
         return pcm;

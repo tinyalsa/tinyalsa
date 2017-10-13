@@ -88,6 +88,15 @@ extern "C" {
  */
 #define PCM_MONOTONIC 0x00000008
 
+/** If used with @pcm_open and @pcm_params_get,
+ * it will not cause the function to block if
+ * the PCM is not available. It will also cause
+ * the functions @ref pcm_readi and @ref pcm_writei
+ * to exit if they would cause the caller to wait.
+ * @ingroup libtinyalsa-pcm
+ * */
+#define PCM_NONBLOCK 0x00000010
+
 /** For inputs, this means the PCM is recording audio samples.
  * For outputs, this means the PCM is playing audio samples.
  * @ingroup libtinyalsa-pcm
