@@ -1,0 +1,52 @@
+cc_library {
+    name: "libtinyalsa",
+    host_supported: true,
+    vendor_available: true,
+    srcs: [
+        "src/mixer.c",
+        "src/pcm.c",
+    ],
+    cflags: ["-Werror", "-Wno-macro-redefined"],
+    export_include_dirs: ["include"],
+    local_include_dirs: ["include"],
+
+    target: {
+        darwin: {
+            enabled: false,
+        },
+    },
+}
+
+cc_binary {
+    name: "tinyplay",
+    host_supported: true,
+    srcs: ["utils/tinyplay.c"],
+    shared_libs: ["libtinyalsa"],
+    cflags: ["-Werror"],
+    target: {
+        darwin: {
+            enabled: false,
+        },
+    },
+}
+
+cc_binary {
+    name: "tinycap",
+    srcs: ["utils/tinycap.c"],
+    shared_libs: ["libtinyalsa"],
+    cflags: ["-Werror"],
+}
+
+cc_binary {
+    name: "tinymix",
+    srcs: ["utils/tinymix.c"],
+    shared_libs: ["libtinyalsa"],
+    cflags: ["-Werror", "-Wall"],
+}
+
+cc_binary {
+    name: "tinypcminfo",
+    srcs: ["utils/tinypcminfo.c"],
+    shared_libs: ["libtinyalsa"],
+    cflags: ["-Werror"],
+}
