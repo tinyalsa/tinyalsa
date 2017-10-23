@@ -26,6 +26,7 @@
 ** DAMAGE.
 */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -44,12 +45,17 @@
 #define __user
 #include <sound/asound.h>
 
+#ifndef SNDRV_CTL_ELEM_ID_NAME_MAXLEN
+#define SNDRV_CTL_ELEM_ID_NAME_MAXLEN 44
+#endif
+
 #include <tinyalsa/asoundlib.h>
 
 struct mixer_ctl {
     struct mixer *mixer;
     struct snd_ctl_elem_info *info;
     char **ename;
+    bool info_retrieved;
 };
 
 struct mixer {
@@ -93,10 +99,9 @@ void mixer_close(struct mixer *mixer)
 struct mixer *mixer_open(unsigned int card)
 {
     struct snd_ctl_elem_list elist;
-    struct snd_ctl_elem_info tmp;
     struct snd_ctl_elem_id *eid = NULL;
     struct mixer *mixer = NULL;
-    unsigned int n, m;
+    unsigned int n;
     int fd;
     char fn[256];
 
@@ -133,28 +138,14 @@ struct mixer *mixer_open(unsigned int card)
         goto fail;
 
     for (n = 0; n < mixer->count; n++) {
-        struct snd_ctl_elem_info *ei = mixer->elem_info + n;
-        ei->id.numid = eid[n].numid;
-        if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_INFO, ei) < 0)
-            goto fail;
-        mixer->ctl[n].info = ei;
-        mixer->ctl[n].mixer = mixer;
-        if (ei->type == SNDRV_CTL_ELEM_TYPE_ENUMERATED) {
-            char **enames = calloc(ei->value.enumerated.items, sizeof(char*));
-            if (!enames)
-                goto fail;
-            mixer->ctl[n].ename = enames;
-            for (m = 0; m < ei->value.enumerated.items; m++) {
-                memset(&tmp, 0, sizeof(tmp));
-                tmp.id.numid = ei->id.numid;
-                tmp.value.enumerated.item = m;
-                if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_INFO, &tmp) < 0)
-                    goto fail;
-                enames[m] = strdup(tmp.value.enumerated.name);
-                if (!enames[m])
-                    goto fail;
-            }
-        }
+        struct mixer_ctl *ctl = mixer->ctl + n;
+
+        ctl->mixer = mixer;
+        ctl->info = mixer->elem_info + n;
+        ctl->info->id.numid = eid[n].numid;
+        strncpy((char *)ctl->info->id.name, (char *)eid[n].name,
+                SNDRV_CTL_ELEM_ID_NAME_MAXLEN);
+        ctl->info->id.name[SNDRV_CTL_ELEM_ID_NAME_MAXLEN - 1] = 0;
     }
 
     free(eid);
@@ -169,6 +160,40 @@ fail:
     else if (fd >= 0)
         close(fd);
     return 0;
+}
+
+static bool mixer_ctl_get_elem_info(struct mixer_ctl* ctl)
+{
+    if (!ctl->info_retrieved) {
+        if (ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_INFO, ctl->info) < 0)
+            return false;
+        ctl->info_retrieved = true;
+    }
+
+    if (ctl->info->type != SNDRV_CTL_ELEM_TYPE_ENUMERATED || ctl->ename)
+        return true;
+
+    struct snd_ctl_elem_info tmp;
+    char** enames = calloc(ctl->info->value.enumerated.items, sizeof(char*));
+    if (!enames)
+        return false;
+
+    for (unsigned int i = 0; i < ctl->info->value.enumerated.items; i++) {
+        memset(&tmp, 0, sizeof(tmp));
+        tmp.id.numid = ctl->info->id.numid;
+        tmp.value.enumerated.item = i;
+        if (ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_INFO, &tmp) < 0)
+            goto fail;
+        enames[i] = strdup(tmp.value.enumerated.name);
+        if (!enames[i])
+            goto fail;
+    }
+    ctl->ename = enames;
+    return true;
+
+fail:
+    free(enames);
+    return false;
 }
 
 const char *mixer_get_name(struct mixer *mixer)
@@ -186,10 +211,16 @@ unsigned int mixer_get_num_ctls(struct mixer *mixer)
 
 struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id)
 {
-    if (mixer && (id < mixer->count))
-        return mixer->ctl + id;
+    struct mixer_ctl *ctl;
 
-    return NULL;
+    if (!mixer || (id >= mixer->count))
+        return NULL;
+
+    ctl = mixer->ctl + id;
+    if (!mixer_ctl_get_elem_info(ctl))
+        return NULL;
+
+    return ctl;
 }
 
 struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name)
@@ -201,9 +232,9 @@ struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name)
 
     for (n = 0; n < mixer->count; n++)
         if (!strcmp(name, (char*) mixer->elem_info[n].id.name))
-            return mixer->ctl + n;
+            break;
 
-    return NULL;
+    return mixer_get_ctl(mixer, n);
 }
 
 void mixer_ctl_update(struct mixer_ctl *ctl)
