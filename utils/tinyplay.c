@@ -97,7 +97,7 @@ int cmd_parse_arg(struct cmd *cmd, int argc, const char **argv)
             fprintf(stderr, "failed parsing period size '%s'\n", argv[1]);
             return -1;
         }
-    } else if ((strcmp(argv[0], "-p") == 0) || (strcmp(argv[0], "--period-count") == 0)) {
+    } else if ((strcmp(argv[0], "-n") == 0) || (strcmp(argv[0], "--period-count") == 0)) {
         if (sscanf(argv[1], "%u", &cmd->config.period_count) != 1) {
             fprintf(stderr, "failed parsing period count '%s'\n", argv[1]);
             return -1;
