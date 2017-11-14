@@ -43,6 +43,9 @@
 
 #include <linux/ioctl.h>
 #define __force
+#ifdef __bitwise
+#undef __bitwise
+#endif
 #define __bitwise
 #define __user
 #include <sound/asound.h>
@@ -51,6 +54,11 @@
 #include <tinyalsa/limits.h>
 
 #define PARAM_MAX SNDRV_PCM_HW_PARAM_LAST_INTERVAL
+
+#ifdef SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP
+#undef SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP
+#endif 
+
 #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)
 
 static inline int param_is_mask(int p)

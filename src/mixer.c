@@ -42,6 +42,11 @@
 
 #include <linux/ioctl.h>
 #define __force
+
+#ifdef __bitwise
+#undef __bitwise
+#endif
+
 #define __bitwise
 #define __user
 #include <sound/asound.h>
