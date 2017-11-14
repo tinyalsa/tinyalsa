@@ -24,6 +24,7 @@ endmacro(ADD_EXAMPLE EXAMPLE)
 
 add_example("pcm-readi" "examples/pcm-readi.c")
 add_example("pcm-writei" "examples/pcm-writei.c")
+add_example("wake" "examples/wake.c")
 
 macro(ADD_UTIL UTIL)
     add_executable(${UTIL} ${ARGN})
