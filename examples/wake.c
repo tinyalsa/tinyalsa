@@ -6,17 +6,18 @@
 #include <string.h>
 
 #include <math.h>
+
 /* MSR API offline test program */
-#include "signal_SI_extern.h"
-#include "wave_file.h"
+// #include "signal_SI_extern.h"
+// #include "wave_file.h"
 #include <sys/time.h>
 //#include "ChangeRateInterface.h"
 
 #include <time.h>
-#include <HaierWake.h>
+// #include <HaierWake.h>
 
-#include "tvqe_java.h"
-#include "./wav/wave_file.h"
+// #include "tvqe_java.h"
+// #include "./wav/wave_file.h"
 
 typedef struct {
   		   char Riff[5];
@@ -89,11 +90,14 @@ int capturing = 1;
 short mic1[160], mic2[160], mic3[160], mic4[160], mic5[160], mic6[160], mic7[160], ref[160];
 short outbuffer[SG_M_A_TOTAL_SAMPLE_NUM];
 
-unsigned int capture_sample(HAIER_WAKE_HANDLE wake_handle, FILE *file, unsigned int card, unsigned int device,
+typedef void * CAPTURE_HANDLE;
+
+unsigned int capture_sample(CAPTURE_HANDLE wake_handle, FILE *file, unsigned int card, unsigned int device,
                             unsigned int channels, unsigned int rate,
                             enum pcm_format format, unsigned int period_size,
                             unsigned int period_count);
-int wake_up_process(HAIER_WAKE_HANDLE wake_handle, short *buffer, int data_size);
+
+// int wake_up_process(HAIER_WAKE_HANDLE wake_handle, short *buffer, int data_size);
 
 int ReadWaveHead( WAVEHEADFMT *wav_in, FILE *file_in ) 
 {
@@ -171,6 +175,8 @@ void sigint_handler(int sig)
 {
     capturing = 0;
 }
+
+#if 0
 int wake_init(HAIER_WAKE_HANDLE * handle)
 {
 	const char* model = "/mnt/sdcard/haier/model_file/test_20170912.nnet.mars.q";
@@ -187,12 +193,16 @@ int wake_init(HAIER_WAKE_HANDLE * handle)
 
 	return HAIER_WAKE_OK;
 }
+
 void wake_deinit(HAIER_WAKE_HANDLE handle)
 {
 	haier_wake_release(handle);
 }
+#endif
 
-unsigned int capture_sample(HAIER_WAKE_HANDLE wake_handle, FILE *file, unsigned int card, unsigned int device,
+typedef void *CAPTURE_HANDLE;
+
+unsigned int capture_sample(CAPTURE_HANDLE wake_handle, FILE *file, unsigned int card, unsigned int device,
                             unsigned int channels, unsigned int rate,
                             enum pcm_format format, unsigned int period_size,
                             unsigned int period_count)
@@ -234,7 +244,8 @@ unsigned int capture_sample(HAIER_WAKE_HANDLE wake_handle, FILE *file, unsigned 
 
 	while(capturing && !pcm_read(pcm, buffer, size))
 	{
-		wake_up_process(wake_handle, buffer, size);
+		// wake_up_process(wake_handle, buffer, size);
+        printf("wake_up_process\n");
         if (fwrite(buffer, 1, size, file) != size)
 		{
             fprintf(stderr,"Error capturing sample\n");
@@ -247,6 +258,8 @@ unsigned int capture_sample(HAIER_WAKE_HANDLE wake_handle, FILE *file, unsigned 
     pcm_close(pcm);
     return pcm_bytes_to_frames(pcm, bytes_read);
 }
+
+#if 0
 int wake_up_cnt = 0;
 int wake_up_process(HAIER_WAKE_HANDLE wake_handle, short *buffer, int data_size)
 {
@@ -337,10 +350,13 @@ int wake_up_process(HAIER_WAKE_HANDLE wake_handle, short *buffer, int data_size)
 
 	return 0;
 }
+
 typedef struct
 {
 	HAIER_WAKE_HANDLE wake_handle;
 }hndl_s;
+#endif
+
 int main(int argc, char **argv)
 {
     FILE *file;
@@ -404,7 +420,7 @@ int main(int argc, char **argv)
             argv++;
     }
 
-	wake_init(&wake_handle);
+	// wake_init(&wake_handle);
     header.riff_id = ID_RIFF;
     header.riff_sz = 0;
     header.riff_fmt = ID_WAVE;
@@ -439,6 +455,8 @@ int main(int argc, char **argv)
 
     /* install signal handler and begin capturing */
     signal(SIGINT, sigint_handler);
+
+    CAPTURE_HANDLE wake_handle;
     frames = capture_sample(wake_handle, file, card, device, header.num_channels,
                             header.sample_rate, format,
                             period_size, period_count);
@@ -451,12 +469,12 @@ int main(int argc, char **argv)
     fwrite(&header, sizeof(struct wav_header), 1, file);
 
     fclose(file);
-	wake_deinit(wake_handle);
+	// wake_deinit(wake_handle);
 
     return 0;
 }
 
-#if 1
+#if 0
 void ae()
 {
 	FILE *dl_fd, *ul_fd, *e_fd;
@@ -621,5 +639,6 @@ void ae()
 
 
 	return 0;
-}#endif
+}
+#endif
 
