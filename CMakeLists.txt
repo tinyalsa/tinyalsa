@@ -25,6 +25,8 @@ endmacro(ADD_EXAMPLE EXAMPLE)
 add_example("pcm-readi" "examples/pcm-readi.c")
 add_example("pcm-writei" "examples/pcm-writei.c")
 add_example("wake" "examples/wake.c")
+add_example("separate" "examples/separate.c")
+add_example("separate_7" "examples/separate_7.c")
 
 macro(ADD_UTIL UTIL)
     add_executable(${UTIL} ${ARGN})
@@ -49,4 +51,3 @@ install(TARGETS "tinyalsa"
     RUNTIME DESTINATION "bin"
     ARCHIVE DESTINATION "lib"
     LIBRARY DESTINATION "lib")
-
