@@ -500,6 +500,9 @@ int pcm_mmap_get_hw_ptr(struct pcm* pcm, unsigned int *hw_ptr, struct timespec *
     if (rc < 0)
         return oops(pcm, errno, "pcm_sync_ptr failed");
 
+    if (pcm->mmap_status == NULL)
+        return oops(pcm, EINVAL, "pcm %p, mmap_status is NULL", pcm);
+
     if ((pcm->mmap_status->state != PCM_STATE_RUNNING) &&
             (pcm->mmap_status->state != PCM_STATE_DRAINING))
         return oops(pcm, ENOSYS, "invalid stream state %d", pcm->mmap_status->state);
