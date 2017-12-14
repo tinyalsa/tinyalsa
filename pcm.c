@@ -882,8 +882,11 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     char fn[256];
     int rc;
 
+    if (!config) {
+        return &bad_pcm; /* TODO: could support default config here */
+    }
     pcm = calloc(1, sizeof(struct pcm));
-    if (!pcm || !config)
+    if (!pcm)
         return &bad_pcm; /* TODO: could support default config here */
 
     pcm->config = *config;
