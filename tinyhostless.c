@@ -29,6 +29,7 @@
 /* Playback data to a PCM device recorded from a capture PCM device. */
 
 #include <tinyalsa/asoundlib.h>
+#include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
