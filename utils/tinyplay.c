@@ -72,7 +72,7 @@ int cmd_parse_arg(struct cmd *cmd, int argc, const char **argv)
         return 1;
     }
 
-    if (argv[0][0] != '-') {
+    if (argv[0][0] != '-' || (strcmp(argv[0],"-") == 0)) {
         cmd->filename = argv[0];
         return 1;
     }
@@ -187,8 +187,11 @@ int ctx_init(struct ctx* ctx, const struct cmd *cmd)
         fprintf(stderr, "filename not specified\n");
         return -1;
     }
-
-    ctx->file = fopen(cmd->filename, "rb");
+    if (strcmp(cmd->filename, "-") == 0) {
+	    ctx->file = stdin;
+    } else {
+	    ctx->file = fopen(cmd->filename, "rb");
+	}
     if (ctx->file == NULL) {
         fprintf(stderr, "failed to open '%s'\n", cmd->filename);
         return -1;
