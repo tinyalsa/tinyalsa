@@ -168,6 +168,7 @@ int main(int argc, char **argv)
         break;
     default:
         fprintf(stderr, "%u bits is not supported.\n", bits);
+        fclose(file);
         return 1;
     }
 
