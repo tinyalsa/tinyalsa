@@ -134,7 +134,7 @@ static void tinymix_list_controls(struct mixer *mixer)
 
     num_ctls = mixer_get_num_ctls(mixer);
 
-    printf("Number of controls: %d\n", num_ctls);
+    printf("Number of controls: %u\n", num_ctls);
 
     if (g_tabs_only)
         printf("ctl\ttype\tnum\tname\tvalue");
@@ -372,7 +372,7 @@ static int tinymix_set_value(struct mixer *mixer, const char *control,
             /* Set multiple values */
             if (num_values > num_ctl_values) {
                 fprintf(stderr,
-                        "Error: %d values given, but control only takes %d\n",
+                        "Error: %u values given, but control only takes %u\n",
                         num_values, num_ctl_values);
                 return EINVAL;
             }

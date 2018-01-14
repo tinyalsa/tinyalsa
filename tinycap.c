@@ -157,7 +157,8 @@ int main(int argc, char **argv)
         format = PCM_FORMAT_S16_LE;
         break;
     default:
-        fprintf(stderr, "%d bits is not supported.\n", bits);
+        fprintf(stderr, "%u bits is not supported.\n", bits);
+        fclose(file);
         return 1;
     }
 
@@ -176,7 +177,7 @@ int main(int argc, char **argv)
     frames = capture_sample(file, card, device, header.num_channels,
                             header.sample_rate, format,
                             period_size, period_count, cap_time);
-    printf("Captured %d frames\n", frames);
+    printf("Captured %u frames\n", frames);
 
     /* write header now all information is known */
     header.data_sz = frames * header.block_align;
@@ -222,7 +223,7 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
     size = pcm_frames_to_bytes(pcm, pcm_get_buffer_size(pcm));
     buffer = malloc(size);
     if (!buffer) {
-        fprintf(stderr, "Unable to allocate %d bytes\n", size);
+        fprintf(stderr, "Unable to allocate %u bytes\n", size);
         free(buffer);
         pcm_close(pcm);
         return 0;
