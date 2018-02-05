@@ -232,9 +232,9 @@ struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name)
 
     for (n = 0; n < mixer->count; n++)
         if (!strcmp(name, (char*) mixer->elem_info[n].id.name))
-            break;
+            return mixer_get_ctl(mixer, n);
 
-    return mixer_get_ctl(mixer, n);
+    return NULL;
 }
 
 void mixer_ctl_update(struct mixer_ctl *ctl)
@@ -656,4 +656,25 @@ int mixer_wait_event(struct mixer *mixer, int timeout)
         if (pfd.revents & (POLLIN | POLLOUT))
             return 1;
     }
+}
+
+/** Consume a mixer event.
+ * If mixer_subscribe_events has been called,
+ * mixer_wait_event will identify when a control value has changed.
+ * This function will clear a single event from the mixer so that
+ * further events can be alerted.
+ *
+ * @param mixer A mixer handle.
+ * @returns 0 on success.  -errno on failure.
+ * @ingroup libtinyalsa-mixer
+ */
+int mixer_consume_event(struct mixer *mixer) {
+    struct snd_ctl_event ev;
+    ssize_t count = read(mixer->fd, &ev, sizeof(ev));
+    // Exporting the actual event would require exposing snd_ctl_event
+    // via the header file, and all associated structs.
+    // The events generally tell you exactly which value changed,
+    // but reading values you're interested isn't hard and simplifies
+    // the interface greatly.
+    return (count >= 0) ? 0 : -errno;
 }
