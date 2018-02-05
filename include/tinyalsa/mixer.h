@@ -136,6 +136,7 @@ int mixer_ctl_get_range_min(const struct mixer_ctl *ctl);
 
 int mixer_ctl_get_range_max(const struct mixer_ctl *ctl);
 
+int mixer_consume_event(struct mixer *mixer);
 #if defined(__cplusplus)
 }  /* extern "C" */
 #endif
