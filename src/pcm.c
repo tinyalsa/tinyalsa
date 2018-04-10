@@ -695,7 +695,7 @@ int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
             if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &x))
                 return oops(pcm, errno, "cannot write initial data");
             pcm->running = 1;
-            return 0;
+            return x.result;
         }
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &x)) {
             pcm->prepared = 0;
