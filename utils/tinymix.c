@@ -168,7 +168,7 @@ static void tinymix_list_controls(struct mixer *mixer, int print_all)
         num_values = mixer_ctl_get_num_values(ctl);
         printf("%u\t%s\t%u\t%-40s", i, type, num_values, name);
         if (print_all)
-				    tinymix_detail_control(mixer, name);
+            tinymix_detail_control(mixer, name);
         printf("\n");
     }
 }
@@ -177,14 +177,15 @@ static void tinymix_print_enum(struct mixer_ctl *ctl)
 {
     unsigned int num_enums;
     unsigned int i;
+    unsigned int value;
     const char *string;
 
     num_enums = mixer_ctl_get_num_enums(ctl);
+    value = mixer_ctl_get_value(ctl, 0);
 
     for (i = 0; i < num_enums; i++) {
         string = mixer_ctl_get_enum_string(ctl, i);
-        printf("%s%s", mixer_ctl_get_value(ctl, 0) == (int)i ? ", " : "",
-               string);
+        printf("%s%s, ", value == i ? "> " : "", string);
     }
 }
 
@@ -265,7 +266,7 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control)
 }
 
 static void tinymix_set_byte_ctl(struct mixer_ctl *ctl,
-    char **values, unsigned int num_values)
+                                 char **values, unsigned int num_values)
 {
     int ret;
     char *buf;
