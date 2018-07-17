@@ -511,7 +511,7 @@ static int pcm_sync_ptr(struct pcm *pcm, int flags)
         }
         return 0;
     }
-    return -1;
+    return 0;
 }
 
 static int pcm_hw_mmap_status(struct pcm *pcm)
