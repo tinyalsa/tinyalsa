@@ -1203,11 +1203,14 @@ int pcm_start(struct pcm *pcm)
     if (prepare_error)
         return prepare_error;
 
-    if (pcm->flags & PCM_MMAP)
-        pcm_sync_ptr(pcm, 0);
+    /* if pcm is linked, it may be already started by other pcm */
+    /* check pcm state is not in running state */
+    pcm_sync_ptr(pcm, 0);
 
-    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_START) < 0)
-        return oops(pcm, errno, "cannot start channel");
+    if (pcm->mmap_status->state != PCM_STATE_RUNNING) {
+        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_START) < 0)
+            return oops(pcm, errno, "cannot start channel");
+    }
 
     pcm->running = 1;
     return 0;
