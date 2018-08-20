@@ -217,8 +217,6 @@ struct pcm {
     unsigned int flags;
     /** Whether the PCM is running or not */
     int running:1;
-    /** Whether or not the PCM has been prepared */
-    int prepared:1;
     /** The number of underruns that have occured */
     int underruns;
     /** Size of the buffer */
@@ -704,7 +702,6 @@ int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
     x.result = 0;
     for (;;) {
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &x)) {
-            pcm->prepared = 0;
             pcm->running = 0;
             if (errno == EPIPE) {
                 /* we failed to make our window -- try to restart if we are
@@ -753,7 +750,6 @@ int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count)
     x.result = 0;
     for (;;) {
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_READI_FRAMES, &x)) {
-            pcm->prepared = 0;
             pcm->running = 0;
             if (errno == EPIPE) {
                     /* we failed to make our window -- try to restart */
@@ -1012,7 +1008,6 @@ int pcm_close(struct pcm *pcm)
 
     if (pcm->fd >= 0)
         close(pcm->fd);
-    pcm->prepared = 0;
     pcm->running = 0;
     pcm->buffer_size = 0;
     pcm->fd = -1;
@@ -1194,13 +1189,9 @@ int pcm_unlink(struct pcm *pcm)
  */
 int pcm_prepare(struct pcm *pcm)
 {
-    if (pcm->prepared)
-        return 0;
-
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_PREPARE) < 0)
         return oops(pcm, errno, "cannot prepare channel");
 
-    pcm->prepared = 1;
     return 0;
 }
 
@@ -1233,7 +1224,6 @@ int pcm_stop(struct pcm *pcm)
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DROP) < 0)
         return oops(pcm, errno, "cannot stop channel");
 
-    pcm->prepared = 0;
     pcm->running = 0;
     return 0;
 }
@@ -1431,7 +1421,6 @@ int pcm_mmap_transfer(struct pcm *pcm, const void *buffer, unsigned int bytes)
 
             err = pcm_wait(pcm, time);
             if (err < 0) {
-                pcm->prepared = 0;
                 pcm->running = 0;
                 fprintf(stderr, "wait error: hw 0x%x app 0x%x avail 0x%x\n",
                     (unsigned int)pcm->mmap_status->hw_ptr,
