@@ -752,9 +752,7 @@ int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count)
     x.frames = frame_count;
     x.result = 0;
     for (;;) {
-        if ((!pcm->running) && (pcm_start(pcm) < 0))
-            return -errno;
-        else if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_READI_FRAMES, &x)) {
+        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_READI_FRAMES, &x)) {
             pcm->prepared = 0;
             pcm->running = 0;
             if (errno == EPIPE) {
