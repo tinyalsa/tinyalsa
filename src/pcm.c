@@ -1129,6 +1129,10 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     }
 #endif
 
+    /* prepare here so the user does not need to do this later */
+    if (pcm_prepare(pcm))
+        goto fail;
+
     pcm->underruns = 0;
     return pcm;
 
