@@ -704,9 +704,6 @@ int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
     x.result = 0;
     for (;;) {
         if (!pcm->running) {
-            int prepare_error = pcm_prepare(pcm);
-            if (prepare_error)
-                return prepare_error;
             if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &x))
                 return oops(pcm, errno, "cannot write initial data");
             pcm->running = 1;
@@ -721,6 +718,8 @@ int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
                  * propagate up to the app level */
                 pcm->underruns++;
                 if (pcm->flags & PCM_NORESTART)
+                    return -EPIPE;
+                if (pcm_prepare(pcm))
                     return -EPIPE;
                 continue;
             }
