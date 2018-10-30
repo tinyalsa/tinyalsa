@@ -9,7 +9,10 @@ CC = $(CROSS_COMPILE)gcc
 CFLAGS += -Wall -Wextra -Werror -Wfatal-errors
 CFLAGS += -I ../include
 CFLAGS += -L ../src
+CFLAGS += -fPIC
 CFLAGS += -O2
+
+LDFLAGS += -pie
 
 VPATH = ../src:../include/tinyalsa
 
