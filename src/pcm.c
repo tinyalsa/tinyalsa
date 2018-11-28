@@ -60,8 +60,13 @@
 #include <tinyalsa/pcm.h>
 #include <tinyalsa/limits.h>
 
+#ifndef PARAM_MAX
 #define PARAM_MAX SNDRV_PCM_HW_PARAM_LAST_INTERVAL
+#endif /* PARAM_MAX */
+
+#ifndef SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP
 #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)
+#endif /* SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP */
 
 static inline int param_is_mask(int p)
 {
