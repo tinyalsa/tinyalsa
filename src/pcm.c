@@ -42,9 +42,19 @@
 #include <limits.h>
 
 #include <linux/ioctl.h>
+
+#ifndef __force
 #define __force
+#endif
+
+#ifndef __bitwise
 #define __bitwise
+#endif
+
+#ifndef __user
 #define __user
+#endif
+
 #include <sound/asound.h>
 
 #include <tinyalsa/pcm.h>
