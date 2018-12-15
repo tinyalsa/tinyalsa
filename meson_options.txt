@@ -1,0 +1,6 @@
+option('docs', type: 'feature', value: 'auto', yield: true,
+  description : 'Generate documentation with Doxygen')
+option('examples', type: 'feature', value: 'auto', yield: true,
+  description : 'Build examples')
+option('utils', type: 'feature', value: 'auto', yield: true,
+  description : 'Build utility tools')
