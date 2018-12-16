@@ -1,10 +1,13 @@
-project ('tinyalsa', 'c', version : '1.1.1', meson_version : '>= 0.48.0')
+project ('tinyalsa', 'c',
+  version : run_command(find_program('version.py')).stdout().strip(),
+  meson_version : '>= 0.48.0')
 
 tinyalsa_includes = include_directories('.', 'include')
 
 tinyalsa = library('tinyalsa',
   'src/mixer.c', 'src/pcm.c',
   include_directories: tinyalsa_includes,
+  version: meson.project_version(),
   install: true)
 
 # For use as a Meson subproject
