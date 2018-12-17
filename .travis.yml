@@ -16,6 +16,7 @@ addons:
 
 before_script:
     - pip3 install --upgrade pip
+    - pip3 install --user ninja
     - pip3 install --user meson
 
 script:
