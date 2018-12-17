@@ -2,7 +2,9 @@ os: linux
 dist: xenial
 sudo: false
 language: c
-compiler: gcc
+compiler:
+        - gcc
+        - clang
 
 addons:
     apt:
@@ -10,6 +12,7 @@ addons:
             - doxygen
             - graphviz
             - python3-pip
+            - python-setuptools
 
 before_script:
     - pip3 install --upgrade pip
