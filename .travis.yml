@@ -8,10 +8,10 @@ addons:
         packages:
             - doxygen
             - graphviz
+            - python3-pip
 
 before_script:
-    - mkdir $HOME/install
+    - pip3 install --user meson
 
 script:
-    - make
-    - make PREFIX=$HOME/install install
+    - scripts/travis-build.sh
