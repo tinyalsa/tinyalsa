@@ -1259,7 +1259,7 @@ static int pcm_mmap_transfer_areas(struct pcm *pcm, char *buf,
     int commit;
     unsigned int pcm_offset, frames, count = 0;
 
-    while (size > 0) {
+    while (pcm_mmap_avail(pcm) && size) {
         frames = size;
         pcm_mmap_begin(pcm, &pcm_areas, &pcm_offset, &frames);
         pcm_areas_copy(pcm, pcm_offset, buf, offset, frames);
