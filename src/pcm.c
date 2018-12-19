@@ -1386,81 +1386,89 @@ int pcm_wait(struct pcm *pcm, int timeout)
     return 1;
 }
 
-int pcm_mmap_transfer(struct pcm *pcm, const void *buffer, unsigned int bytes)
+/*
+ * Transfer data to/from mmaped buffer. This imitates the
+ * behavior of read/write system calls.
+ *
+ * However, this doesn't seems to offer any advantage over
+ * the read/write syscalls. Should it be removed?
+ */
+int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
 {
-    int err = 0, frames, avail;
-    unsigned int offset = 0, count;
+    int is_playback;
 
-    if (bytes == 0)
+    int state;
+    unsigned int avail;
+    unsigned int user_offset;
+
+    int err;
+    int tmp;
+
+    is_playback = !(pcm->flags & PCM_IN);
+
+    if (frames == 0)
         return 0;
 
-    count = pcm_bytes_to_frames(pcm, bytes);
+    /* update hardware pointer and get state */
+    err = pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_HWSYNC |
+                            SNDRV_PCM_SYNC_PTR_APPL |
+                            SNDRV_PCM_SYNC_PTR_AVAIL_MIN);
+    if (err == -1)
+        return -1;
+    state = pcm->mmap_status->state;
 
-    while (count > 0) {
-
-        /* get the available space for writing new frames */
-        avail = pcm_avail_update(pcm);
-        if (avail < 0) {
-            fprintf(stderr, "cannot determine available mmap frames");
-            return err;
+    /* start capture if frames >= threshold */
+    if (!is_playback && state == PCM_STATE_PREPARED) {
+        if (frames >= pcm->config.start_threshold) {
+            err = ioctl(pcm->fd, SNDRV_PCM_IOCTL_START);
+            if (err == -1)
+                return -1;
+            /* state = PCM_STATE_RUNNING */
+        } else {
+            /* nothing to do */
+            return 0;
         }
-
-        /* start the audio if we reach the threshold */
-        if (!pcm->running &&
-            (pcm->buffer_size - avail) >= pcm->config.start_threshold) {
-            if (pcm_start(pcm) < 0) {
-               fprintf(stderr, "start error: hw 0x%x app 0x%x avail 0x%x\n",
-                    (unsigned int)pcm->mmap_status->hw_ptr,
-                    (unsigned int)pcm->mmap_control->appl_ptr,
-                    avail);
-                return -errno;
-            }
-        }
-
-        /* sleep until we have space to write new frames */
-        if (pcm->running &&
-            (unsigned int)avail < pcm->mmap_control->avail_min) {
-            int time = -1;
-
-            if (pcm->flags & PCM_NOIRQ)
-                time = (pcm->buffer_size - avail - pcm->mmap_control->avail_min)
-                        / pcm->noirq_frames_per_msec;
-
-            err = pcm_wait(pcm, time);
-            if (err < 0) {
-                pcm->running = 0;
-                fprintf(stderr, "wait error: hw 0x%x app 0x%x avail 0x%x\n",
-                    (unsigned int)pcm->mmap_status->hw_ptr,
-                    (unsigned int)pcm->mmap_control->appl_ptr,
-                    avail);
-                pcm->mmap_control->appl_ptr = 0;
-                return err;
-            }
-            continue;
-        }
-
-        frames = count;
-        if (frames > avail)
-            frames = avail;
-
-        if (!frames)
-            break;
-
-        /* copy frames from buffer */
-        frames = pcm_mmap_transfer_areas(pcm, (void *)buffer, offset, frames);
-        if (frames < 0) {
-            fprintf(stderr, "write error: hw 0x%x app 0x%x avail 0x%x\n",
-                    (unsigned int)pcm->mmap_status->hw_ptr,
-                    (unsigned int)pcm->mmap_control->appl_ptr,
-                    avail);
-            return frames;
-        }
-
-        offset += frames;
-        count -= frames;
     }
 
-    return 0;
+    avail = pcm_mmap_avail(pcm);
+    user_offset = 0;
+
+    while (frames) {
+        if (!avail) {
+            if (pcm->flags & PCM_NONBLOCK) {
+                errno = EAGAIN;
+                break;
+            }
+
+            /* wait for interrupt */
+            err = pcm_wait(pcm, -1);
+            if (err < 0) {
+                errno = -err;
+                break;
+            }
+
+            /* get hardware pointer */
+            avail = pcm_avail_update(pcm);
+        }
+
+        tmp = pcm_mmap_transfer_areas(pcm, buffer, user_offset, frames);
+        if (tmp < 0)
+            break;
+
+        user_offset += tmp;
+        frames -= tmp;
+        avail -= tmp;
+
+        /* start playback if written >= start_threshold */
+        if (is_playback && state == PCM_STATE_PREPARED &&
+            pcm->buffer_size - avail >= pcm->config.start_threshold) {
+            err = ioctl(pcm->fd, SNDRV_PCM_IOCTL_START);
+            if (err == -1)
+                break;
+        }
+    }
+
+    return user_offset ? (int) user_offset : -1;
 }
 
 int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count)
@@ -1468,7 +1476,8 @@ int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count)
     if ((~pcm->flags) & (PCM_OUT | PCM_MMAP))
         return -ENOSYS;
 
-    return pcm_mmap_transfer(pcm, (void *)data, count);
+    return pcm_mmap_transfer(pcm, (void *)data,
+                             pcm_bytes_to_frames(pcm, count));
 }
 
 int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
@@ -1476,7 +1485,7 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
     if ((~pcm->flags) & (PCM_IN | PCM_MMAP))
         return -ENOSYS;
 
-    return pcm_mmap_transfer(pcm, data, count);
+    return pcm_mmap_transfer(pcm, data, pcm_bytes_to_frames(pcm, count));
 }
 
 /** Gets the delay of the PCM, in terms of frames.
