@@ -516,14 +516,23 @@ unsigned int pcm_frames_to_bytes(const struct pcm *pcm, unsigned int frames)
 
 static int pcm_sync_ptr(struct pcm *pcm, int flags)
 {
-    if (pcm->sync_ptr) {
+    if (pcm->sync_ptr == NULL) {
+        /* status and control are mmaped */
+
+        if (flags & SNDRV_PCM_SYNC_PTR_HWSYNC) {
+            if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_HWSYNC) == -1) {
+                oops(pcm, errno, "failed to sync hardware pointer");
+                return -1;
+            }
+        }
+    } else {
         pcm->sync_ptr->flags = flags;
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SYNC_PTR, pcm->sync_ptr) < 0) {
             oops(pcm, errno, "failed to sync mmap ptr");
             return -1;
         }
-        return 0;
     }
+
     return 0;
 }
 
