@@ -97,6 +97,11 @@ extern "C" {
  * */
 #define PCM_NONBLOCK 0x00000010
 
+/** Means a PCM is prepared
+ * @ingroup libtinyalsa-pcm
+ */
+#define PCM_STATE_PREPARED 0x02
+
 /** For inputs, this means the PCM is recording audio samples.
  * For outputs, this means the PCM is playing audio samples.
  * @ingroup libtinyalsa-pcm
