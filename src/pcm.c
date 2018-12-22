@@ -587,50 +587,6 @@ static void pcm_hw_munmap_status(struct pcm *pcm) {
     pcm->mmap_control = NULL;
 }
 
-static int pcm_areas_copy(struct pcm *pcm, unsigned int pcm_offset,
-                          char *buf, unsigned int src_offset,
-                          unsigned int frames)
-{
-    int size_bytes = pcm_frames_to_bytes(pcm, frames);
-    int pcm_offset_bytes = pcm_frames_to_bytes(pcm, pcm_offset);
-    int src_offset_bytes = pcm_frames_to_bytes(pcm, src_offset);
-
-    /* interleaved only atm */
-    if (pcm->flags & PCM_IN)
-        memcpy(buf + src_offset_bytes,
-               (char*)pcm->mmap_buffer + pcm_offset_bytes,
-               size_bytes);
-    else
-        memcpy((char*)pcm->mmap_buffer + pcm_offset_bytes,
-               buf + src_offset_bytes,
-               size_bytes);
-    return 0;
-}
-
-static int pcm_mmap_transfer_areas(struct pcm *pcm, char *buf,
-                                unsigned int offset, unsigned int size)
-{
-    void *pcm_areas;
-    int commit;
-    unsigned int pcm_offset, frames, count = 0;
-
-    while (size > 0) {
-        frames = size;
-        pcm_mmap_begin(pcm, &pcm_areas, &pcm_offset, &frames);
-        pcm_areas_copy(pcm, pcm_offset, buf, offset, frames);
-        commit = pcm_mmap_commit(pcm, pcm_offset, frames);
-        if (commit < 0) {
-            oops(pcm, commit, "failed to commit %d frames\n", frames);
-            return commit;
-        }
-
-        offset += commit;
-        count += commit;
-        size -= commit;
-    }
-    return count;
-}
-
 /** Writes audio samples to PCM.
  * If the PCM has not been started, it is started in this function.
  * This function is only valid for PCMs opened with the @ref PCM_OUT flag.
@@ -1258,6 +1214,26 @@ int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset,
     return 0;
 }
 
+static int pcm_areas_copy(struct pcm *pcm, unsigned int pcm_offset,
+                          char *buf, unsigned int src_offset,
+                          unsigned int frames)
+{
+    int size_bytes = pcm_frames_to_bytes(pcm, frames);
+    int pcm_offset_bytes = pcm_frames_to_bytes(pcm, pcm_offset);
+    int src_offset_bytes = pcm_frames_to_bytes(pcm, src_offset);
+
+    /* interleaved only atm */
+    if (pcm->flags & PCM_IN)
+        memcpy(buf + src_offset_bytes,
+               (char*)pcm->mmap_buffer + pcm_offset_bytes,
+               size_bytes);
+    else
+        memcpy((char*)pcm->mmap_buffer + pcm_offset_bytes,
+               buf + src_offset_bytes,
+               size_bytes);
+    return 0;
+}
+
 int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames)
 {
     int ret;
@@ -1274,6 +1250,30 @@ int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames)
     }
 
     return frames;
+}
+
+static int pcm_mmap_transfer_areas(struct pcm *pcm, char *buf,
+                                unsigned int offset, unsigned int size)
+{
+    void *pcm_areas;
+    int commit;
+    unsigned int pcm_offset, frames, count = 0;
+
+    while (size > 0) {
+        frames = size;
+        pcm_mmap_begin(pcm, &pcm_areas, &pcm_offset, &frames);
+        pcm_areas_copy(pcm, pcm_offset, buf, offset, frames);
+        commit = pcm_mmap_commit(pcm, pcm_offset, frames);
+        if (commit < 0) {
+            oops(pcm, commit, "failed to commit %d frames\n", frames);
+            return commit;
+        }
+
+        offset += commit;
+        count += commit;
+        size -= commit;
+    }
+    return count;
 }
 
 int pcm_avail_update(struct pcm *pcm)
