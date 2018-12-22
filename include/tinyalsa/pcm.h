@@ -88,7 +88,7 @@ extern "C" {
  */
 #define PCM_MONOTONIC 0x00000008
 
-/** If used with @pcm_open and @pcm_params_get,
+/** If used with @ref pcm_open and @ref pcm_params_get,
  * it will not cause the function to block if
  * the PCM is not available. It will also cause
  * the functions @ref pcm_readi and @ref pcm_writei
