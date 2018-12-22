@@ -1325,7 +1325,7 @@ int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames)
 
 int pcm_avail_update(struct pcm *pcm)
 {
-    pcm_sync_ptr(pcm, 0);
+    pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_APPL|SNDRV_PCM_SYNC_PTR_AVAIL_MIN);
     return pcm_mmap_avail(pcm);
 }
 
