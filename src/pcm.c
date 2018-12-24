@@ -585,130 +585,6 @@ static void pcm_hw_munmap_status(struct pcm *pcm) {
     pcm->mmap_control = NULL;
 }
 
-/** Writes audio samples to PCM.
- * If the PCM has not been started, it is started in this function.
- * This function is only valid for PCMs opened with the @ref PCM_OUT flag.
- * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
- * @param pcm A PCM handle.
- * @param data The audio sample array
- * @param frame_count The number of frames occupied by the sample array.
- *  This value should not be greater than @ref TINYALSA_FRAMES_MAX
- *  or INT_MAX.
- * @return On success, this function returns the number of frames written; otherwise, a negative number.
- * @ingroup libtinyalsa-pcm
- */
-int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
-{
-    struct snd_xferi x;
-
-    if (pcm->flags & PCM_IN)
-        return -EINVAL;
-#if UINT_MAX > TINYALSA_FRAMES_MAX
-    if (frame_count > TINYALSA_FRAMES_MAX)
-        return -EINVAL;
-#endif
-    if (frame_count > INT_MAX)
-        return -EINVAL;
-
-    x.buf = (void*)data;
-    x.frames = frame_count;
-    x.result = 0;
-    for (;;) {
-        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &x)) {
-            if (errno == EPIPE) {
-                /* we failed to make our window -- try to restart if we are
-                 * allowed to do so.  Otherwise, simply allow the EPIPE error to
-                 * propagate up to the app level */
-                pcm->underruns++;
-                if (pcm->flags & PCM_NORESTART)
-                    return -EPIPE;
-                if (pcm_prepare(pcm))
-                    return -EPIPE;
-                continue;
-            }
-            return oops(pcm, errno, "cannot write stream data");
-        }
-        return x.result;
-    }
-}
-
-/** Reads audio samples from PCM.
- * If the PCM has not been started, it is started in this function.
- * This function is only valid for PCMs opened with the @ref PCM_IN flag.
- * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
- * @param pcm A PCM handle.
- * @param data The audio sample array
- * @param frame_count The number of frames occupied by the sample array.
- *  This value should not be greater than @ref TINYALSA_FRAMES_MAX
- *  or INT_MAX.
- * @return On success, this function returns the number of frames written; otherwise, a negative number.
- * @ingroup libtinyalsa-pcm
- */
-int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count)
-{
-    struct snd_xferi x;
-
-    if (!(pcm->flags & PCM_IN))
-        return -EINVAL;
-#if UINT_MAX > TINYALSA_FRAMES_MAX
-    if (frame_count > TINYALSA_FRAMES_MAX)
-        return -EINVAL;
-#endif
-    if (frame_count > INT_MAX)
-        return -EINVAL;
-
-    x.buf = data;
-    x.frames = frame_count;
-    x.result = 0;
-    for (;;) {
-        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_READI_FRAMES, &x)) {
-            if (errno == EPIPE) {
-                    /* we failed to make our window -- try to restart */
-                pcm->underruns++;
-                if (pcm->flags & PCM_NORESTART)
-                    return -EPIPE;
-                if (pcm_prepare(pcm))
-                    return -EPIPE;
-                continue;
-            }
-            return oops(pcm, errno, "cannot read stream data");
-        }
-        return x.result;
-    }
-}
-
-/** Writes audio samples to PCM.
- * If the PCM has not been started, it is started in this function.
- * This function is only valid for PCMs opened with the @ref PCM_OUT flag.
- * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
- * @param pcm A PCM handle.
- * @param data The audio sample array
- * @param count The number of bytes occupied by the sample array.
- * @return On success, this function returns zero; otherwise, a negative number.
- * @deprecated
- * @ingroup libtinyalsa-pcm
- */
-int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
-{
-    return pcm_writei(pcm, data, pcm_bytes_to_frames(pcm, count));
-}
-
-/** Reads audio samples from PCM.
- * If the PCM has not been started, it is started in this function.
- * This function is only valid for PCMs opened with the @ref PCM_IN flag.
- * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
- * @param pcm A PCM handle.
- * @param data The audio sample array
- * @param count The number of bytes occupied by the sample array.
- * @return On success, this function returns zero; otherwise, a negative number.
- * @deprecated
- * @ingroup libtinyalsa-pcm
- */
-int pcm_read(struct pcm *pcm, void *data, unsigned int count)
-{
-    return pcm_readi(pcm, data, pcm_bytes_to_frames(pcm, count));
-}
-
 static struct pcm bad_pcm = {
     .fd = -1,
 };
@@ -1479,6 +1355,128 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
         return -ENOSYS;
 
     return pcm_mmap_transfer(pcm, data, pcm_bytes_to_frames(pcm, count));
+}
+
+/** Writes audio samples to PCM.
+ * If the PCM has not been started, it is started in this function.
+ * This function is only valid for PCMs opened with the @ref PCM_OUT flag.
+ * @param pcm A PCM handle.
+ * @param data The audio sample array
+ * @param frame_count The number of frames occupied by the sample array.
+ *  This value should not be greater than @ref TINYALSA_FRAMES_MAX
+ *  or INT_MAX.
+ * @return On success, this function returns the number of frames written; otherwise, a negative number.
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
+{
+    struct snd_xferi x;
+
+    if (pcm->flags & PCM_IN)
+        return -EINVAL;
+#if UINT_MAX > TINYALSA_FRAMES_MAX
+    if (frame_count > TINYALSA_FRAMES_MAX)
+        return -EINVAL;
+#endif
+    if (frame_count > INT_MAX)
+        return -EINVAL;
+
+    x.buf = (void*)data;
+    x.frames = frame_count;
+    x.result = 0;
+    for (;;) {
+        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &x)) {
+            if (errno == EPIPE) {
+                /* we failed to make our window -- try to restart if we are
+                 * allowed to do so.  Otherwise, simply allow the EPIPE error to
+                 * propagate up to the app level */
+                pcm->underruns++;
+                if (pcm->flags & PCM_NORESTART)
+                    return -EPIPE;
+                if (pcm_prepare(pcm))
+                    return -EPIPE;
+                continue;
+            }
+            return oops(pcm, errno, "cannot write stream data");
+        }
+        return x.result;
+    }
+}
+
+/** Reads audio samples from PCM.
+ * If the PCM has not been started, it is started in this function.
+ * This function is only valid for PCMs opened with the @ref PCM_IN flag.
+ * @param pcm A PCM handle.
+ * @param data The audio sample array
+ * @param frame_count The number of frames occupied by the sample array.
+ *  This value should not be greater than @ref TINYALSA_FRAMES_MAX
+ *  or INT_MAX.
+ * @return On success, this function returns the number of frames written; otherwise, a negative number.
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count)
+{
+    struct snd_xferi x;
+
+    if (!(pcm->flags & PCM_IN))
+        return -EINVAL;
+#if UINT_MAX > TINYALSA_FRAMES_MAX
+    if (frame_count > TINYALSA_FRAMES_MAX)
+        return -EINVAL;
+#endif
+    if (frame_count > INT_MAX)
+        return -EINVAL;
+
+    x.buf = data;
+    x.frames = frame_count;
+    x.result = 0;
+    for (;;) {
+        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_READI_FRAMES, &x)) {
+            if (errno == EPIPE) {
+                    /* we failed to make our window -- try to restart */
+                pcm->underruns++;
+                if (pcm->flags & PCM_NORESTART)
+                    return -EPIPE;
+                if (pcm_prepare(pcm))
+                    return -EPIPE;
+                continue;
+            }
+            return oops(pcm, errno, "cannot read stream data");
+        }
+        return x.result;
+    }
+}
+
+/** Writes audio samples to PCM.
+ * If the PCM has not been started, it is started in this function.
+ * This function is only valid for PCMs opened with the @ref PCM_OUT flag.
+ * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
+ * @param pcm A PCM handle.
+ * @param data The audio sample array
+ * @param count The number of bytes occupied by the sample array.
+ * @return On success, this function returns zero; otherwise, a negative number.
+ * @deprecated
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
+{
+    return pcm_writei(pcm, data, pcm_bytes_to_frames(pcm, count));
+}
+
+/** Reads audio samples from PCM.
+ * If the PCM has not been started, it is started in this function.
+ * This function is only valid for PCMs opened with the @ref PCM_IN flag.
+ * This function is not valid for PCMs opened with the @ref PCM_MMAP flag.
+ * @param pcm A PCM handle.
+ * @param data The audio sample array
+ * @param count The number of bytes occupied by the sample array.
+ * @return On success, this function returns zero; otherwise, a negative number.
+ * @deprecated
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_read(struct pcm *pcm, void *data, unsigned int count)
+{
+    return pcm_readi(pcm, data, pcm_bytes_to_frames(pcm, count));
 }
 
 /** Gets the delay of the PCM, in terms of frames.
