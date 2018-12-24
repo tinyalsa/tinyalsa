@@ -631,53 +631,6 @@ static int pcm_mmap_transfer_areas(struct pcm *pcm, char *buf,
     return count;
 }
 
-/** Returns available frames in pcm buffer and corresponding time stamp.
- * The clock is CLOCK_MONOTONIC if flag @ref PCM_MONOTONIC was specified in @ref pcm_open,
- * otherwise the clock is CLOCK_REALTIME.
- * For an input stream, frames available are frames ready for the application to read.
- * For an output stream, frames available are the number of empty frames available for the application to write.
- * Only available for PCMs opened with the @ref PCM_MMAP flag.
- * @param pcm A PCM handle.
- * @param avail The number of available frames
- * @param tstamp The timestamp
- * @return On success, zero is returned; on failure, negative one.
- */
-int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
-                       struct timespec *tstamp)
-{
-    int frames;
-    int rc;
-    snd_pcm_uframes_t hw_ptr;
-
-    if (!pcm_is_ready(pcm))
-        return -1;
-
-    rc = pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_APPL|SNDRV_PCM_SYNC_PTR_HWSYNC);
-    if (rc < 0)
-        return -1;
-
-    if ((pcm->mmap_status->state != PCM_STATE_RUNNING) &&
-            (pcm->mmap_status->state != PCM_STATE_DRAINING))
-        return -1;
-
-    *tstamp = pcm->mmap_status->tstamp;
-    if (tstamp->tv_sec == 0 && tstamp->tv_nsec == 0)
-        return -1;
-
-    hw_ptr = pcm->mmap_status->hw_ptr;
-    if (pcm->flags & PCM_IN)
-        frames = hw_ptr - pcm->mmap_control->appl_ptr;
-    else
-        frames = hw_ptr + pcm->buffer_size - pcm->mmap_control->appl_ptr;
-
-    if (frames < 0)
-        return -1;
-
-    *avail = (unsigned int)frames;
-
-    return 0;
-}
-
 /** Writes audio samples to PCM.
  * If the PCM has not been started, it is started in this function.
  * This function is only valid for PCMs opened with the @ref PCM_OUT flag.
@@ -1327,6 +1280,53 @@ int pcm_avail_update(struct pcm *pcm)
 {
     pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_APPL|SNDRV_PCM_SYNC_PTR_AVAIL_MIN);
     return pcm_mmap_avail(pcm);
+}
+
+/** Returns available frames in pcm buffer and corresponding time stamp.
+ * The clock is CLOCK_MONOTONIC if flag @ref PCM_MONOTONIC was specified in @ref pcm_open,
+ * otherwise the clock is CLOCK_REALTIME.
+ * For an input stream, frames available are frames ready for the application to read.
+ * For an output stream, frames available are the number of empty frames available for the application to write.
+ * Only available for PCMs opened with the @ref PCM_MMAP flag.
+ * @param pcm A PCM handle.
+ * @param avail The number of available frames
+ * @param tstamp The timestamp
+ * @return On success, zero is returned; on failure, negative one.
+ */
+int pcm_get_htimestamp(struct pcm *pcm, unsigned int *avail,
+                       struct timespec *tstamp)
+{
+    int frames;
+    int rc;
+    snd_pcm_uframes_t hw_ptr;
+
+    if (!pcm_is_ready(pcm))
+        return -1;
+
+    rc = pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_APPL|SNDRV_PCM_SYNC_PTR_HWSYNC);
+    if (rc < 0)
+        return -1;
+
+    if ((pcm->mmap_status->state != PCM_STATE_RUNNING) &&
+            (pcm->mmap_status->state != PCM_STATE_DRAINING))
+        return -1;
+
+    *tstamp = pcm->mmap_status->tstamp;
+    if (tstamp->tv_sec == 0 && tstamp->tv_nsec == 0)
+        return -1;
+
+    hw_ptr = pcm->mmap_status->hw_ptr;
+    if (pcm->flags & PCM_IN)
+        frames = hw_ptr - pcm->mmap_control->appl_ptr;
+    else
+        frames = hw_ptr + pcm->buffer_size - pcm->mmap_control->appl_ptr;
+
+    if (frames < 0)
+        return -1;
+
+    *avail = (unsigned int)frames;
+
+    return 0;
 }
 
 int pcm_state(struct pcm *pcm)
