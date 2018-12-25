@@ -288,7 +288,7 @@ void ctx_free(struct ctx *ctx)
 
 static int close = 0;
 
-int play_sample(struct ctx *ctx);
+int play_sample(struct ctx *ctx, const struct cmd *cmd);
 
 void stream_close(int sig)
 {
@@ -338,7 +338,7 @@ int main(int argc, const char **argv)
            cmd.config.rate,
            cmd.bits);
 
-    if (play_sample(&ctx) < 0) {
+    if (play_sample(&ctx, &cmd) < 0) {
         ctx_free(&ctx);
         return EXIT_FAILURE;
     }
@@ -393,11 +393,12 @@ int sample_is_playable(const struct cmd *cmd)
     return can_play;
 }
 
-int play_sample(struct ctx *ctx)
+int play_sample(struct ctx *ctx, const struct cmd *cmd)
 {
     char *buffer;
     int size;
     int num_read;
+    int ret;
 
     size = pcm_frames_to_bytes(ctx->pcm, pcm_get_buffer_size(ctx->pcm));
     buffer = malloc(size);
@@ -412,8 +413,12 @@ int play_sample(struct ctx *ctx)
     do {
         num_read = fread(buffer, 1, size, ctx->file);
         if (num_read > 0) {
-		if (pcm_writei(ctx->pcm, buffer,
-			pcm_bytes_to_frames(ctx->pcm, num_read)) < 0) {
+            if (cmd->flags & PCM_MMAP)
+                ret = pcm_mmap_write(ctx->pcm, buffer, num_read);
+            else
+                ret = pcm_writei(ctx->pcm, buffer,
+                                 pcm_bytes_to_frames(ctx->pcm, num_read));
+            if (ret < 0) {
                 fprintf(stderr, "error playing sample\n");
                 break;
             }
