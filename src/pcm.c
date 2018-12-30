@@ -1192,6 +1192,9 @@ int pcm_prepare(struct pcm *pcm)
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_PREPARE) < 0)
         return oops(pcm, errno, "cannot prepare channel");
 
+    /* get appl_ptr and avail_min from kernel */
+    pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_APPL|SNDRV_PCM_SYNC_PTR_AVAIL_MIN);
+
     return 0;
 }
 
