@@ -1205,20 +1205,13 @@ int pcm_prepare(struct pcm *pcm)
 }
 
 /** Starts a PCM.
- * If the PCM has not been prepared,
- * it is prepared in this function.
  * @param pcm A PCM handle.
  * @return On success, zero; on failure, a negative number.
  * @ingroup libtinyalsa-pcm
  */
 int pcm_start(struct pcm *pcm)
 {
-    int prepare_error = pcm_prepare(pcm);
-    if (prepare_error)
-        return prepare_error;
-
-    /* if pcm is linked, it may be already started by other pcm */
-    /* check pcm state is not in running state */
+    /* set appl_ptr and avail_min in kernel */
     pcm_sync_ptr(pcm, 0);
 
     if (pcm->mmap_status->state != PCM_STATE_RUNNING) {
