@@ -549,7 +549,6 @@ static int pcm_hw_mmap_status(struct pcm *pcm)
         pcm->mmap_status = NULL;
         goto mmap_error;
     }
-    pcm->mmap_control->avail_min = 1;
 
     return 0;
 
@@ -560,8 +559,6 @@ mmap_error:
         return -ENOMEM;
     pcm->mmap_status = &pcm->sync_ptr->s.status;
     pcm->mmap_control = &pcm->sync_ptr->c.control;
-    pcm->mmap_control->avail_min = 1;
-    pcm_sync_ptr(pcm, 0);
 
     return 0;
 }
