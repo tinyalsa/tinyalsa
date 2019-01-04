@@ -913,6 +913,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     return pcm;
 
 fail:
+    pcm_hw_munmap_status(pcm);
     if (flags & PCM_MMAP)
         munmap(pcm->mmap_buffer, pcm_frames_to_bytes(pcm, pcm->buffer_size));
 fail_close:
