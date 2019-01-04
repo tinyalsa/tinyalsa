@@ -215,8 +215,8 @@ struct pcm {
     int fd;
     /** Flags that were passed to @ref pcm_open */
     unsigned int flags;
-    /** The number of underruns that have occured */
-    int underruns;
+    /** The number of (under/over)runs that have occured */
+    int xruns;
     /** Size of the buffer */
     unsigned int buffer_size;
     /** The boundary for ring buffer pointers */
@@ -909,7 +909,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     if (pcm_prepare(pcm))
         goto fail;
 
-    pcm->underruns = 0;
+    pcm->xruns = 0;
     return pcm;
 
 fail:
@@ -1399,7 +1399,7 @@ again:
     if (res < 0) {
         switch (errno) {
         case EPIPE:
-            pcm->underruns++;
+            pcm->xruns++;
             /* fallthrough */
         case ESTRPIPE:
             /*
