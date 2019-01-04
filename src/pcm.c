@@ -1357,6 +1357,70 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
     return pcm_mmap_transfer(pcm, data, pcm_bytes_to_frames(pcm, count));
 }
 
+static int pcm_rw_transfer(struct pcm *pcm, void *data, unsigned int frames)
+{
+    int is_playback;
+
+    struct snd_xferi transfer;
+    int res;
+
+    is_playback = !(pcm->flags & PCM_IN);
+
+    transfer.buf = data;
+    transfer.frames = frames;
+    transfer.result = 0;
+
+    res = ioctl(pcm->fd, is_playback
+                ? SNDRV_PCM_IOCTL_WRITEI_FRAMES
+                : SNDRV_PCM_IOCTL_READI_FRAMES, &transfer);
+
+    return res == 0 ? (int) transfer.result : -1;
+}
+
+static int pcm_generic_transfer(struct pcm *pcm, void *data,
+                                unsigned int frames)
+{
+    int res;
+
+#if UINT_MAX > TINYALSA_FRAMES_MAX
+    if (frames > TINYALSA_FRAMES_MAX)
+        return -EINVAL;
+#endif
+    if (frames > INT_MAX)
+        return -EINVAL;
+
+again:
+
+    if (pcm->flags & PCM_MMAP)
+        res = pcm_mmap_transfer(pcm, data, frames);
+    else
+        res = pcm_rw_transfer(pcm, data, frames);
+
+    if (res < 0) {
+        switch (errno) {
+        case EPIPE:
+            pcm->underruns++;
+            /* fallthrough */
+        case ESTRPIPE:
+            /*
+             * Try to restart if we are allowed to do so.
+             * Otherwise, return error.
+             */
+            if (pcm->flags & PCM_NORESTART || pcm_prepare(pcm))
+                return -1;
+            goto again;
+        case EAGAIN:
+            if (pcm->flags & PCM_NONBLOCK)
+                return -1;
+            /* fallthrough */
+        default:
+            return oops(pcm, errno, "cannot read/write stream data");
+        }
+    }
+
+    return res;
+}
+
 /** Writes audio samples to PCM.
  * If the PCM has not been started, it is started in this function.
  * This function is only valid for PCMs opened with the @ref PCM_OUT flag.
@@ -1370,37 +1434,10 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
  */
 int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
 {
-    struct snd_xferi x;
-
     if (pcm->flags & PCM_IN)
         return -EINVAL;
-#if UINT_MAX > TINYALSA_FRAMES_MAX
-    if (frame_count > TINYALSA_FRAMES_MAX)
-        return -EINVAL;
-#endif
-    if (frame_count > INT_MAX)
-        return -EINVAL;
 
-    x.buf = (void*)data;
-    x.frames = frame_count;
-    x.result = 0;
-    for (;;) {
-        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_WRITEI_FRAMES, &x)) {
-            if (errno == EPIPE) {
-                /* we failed to make our window -- try to restart if we are
-                 * allowed to do so.  Otherwise, simply allow the EPIPE error to
-                 * propagate up to the app level */
-                pcm->underruns++;
-                if (pcm->flags & PCM_NORESTART)
-                    return -EPIPE;
-                if (pcm_prepare(pcm))
-                    return -EPIPE;
-                continue;
-            }
-            return oops(pcm, errno, "cannot write stream data");
-        }
-        return x.result;
-    }
+    return pcm_generic_transfer(pcm, (void*) data, frame_count);
 }
 
 /** Reads audio samples from PCM.
@@ -1416,35 +1453,10 @@ int pcm_writei(struct pcm *pcm, const void *data, unsigned int frame_count)
  */
 int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count)
 {
-    struct snd_xferi x;
-
     if (!(pcm->flags & PCM_IN))
         return -EINVAL;
-#if UINT_MAX > TINYALSA_FRAMES_MAX
-    if (frame_count > TINYALSA_FRAMES_MAX)
-        return -EINVAL;
-#endif
-    if (frame_count > INT_MAX)
-        return -EINVAL;
 
-    x.buf = data;
-    x.frames = frame_count;
-    x.result = 0;
-    for (;;) {
-        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_READI_FRAMES, &x)) {
-            if (errno == EPIPE) {
-                    /* we failed to make our window -- try to restart */
-                pcm->underruns++;
-                if (pcm->flags & PCM_NORESTART)
-                    return -EPIPE;
-                if (pcm_prepare(pcm))
-                    return -EPIPE;
-                continue;
-            }
-            return oops(pcm, errno, "cannot read stream data");
-        }
-        return x.result;
-    }
+    return pcm_generic_transfer(pcm, data, frame_count);
 }
 
 /** Writes audio samples to PCM.
