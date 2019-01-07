@@ -760,6 +760,10 @@ int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count)
             if (errno == EPIPE) {
                     /* we failed to make our window -- try to restart */
                 pcm->underruns++;
+                if (pcm->flags & PCM_NORESTART)
+                    return -EPIPE;
+                if (pcm_prepare(pcm))
+                    return -EPIPE;
                 continue;
             }
             return oops(pcm, errno, "cannot read stream data");
