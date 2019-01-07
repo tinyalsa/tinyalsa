@@ -993,7 +993,8 @@ int pcm_prepare(struct pcm *pcm)
 int pcm_start(struct pcm *pcm)
 {
     /* set appl_ptr and avail_min in kernel */
-    pcm_sync_ptr(pcm, 0);
+    if (pcm_sync_ptr(pcm, 0) < 0)
+        return -1;
 
     if (pcm->mmap_status->state != PCM_STATE_RUNNING) {
         if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_START) < 0)
