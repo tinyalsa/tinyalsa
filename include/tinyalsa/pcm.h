@@ -316,6 +316,22 @@ int pcm_wait(struct pcm *pcm, int timeout);
 
 long pcm_get_delay(struct pcm *pcm);
 
+int pcm_dmabuf_export(struct pcm *pcm);
+
+int pcm_dmabuf_attach(struct pcm *pcm);
+
+int pcm_dmabuf_detach(struct pcm *pcm);
+
+int pcm_dmabuf_mmap(struct pcm *pcm);
+
+void pcm_dmabuf_munmap(struct pcm *pcm);
+
+int pcm_dmabuf_begin_access(struct pcm *pcm, int direction);
+
+int pcm_dmabuf_end_access(struct pcm *pcm, int direction);
+
+int pcm_dmabuf_fd(struct pcm *pcm);
+
 #if defined(__cplusplus)
 }  /* extern "C" */
 #endif

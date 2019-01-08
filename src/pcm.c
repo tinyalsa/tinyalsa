@@ -56,6 +56,7 @@
 #endif
 
 #include <sound/asound.h>
+#include <linux/dma-buf.h>
 
 #include <tinyalsa/pcm.h>
 #include <tinyalsa/limits.h>
@@ -230,6 +231,10 @@ struct pcm {
     struct snd_pcm_sync_ptr *sync_ptr;
     void *mmap_buffer;
     unsigned int noirq_frames_per_msec;
+    /** Dmabuf file descriptor */
+    int dmabuf_fd;
+    /** Dmabuf buffer handler */
+    void *mmap_dmabuf;
     /** The delay of the PCM, in terms of frames */
     long pcm_delay;
     /** The subdevice corresponding to the PCM */
@@ -1507,3 +1512,131 @@ long pcm_get_delay(struct pcm *pcm)
     return pcm->pcm_delay;
 }
 
+/** Export dmabuf to the PCM, allocate file descriptor.
+ * @param pcm A PCM handle.
+ * @returns Zero on success, a negative errno value
+ *  on failure.
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_dmabuf_export(struct pcm *pcm)
+{
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DMABUF_EXPORT, &pcm->dmabuf_fd))
+        return -1;
+
+    return 0;
+}
+
+/** Attach dmabuf to the PCM device, map to device address space.
+ * @param pcm A PCM handle.
+ * @returns Zero on success, a negative errno value
+ *  on failure.
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_dmabuf_attach(struct pcm *pcm)
+{
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DMABUF_ATTACH, &pcm->dmabuf_fd))
+        return -1;
+
+    return 0;
+}
+
+/** Detach dmabuf to the PCM device, unmap device address space.
+ * @param pcm A PCM handle.
+ * @returns Zero on success, a negative errno value
+ *  on failure.
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_dmabuf_detach(struct pcm *pcm)
+{
+    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DMABUF_DETACH, &pcm->dmabuf_fd))
+        return -1;
+
+    return 0;
+}
+
+/** Mmap dmabuf to user space, so can be used by application program.
+ * @param pcm A PCM handle.
+ * @returns Zero on success, a negative errno value
+ *  on failure.
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_dmabuf_mmap(struct pcm *pcm)
+{
+    pcm->mmap_dmabuf = mmap(NULL, pcm_frames_to_bytes(pcm, pcm->buffer_size),
+                            PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED,
+                            pcm->dmabuf_fd, 0);
+    if (pcm->mmap_dmabuf == MAP_FAILED)
+        return -1;
+
+    return 0;
+}
+
+/** Unmap dmabuf from user space.
+ * @param pcm A PCM handle.
+ * @returns void.
+ * @ingroup libtinyalsa-pcm
+ */
+void pcm_dmabuf_munmap(struct pcm *pcm)
+{
+    munmap(pcm->mmap_buffer, pcm_frames_to_bytes(pcm, pcm->buffer_size));
+}
+
+/** Invoke cache maintainence before accessing.
+ * @param pcm A PCM handle
+ * @param direction for write, read, or RW.
+ * @returns Zero on success, a negative errno value
+ *  on failure.
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_dmabuf_begin_access(struct pcm *pcm, int direction)
+{
+    struct dma_buf_sync sync;
+
+    if (pcm->mmap_dmabuf == MAP_FAILED)
+        return -1;
+
+    if (direction > DMA_BUF_SYNC_RW)
+        return -1;
+
+    sync.flags = DMA_BUF_SYNC_START | direction;
+
+    if (ioctl(pcm->dmabuf_fd, DMA_BUF_IOCTL_SYNC, &sync))
+	return -1;
+
+    return 0;
+}
+
+/** Invoke cache maintainence after access
+ * @param pcm A PCM handle
+ * @param direction for write, read, or RW.
+ * @returns Zero on success, a negative errno value
+ *  on failure.
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_dmabuf_end_access(struct pcm *pcm, int direction)
+{
+    struct dma_buf_sync sync;
+
+    if (pcm->mmap_dmabuf == MAP_FAILED)
+        return -1;
+
+    if (direction > DMA_BUF_SYNC_RW)
+        return -1;
+
+    sync.flags = DMA_BUF_SYNC_END | direction;
+
+    if (ioctl(pcm->dmabuf_fd, DMA_BUF_IOCTL_SYNC, &sync))
+	return -1;
+
+    return 0;
+}
+
+/** Return back dmabuf file descriptor.
+ * @param pcm A PCM handle.
+ * @returns dmabuf file descriptor.
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_dmabuf_fd(struct pcm *pcm)
+{
+    return pcm->dmabuf_fd;
+}
