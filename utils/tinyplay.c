@@ -72,6 +72,11 @@ int cmd_parse_arg(struct cmd *cmd, int argc, const char **argv)
         return 1;
     }
 
+    if ((strcmp(argv[0], "-B") == 0) || (strcmp(argv[0], "--dmabuf") == 0)) {
+        cmd->flags |= PCM_DMABUF;
+        return 1;
+    }
+
     if (argv[0][0] != '-' || (strcmp(argv[0],"-") == 0)) {
         cmd->filename = argv[0];
         return 1;
@@ -413,7 +418,7 @@ int play_sample(struct ctx *ctx, const struct cmd *cmd)
     do {
         num_read = fread(buffer, 1, size, ctx->file);
         if (num_read > 0) {
-            if (cmd->flags & PCM_MMAP)
+            if (cmd->flags & (PCM_MMAP | PCM_DMABUF))
                 ret = pcm_mmap_write(ctx->pcm, buffer, num_read);
             else
                 ret = pcm_writei(ctx->pcm, buffer,
