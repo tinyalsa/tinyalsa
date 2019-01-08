@@ -345,6 +345,8 @@ const char* pcm_get_error(const struct pcm *pcm)
  * */
 int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
 {
+    int ret;
+
     if (pcm == NULL)
         return -EFAULT;
     else if (config == NULL) {
@@ -378,7 +380,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
 
     if (pcm->flags & PCM_NOIRQ) {
 
-        if (!(pcm->flags & PCM_MMAP)) {
+        if (!(pcm->flags & (PCM_MMAP | PCM_DMABUF))) {
             oops(pcm, -EINVAL, "noirq only currently supported with mmap().");
             return -EINVAL;
         }
@@ -387,7 +389,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
         pcm->noirq_frames_per_msec = config->rate / 1000;
     }
 
-    if (pcm->flags & PCM_MMAP)
+    if (pcm->flags & (PCM_MMAP | PCM_DMABUF))
         param_set_mask(&params, SNDRV_PCM_HW_PARAM_ACCESS,
                    SNDRV_PCM_ACCESS_MMAP_INTERLEAVED);
     else
@@ -414,6 +416,29 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
                  pcm_frames_to_bytes(pcm, pcm->buffer_size));
             return -errno_copy;
         }
+    } else if (pcm->flags & PCM_DMABUF) {
+        ret = pcm_dmabuf_export(pcm);
+        if (ret) {
+            int errno_copy = errno;
+            oops(pcm, -errno, "failed to export dmabuf\n");
+            return -errno_copy;
+        }
+
+        ret = pcm_dmabuf_attach(pcm);
+        if (ret) {
+            int errno_copy = errno;
+            oops(pcm, -errno, "failed to export dmabuf\n");
+            return -errno_copy;
+        }
+
+        ret = pcm_dmabuf_mmap(pcm);
+        if (ret) {
+            int errno_copy = errno;
+            oops(pcm, -errno, "failed to export dmabuf\n");
+            return -errno_copy;
+        }
+
+        pcm->mmap_buffer = pcm->mmap_dmabuf;
     }
 
     struct snd_pcm_sw_params sparams;
@@ -796,6 +821,11 @@ int pcm_close(struct pcm *pcm)
     if (pcm->flags & PCM_MMAP) {
         pcm_stop(pcm);
         munmap(pcm->mmap_buffer, pcm_frames_to_bytes(pcm, pcm->buffer_size));
+    } else if (pcm->flags & PCM_DMABUF) {
+        pcm_stop(pcm);
+        pcm_dmabuf_detach(pcm);
+        pcm_dmabuf_munmap(pcm);
+        close(pcm->dmabuf_fd);
     }
 
     if (pcm->fd >= 0)
@@ -1349,7 +1379,10 @@ int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
 
 int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count)
 {
-    if ((~pcm->flags) & (PCM_OUT | PCM_MMAP))
+    if (pcm->flags & PCM_IN)
+        return -ENOSYS;
+
+    if (!(pcm->flags & (PCM_MMAP | PCM_DMABUF)))
         return -ENOSYS;
 
     return pcm_mmap_transfer(pcm, (void *)data,
@@ -1358,7 +1391,10 @@ int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count)
 
 int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
 {
-    if ((~pcm->flags) & (PCM_IN | PCM_MMAP))
+    if (!(pcm->flags & PCM_IN))
+        return -ENOSYS;
+
+    if (!(pcm->flags & (PCM_MMAP | PCM_DMABUF)))
         return -ENOSYS;
 
     return pcm_mmap_transfer(pcm, data, pcm_bytes_to_frames(pcm, count));

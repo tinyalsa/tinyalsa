@@ -95,6 +95,12 @@
  * */
 #define PCM_NONBLOCK 0x00000010
 
+/** Specifies that the PCM will use dmabuf methods.
+ * Used in @ref pcm_open.
+ * @ingroup libtinyalsa-pcm
+ */
+#define PCM_DMABUF 0x00000020
+
 /** Means a PCM is prepared
  * @ingroup libtinyalsa-pcm
  */
