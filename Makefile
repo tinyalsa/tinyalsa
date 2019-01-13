@@ -24,6 +24,7 @@ clean:
 .PHONY: install
 install:
 	install -d $(DESTDIR)$(INCDIR)/
+	install include/tinyalsa/attributes.h $(DESTDIR)$(INCDIR)/
 	install include/tinyalsa/pcm.h $(DESTDIR)$(INCDIR)/
 	install include/tinyalsa/mixer.h $(DESTDIR)$(INCDIR)/
 	install include/tinyalsa/asoundlib.h $(DESTDIR)$(INCDIR)/

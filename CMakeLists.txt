@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project("TinyALSA" C)
 
 set (HDRS
+    "include/tinyalsa/attributes.h"
     "include/tinyalsa/version.h"
     "include/tinyalsa/asoundlib.h"
     "include/tinyalsa/pcm.h"
