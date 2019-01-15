@@ -129,7 +129,7 @@ int main(int argc, char **argv)
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-        tinymix_set_value(mixer, argv[optind + 1], &argv[optind + 2], argc - 3);
+        tinymix_set_value(mixer, argv[optind + 1], &argv[optind + 2], argc - optind - 2);
     } else if (strcmp(cmd, "controls") == 0) {
         tinymix_list_controls(mixer, 0);
     } else if (strcmp(cmd, "contents") == 0) {
