@@ -359,13 +359,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
     param_init(&params);
     param_set_mask(&params, SNDRV_PCM_HW_PARAM_FORMAT,
                    pcm_format_to_alsa(config->format));
-    param_set_mask(&params, SNDRV_PCM_HW_PARAM_SUBFORMAT,
-                   SNDRV_PCM_SUBFORMAT_STD);
     param_set_min(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE, config->period_size);
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_SAMPLE_BITS,
-                  pcm_format_to_bits(config->format));
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_FRAME_BITS,
-                  pcm_format_to_bits(config->format) * config->channels);
     param_set_int(&params, SNDRV_PCM_HW_PARAM_CHANNELS,
                   config->channels);
     param_set_int(&params, SNDRV_PCM_HW_PARAM_PERIODS, config->period_count);
