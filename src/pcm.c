@@ -1282,17 +1282,16 @@ int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
         return -1;
     state = pcm->mmap_status->state;
 
-    /* start capture if frames >= threshold */
-    if (!is_playback && state == PCM_STATE_PREPARED) {
-        if (frames >= pcm->config.start_threshold) {
-            err = ioctl(pcm->fd, SNDRV_PCM_IOCTL_START);
-            if (err == -1)
-                return -1;
-            /* state = PCM_STATE_RUNNING */
-        } else {
-            /* nothing to do */
-            return 0;
-        }
+    /*
+     * If frames < start_threshold, wait indefinitely.
+     * Another thread may start capture
+     */
+    if (!is_playback && state == PCM_STATE_PREPARED &&
+        frames >= pcm->config.start_threshold) {
+        err = ioctl(pcm->fd, SNDRV_PCM_IOCTL_START);
+        if (err == -1)
+            return -1;
+        /* state = PCM_STATE_RUNNING */
     }
 
     avail = pcm_mmap_avail(pcm);
