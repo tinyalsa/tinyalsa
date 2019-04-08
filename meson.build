@@ -1,5 +1,5 @@
 project ('tinyalsa', 'c',
-  version : run_command(find_program('scripts/version.py')).stdout().strip(),
+  version : run_command(find_program('scripts/version-bump.sh'), 'print', '-s').stdout().strip(),
   meson_version : '>= 0.48.0')
 
 tinyalsa_includes = include_directories('.', 'include')
