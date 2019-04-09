@@ -21,7 +21,7 @@ add_custom_command(TARGET "tinyalsa"
     POST_BUILD
     COMMENT "Checking version against the changelog"
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    COMMAND ${PROJECT_SOURCE_DIR}/scripts/version-bump.sh check)
+    COMMAND ${PROJECT_SOURCE_DIR}/scripts/version.sh check)
 
 macro(ADD_EXAMPLE EXAMPLE)
     add_executable(${EXAMPLE} ${ARGN})

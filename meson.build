@@ -1,5 +1,5 @@
 project ('tinyalsa', 'c',
-  version : run_command(find_program('scripts/version-bump.sh'), 'print', '-s').stdout().strip(),
+  version : run_command(find_program('scripts/version.sh'), 'print', '-s').stdout().strip(),
   meson_version : '>= 0.48.0')
 
 tinyalsa_includes = include_directories('.', 'include')
@@ -10,7 +10,7 @@ tinyalsa = library('tinyalsa',
   version: meson.project_version(),
   install: true)
 
-log_version = run_command(find_program('scripts/version-bump.sh'), 'check')
+log_version = run_command(find_program('scripts/version.sh'), 'check')
 if log_version.returncode() != 0
   error(log_version.stderr())
 endif
