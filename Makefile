@@ -7,8 +7,10 @@ export LIBDIR ?= $(PREFIX)/lib
 export BINDIR ?= $(PREFIX)/bin
 export MANDIR ?= $(PREFIX)/share/man
 
-export TINYALSA_VERSION_MAJOR = $(shell scripts/version-bump.sh -s print major)
-export TINYALSA_VERSION       = $(shell scripts/version-bump.sh -s print      )
+export VERSIONSCRIPT = $(shell pwd)/scripts/version-bump.sh
+
+export TINYALSA_VERSION_MAJOR = $(shell $(VERSIONSCRIPT) -s print major)
+export TINYALSA_VERSION       = $(shell $(VERSIONSCRIPT) -s print      )
 
 .PHONY: all
 all:
@@ -16,6 +18,7 @@ all:
 	$(MAKE) -C utils
 	$(MAKE) -C doxygen
 	$(MAKE) -C examples
+	$(VERSIONSCRIPT) check
 
 .PHONY: clean
 clean:

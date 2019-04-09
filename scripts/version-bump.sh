@@ -6,6 +6,7 @@
 #
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 VERSION_FILE="include/tinyalsa/version.h"
+CHANGELOG_FILE="debian/changelog"
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #
@@ -154,6 +155,21 @@ bump_version()
   return 0
 }
 
+check_version()
+{
+  get_version
+
+  LOG_VERSION=$(grep -m 1 "^tinyalsa (" ${CHANGELOG_FILE}| sed "s/[^0-9.]*//g")
+  REF_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
+
+  if [ "${LOG_VERSION}" != "${REF_VERSION}" ]; then
+    die "Changelog version (${LOG_VERSION}) does not match package version (${REF_VERSION})."
+  fi
+
+  printf "Changelog version (${LOG_VERSION}) OK!${LF}"
+  return 0
+}
+
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #
 #   Command Line parsing
@@ -173,6 +189,10 @@ parse_command()
       ;;
     release)
       bump_version "$2"
+      exit $?
+      ;;
+    check)
+      check_version
       exit $?
       ;;
     *)
