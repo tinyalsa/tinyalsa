@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #
@@ -29,6 +29,7 @@ die()
 
 print_usage()
 {
+  echo
   echo "Usage: $0 [OPTIONS] ACTION"
   echo
   echo "Available options:"
@@ -37,18 +38,29 @@ print_usage()
   echo "Available actions:"
   echo "  print   [minor|major|patch]  Print the current version."
   echo "  release [minor|major|patch]  Bump the specified version part"
+  echo "  check                        Check the changelog latest released"
+  echo "                               version against the version file."
   echo
   echo "Please run this script from the project root folder."
+  echo
 }
 
+check_files()
+{
+  [ -f ${VERSION_FILE}   ] || die "No ${VERSION_FILE} found!";
+  [ -f ${CHANGELOG_FILE} ] || die "No ${CHANGELOG_FILE} found!"
+}
 
 # Gets a part of the version from the project version file (version.h).
-# Takes one argument: the matching version identifier in the version file.
+# Takes one argument: the matching version identifier in the version file, e.g.
+#   TINYALSA_VERSION_MAJOR
 get_version_part()
 {
   local V=$(grep -m 1 "^#define\([ \t]*\)$1" ${VERSION_FILE} | sed 's/[^0-9]*//g')
 
-  [ ! -z ${V} ] || die "Could not get $1 from ${VERSION_FILE}"
+  if [ -z ${V} ]; then
+    die "Could not get $1 from ${VERSION_FILE}"
+  fi
 
   echo ${V}
 }
@@ -57,8 +69,6 @@ get_version_part()
 # Gets the complete version from the version file.
 get_version()
 {
-  [ -f ${VERSION_FILE} ] || die "No ${VERSION_FILE} found! Is this the project root?";
-
   VERSION_MAJOR=$(get_version_part "TINYALSA_VERSION_MAJOR")
   VERSION_MINOR=$(get_version_part "TINYALSA_VERSION_MINOR")
   VERSION_PATCH=$(get_version_part "TINYALSA_VERSION_PATCH")
@@ -66,7 +76,7 @@ get_version()
 
 # Commits the new version part to the version file.
 # Takes two arguments: the version part identifier in the version file and the
-#   new version number.
+#   new version number. If no arguments, do nothing.
 commit_version_part()
 {
   if [ -z $1 ] || [ -z $2 ]; then
@@ -74,9 +84,11 @@ commit_version_part()
   fi
 
   sed -i "s/\(^#define[ \t]*$1\)[ \t]*\([0-9]*\)/\1 $2/g" ${VERSION_FILE} \
-    || die "Could not commit version";
+    || die "Could not commit version for $1";
 
-  return 0
+  [ $(get_version_part $1) = "$2" ] || die "Version check after commit failed for $1"
+
+  return 0;
 }
 
 # Commits the new version to the version file.
@@ -159,8 +171,8 @@ check_version()
 {
   get_version
 
-  LOG_VERSION=$(grep -m 1 "^tinyalsa (" ${CHANGELOG_FILE}| sed "s/[^0-9.]*//g")
-  REF_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
+  local LOG_VERSION=$(grep -m 1 "^tinyalsa (" ${CHANGELOG_FILE}| sed "s/[^0-9.]*//g")
+  local REF_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
 
   if [ "${LOG_VERSION}" != "${REF_VERSION}" ]; then
     die "Changelog version (${LOG_VERSION}) does not match package version (${REF_VERSION})."
@@ -239,6 +251,7 @@ done
 # set positional arguments in their proper place
 set -- "${PARAMS}"
 
+check_files
 parse_command ${PARAMS}
 
 # The script should never reach this place.
