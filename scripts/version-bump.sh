@@ -15,6 +15,7 @@ CHANGELOG_FILE="debian/changelog"
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 LF="\n"
 PARAMS=""
+DRYRUN=0
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #
@@ -33,7 +34,8 @@ print_usage()
   echo "Usage: $0 [OPTIONS] ACTION"
   echo
   echo "Available options:"
-  echo "  -s,--script  Format output in \"script\" mode (no trailing newline)."
+  echo "  -s,--script   Format output in \"script\" mode (no trailing newline)."
+  echo "  -d,--dry-run  Does not commit anything to any file, just prints."
   echo
   echo "Available actions:"
   echo "  print   [minor|major|patch]  Print the current version."
@@ -67,6 +69,7 @@ get_version_part()
 
 
 # Gets the complete version from the version file.
+# Sets VERSION_MAJOR, VERSION_MINOR and VERSION_PATCH globals
 get_version()
 {
   VERSION_MAJOR=$(get_version_part "TINYALSA_VERSION_MAJOR")
@@ -109,8 +112,6 @@ commit_version()
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 print_version()
 {
-  get_version
-
   if [ -z $1 ]; then
     printf "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}${LF}"
   else
@@ -135,8 +136,6 @@ print_version()
 
 bump_version()
 {
-  get_version
-
   local PART="patch"
 
   if [ ! -z $1 ]; then
@@ -161,16 +160,16 @@ bump_version()
     ;;
   esac
 
-  commit_version ${VERSION_PATCH} ${VERSION_MINOR} ${VERSION_MAJOR}
-  print_version
+  if [ ${DRYRUN} -ne 1 ]; then
+    commit_version ${VERSION_PATCH} ${VERSION_MINOR} ${VERSION_MAJOR}
+  fi
 
+  print_version
   return 0
 }
 
 check_version()
 {
-  get_version
-
   local LOG_VERSION=$(grep -m 1 "^tinyalsa (" ${CHANGELOG_FILE}| sed "s/[^0-9.]*//g")
   local REF_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
 
@@ -196,14 +195,17 @@ parse_command()
 
   case "$1" in
     print)
+      get_version
       print_version "$2"
       exit $?
       ;;
     release)
+      get_version
       bump_version "$2"
       exit $?
       ;;
     check)
+      get_version
       check_version
       exit $?
       ;;
@@ -232,6 +234,10 @@ while [ "$#" -ne "0" ]; do
   case "$1" in
     -s|--script)
       unset LF
+      shift
+      ;;
+    -d|--dry-run)
+      DRYRUN=1
       shift
       ;;
     --)
