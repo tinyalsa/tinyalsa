@@ -3,6 +3,8 @@
 set -e
 set -u
 
+ROOT=$(pwd)
+
 make
 make clean
 
@@ -16,3 +18,5 @@ $HOME/.local/bin/meson . meson-build
 cd meson-build
 ninja
 cd ..
+
+${ROOT}/scripts/version.sh check

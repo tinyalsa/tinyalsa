@@ -10,13 +10,6 @@ tinyalsa = library('tinyalsa',
   version: meson.project_version(),
   install: true)
 
-log_version = run_command(find_program('scripts/version.sh'), 'check')
-if log_version.returncode() != 0
-  error(log_version.stderr())
-endif
-
-message(log_version.stdout())
-
 # For use as a Meson subproject
 tinyalsa_dep = declare_dependency(link_with: tinyalsa,
   include_directories: include_directories('include'))

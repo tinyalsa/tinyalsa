@@ -17,12 +17,6 @@ add_library("tinyalsa" ${HDRS} ${SRCS})
 target_compile_options("tinyalsa" PRIVATE -Wall -Wextra -Werror -Wfatal-errors)
 target_include_directories("tinyalsa" PRIVATE "include")
 
-add_custom_command(TARGET "tinyalsa"
-    POST_BUILD
-    COMMENT "Checking version against the changelog"
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    COMMAND ${PROJECT_SOURCE_DIR}/scripts/version.sh check)
-
 macro(ADD_EXAMPLE EXAMPLE)
     add_executable(${EXAMPLE} ${ARGN})
     target_link_libraries(${EXAMPLE} "tinyalsa")

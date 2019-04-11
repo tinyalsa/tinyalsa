@@ -18,7 +18,6 @@ all:
 	$(MAKE) -C utils
 	$(MAKE) -C doxygen
 	$(MAKE) -C examples
-	$(VERSIONSCRIPT) check
 
 .PHONY: clean
 clean:
