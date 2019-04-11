@@ -552,7 +552,7 @@ static int int_to_percent(const struct snd_ctl_elem_info *ei, int value)
     if (range == 0)
         return 0;
 
-    return ((value - ei->value.integer.min) / range) * 100;
+    return ((value - ei->value.integer.min) * 100) / range;
 }
 
 /** Gets a percentage representation of a specified control value.
