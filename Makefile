@@ -7,6 +7,11 @@ export LIBDIR ?= $(PREFIX)/lib
 export BINDIR ?= $(PREFIX)/bin
 export MANDIR ?= $(PREFIX)/share/man
 
+export VERSIONSCRIPT = $(shell pwd)/scripts/version.sh
+
+export TINYALSA_VERSION_MAJOR = $(shell $(VERSIONSCRIPT) -s print major)
+export TINYALSA_VERSION       = $(shell $(VERSIONSCRIPT) -s print      )
+
 .PHONY: all
 all:
 	$(MAKE) -C src
