@@ -1,6 +1,5 @@
 export DESTDIR ?=
 export PREFIX ?= /usr/local
-export CROSS_COMPILE =
 
 export INCDIR ?= $(PREFIX)/include/tinyalsa
 export LIBDIR ?= $(PREFIX)/lib
