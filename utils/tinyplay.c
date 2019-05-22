@@ -301,8 +301,8 @@ void print_usage(const char *argv0)
 {
     fprintf(stderr, "usage: %s file.wav [options]\n", argv0);
     fprintf(stderr, "options:\n");
-    fprintf(stderr, "-D | --card   <card number>    The device to receive the audio\n");
-    fprintf(stderr, "-d | --device <device number>  The card to receive the audio\n");
+    fprintf(stderr, "-D | --card   <card number>    The card to receive the audio\n");
+    fprintf(stderr, "-d | --device <device number>  The device to receive the audio\n");
     fprintf(stderr, "-p | --period-size <size>      The size of the PCM's period\n");
     fprintf(stderr, "-n | --period-count <count>    The number of PCM periods\n");
     fprintf(stderr, "-i | --file-type <file-type >  The type of file to read (raw or wav)\n");
