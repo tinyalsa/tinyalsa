@@ -34,17 +34,59 @@
 #include <stdlib.h>
 
 #include <sound/asound.h>
- * entry point function.
- * @ingroup libtinyalsa-pcm
- */
-#define PCM_PLUGIN_OPEN_FN_PTR()                        \
-    int (*plugin_open_fn) (struct pcm_plugin **plugin,  \
-                           unsigned int card,           \
-                           unsigned int device,         \
-                           int mode);
-/** Forward declaration of the structure to hold pcm
- * plugin related data/information.
- */
+
+/* static initializers */
+
+#define SND_VALUE_ENUM(etexts, eitems)    \
+    {.texts = etexts, .items = eitems}
+
+#define SND_VALUE_BYTES(csize)    \
+    {.size = csize }
+
+#define SND_VALUE_INTEGER(icount, imin, imax, istep) \
+    {.count = icount, .min = imin, .max = imax, .step = istep }
+
+#define SND_VALUE_TLV_BYTES(csize, cget, cput)       \
+    {.size = csize, .get = cget, .put = cput }
+
+/* pointer based initializers */
+#define INIT_SND_CONTROL_INTEGER(c, cname, cget, cput, cint, pval, pdata)   \
+    {                                                                       \
+        c->iface = SNDRV_CTL_ELEM_IFACE_MIXER;                              \
+        c->access = SNDRV_CTL_ELEM_ACCESS_READWRITE;                        \
+        c->type = SNDRV_CTL_ELEM_TYPE_INTEGER;                              \
+        c->name = cname; c->value = &cint; c->get = cget; c->put = cput;    \
+        c->private_value = pval; c->private_data = pdata;                   \
+    }
+
+#define INIT_SND_CONTROL_BYTES(c, cname, cget, cput, cint, pval, pdata)     \
+    {                                                                       \
+        c->iface = SNDRV_CTL_ELEM_IFACE_MIXER;                              \
+        c->access = SNDRV_CTL_ELEM_ACCESS_READWRITE;                        \
+        c->type = SNDRV_CTL_ELEM_TYPE_BYTES;                                \
+        c->name = cname; c->value = &cint; c->get = cget; c->put = cput;    \
+        c->private_value = pval; c->private_data = pdata;                   \
+    }
+
+#define INIT_SND_CONTROL_ENUM(c, cname, cget, cput, cenum, pval, pdata)     \
+    {                                                                       \
+        c->iface = SNDRV_CTL_ELEM_IFACE_MIXER;                              \
+        c->access = SNDRV_CTL_ELEM_ACCESS_READWRITE;                        \
+        c->type = SNDRV_CTL_ELEM_TYPE_ENUMERATED;                           \
+        c->name = cname; c->value = cenum; c->get = cget; c->put = cput;    \
+        c->private_value = pval; c->private_data = pdata;                   \
+    }
+
+#define INIT_SND_CONTROL_TLV_BYTES(c, cname, cbytes, priv_val, priv_data)  \
+    {                                                                      \
+        c->iface = SNDRV_CTL_ELEM_IFACE_MIXER;                             \
+        c->access = SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE;                   \
+        c->type = SNDRV_CTL_ELEM_TYPE_BYTES;                               \
+        c->name = cname; c->value = &cbytes;                               \
+        c->private_value = priv_val; c->private_data = priv_data;          \
+    }
+
+struct mixer_plugin;
 struct pcm_plugin;
 struct snd_node;
 
@@ -132,6 +174,70 @@ struct pcm_plugin {
     unsigned int state;
 };
 
+typedef void (*mixer_event_callback)(struct mixer_plugin *);
+
+struct mixer_plugin_ops {
+    int (*open) (struct mixer_plugin **plugin, unsigned int card);
+    void (*close) (struct mixer_plugin **plugin);
+    int (*subscribe_events) (struct mixer_plugin *plugin,
+                             mixer_event_callback event_cb);
+    ssize_t (*read_event) (struct mixer_plugin *plugin,
+                           struct snd_ctl_event *ev, size_t size);
+};
+
+struct snd_control {
+    snd_ctl_elem_iface_t iface;
+    unsigned int access;
+    const char *name;
+    snd_ctl_elem_type_t type;
+    void *value;
+    int (*get) (struct mixer_plugin *plugin,
+                struct snd_control *control,
+                struct snd_ctl_elem_value *ev);
+    int (*put) (struct mixer_plugin *plugin,
+                struct snd_control *control,
+                struct snd_ctl_elem_value *ev);
+    uint32_t private_value;
+    void *private_data;
+};
+
+struct mixer_plugin {
+    unsigned int card;
+    void *priv;
+
+    int eventfd;
+    int subscribed;
+    int event_cnt;
+
+    struct snd_control *controls;
+    unsigned int num_controls;
+};
+
+struct snd_value_enum {
+    unsigned int items;
+    char **texts;
+};
+
+struct snd_value_bytes {
+    unsigned int size;
+};
+
+struct snd_value_tlv_bytes {
+    unsigned int size;
+    int (*get) (struct mixer_plugin *plugin,
+                struct snd_control *control,
+                struct snd_ctl_tlv *tlv);
+    int (*put) (struct mixer_plugin *plugin,
+                struct snd_control *control,
+                struct snd_ctl_tlv *tlv);
+};
+
+struct snd_value_int {
+    unsigned int count;
+    int min;
+    int max;
+    int step;
+};
 
 /** Operations defined by the plugin.
  * */
@@ -151,4 +257,5 @@ struct snd_node_ops {
     /** Reserved for other nodes such as compress */
     void* reserved[4];
 };
+
 #endif /* end of TINYALSA_PLUGIN_H */

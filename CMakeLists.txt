@@ -21,7 +21,9 @@ set (SRCS
     "src/pcm_hw.c"
     "src/pcm_plugin.c"
     "src/snd_card_plugin.c"
-    "src/mixer.c")
+    "src/mixer.c"
+    "src/mixer_hw.c"
+    "src/mixer_plugin.c")
 
 add_library("tinyalsa" ${HDRS} ${SRCS})
 target_compile_options("tinyalsa" PRIVATE -Wall -Wextra -Werror -Wfatal-errors ${plugin_opt})
