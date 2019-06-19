@@ -10,7 +10,7 @@ cc = meson.get_compiler('c')
 dl_dep = cc.find_library('dl')
 
 tinyalsa = library('tinyalsa',
-  'src/mixer.c', 'src/pcm.c', 'src/pcm_hw.c', 'src/pcm_plugin.c', 'src/snd_utils.c',
+  'src/mixer.c', 'src/pcm.c', 'src/pcm_hw.c', 'src/pcm_plugin.c', 'src/snd_utils.c', 'src/mixer_hw.c', 'src/mixer_plugin.c',
   include_directories: tinyalsa_includes,
   version: meson.project_version(),
   install: true,

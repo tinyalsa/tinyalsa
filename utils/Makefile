@@ -27,7 +27,7 @@ tinycap: tinycap.o libtinyalsa.a -ldl
 
 tinycap.o: tinycap.c pcm.h mixer.h asoundlib.h
 
-tinymix: tinymix.o libtinyalsa.a
+tinymix: tinymix.o libtinyalsa.a -ldl
 
 tinymix.o: tinymix.c pcm.h mixer.h asoundlib.h
 

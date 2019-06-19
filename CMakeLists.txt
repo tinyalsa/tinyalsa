@@ -8,14 +8,17 @@ set (HDRS
     "include/tinyalsa/asoundlib.h"
     "include/tinyalsa/pcm.h"
     "include/tinyalsa/pcm_plugin.h"
-    "include/tinyalsa/mixer.h")
+    "include/tinyalsa/mixer.h"
+    "include/tinyalsa/mixer_plugin.h")
 
 set (SRCS
     "src/pcm.c"
     "src/pcm_hw.c"
     "src/pcm_plugin.c"
     "src/snd_utils.c"
-    "src/mixer.c")
+    "src/mixer.c"
+    "src/mixer_hw.c"
+    "src/mixer_plugin.c")
 
 add_library("tinyalsa" ${HDRS} ${SRCS})
 target_compile_options("tinyalsa" PRIVATE -Wall -Wextra -Werror -Wfatal-errors)
