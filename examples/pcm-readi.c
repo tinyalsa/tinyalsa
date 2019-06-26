@@ -23,11 +23,11 @@ static size_t read_frames(void **frames)
     struct pcm *pcm = pcm_open(card, device, flags, &config);
     if (pcm == NULL) {
         fprintf(stderr, "failed to allocate memory for PCM\n");
-        return EXIT_FAILURE;
+        return 0;
     } else if (!pcm_is_ready(pcm)){
         pcm_close(pcm);
         fprintf(stderr, "failed to open PCM\n");
-        return EXIT_FAILURE;
+        return 0;
     }
 
     unsigned int frame_size = pcm_frames_to_bytes(pcm, 1);
@@ -37,7 +37,7 @@ static size_t read_frames(void **frames)
     if (*frames == NULL) {
         fprintf(stderr, "failed to allocate frames\n");
         pcm_close(pcm);
-        return EXIT_FAILURE;
+        return 0;
     }
 
     int read_count = pcm_readi(pcm, *frames, frames_per_sec);
@@ -63,8 +63,8 @@ static int write_file(const void *frames, size_t size)
 
 int main(void)
 {
-    void *frames;
-    size_t size;
+    void *frames = NULL;
+    size_t size = 0;
 
     size = read_frames(&frames);
     if (size == 0) {
