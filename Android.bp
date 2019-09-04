@@ -5,6 +5,9 @@ cc_library {
     srcs: [
         "src/mixer.c",
         "src/pcm.c",
+        "src/pcm_hw.c",
+        "src/pcm_plugin.c",
+        "src/snd_utils.c",
     ],
     cflags: ["-Werror", "-Wno-macro-redefined"],
     export_include_dirs: ["include"],
@@ -15,6 +18,8 @@ cc_library {
             enabled: false,
         },
     },
+
+    system_shared_libs: ["libc", "libdl"],
 }
 
 cc_binary {

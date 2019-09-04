@@ -59,6 +59,8 @@
 
 #include <tinyalsa/pcm.h>
 #include <tinyalsa/limits.h>
+#include "pcm_io.h"
+#include "snd_utils.h"
 
 #ifndef PARAM_MAX
 #define PARAM_MAX SNDRV_PCM_HW_PARAM_LAST_INTERVAL
@@ -67,6 +69,9 @@
 #ifndef SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP
 #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)
 #endif /* SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP */
+
+extern struct pcm_ops hw_ops;
+extern struct pcm_ops plug_ops;
 
 static inline int param_is_mask(int p)
 {
@@ -234,6 +239,12 @@ struct pcm {
     long pcm_delay;
     /** The subdevice corresponding to the PCM */
     unsigned int subdevice;
+    /** Pointer to the pcm ops, either hw or plugin */
+    struct pcm_ops *ops;
+    /** Private data for pcm_hw or pcm_plugin */
+    void *data;
+    /** Pointer to the pcm node from snd card definition */
+    void *snd_node;
 };
 
 static int oops(struct pcm *pcm, int e, const char *fmt, ...)
@@ -383,7 +394,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
         param_set_mask(&params, SNDRV_PCM_HW_PARAM_ACCESS,
                    SNDRV_PCM_ACCESS_RW_INTERLEAVED);
 
-    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
+    if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
         int errno_copy = errno;
         oops(pcm, -errno, "cannot set hw params");
         return -errno_copy;
@@ -440,7 +451,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
     while (pcm->boundary * 2 <= INT_MAX - pcm->buffer_size)
         pcm->boundary *= 2;
 
-    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
+    if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
         int errno_copy = errno;
         oops(pcm, -errno, "cannot set sw params");
         return -errno_copy;
@@ -519,7 +530,8 @@ static int pcm_sync_ptr(struct pcm *pcm, int flags)
         }
     } else {
         pcm->sync_ptr->flags = flags;
-        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_SYNC_PTR, pcm->sync_ptr) < 0) {
+        if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_SYNC_PTR,
+                            pcm->sync_ptr) < 0) {
             oops(pcm, errno, "failed to sync mmap ptr");
             return -1;
         }
@@ -599,19 +611,22 @@ struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
                                   unsigned int flags)
 {
     struct snd_pcm_hw_params *params;
-    char fn[256];
+    enum snd_node_type pcm_type;
+    void *snd_node, *data;
+    struct pcm_ops *ops;
     int fd;
 
-    snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,
-             flags & PCM_IN ? 'c' : 'p');
-
-    if (flags & PCM_NONBLOCK)
-        fd = open(fn, O_RDWR | O_NONBLOCK);
+    snd_node = snd_utils_get_dev_node(card, device, NODE_PCM);
+    pcm_type = snd_utils_get_node_type(snd_node);
+    if (pcm_type == SND_NODE_TYPE_PLUGIN)
+        ops = &plug_ops;
     else
-        fd = open(fn, O_RDWR);
+        ops = &hw_ops;
 
+    fd = ops->open(card, device, flags, &data, snd_node);
     if (fd < 0) {
-        fprintf(stderr, "cannot open device '%s': %s\n", fn, strerror(errno));
+        fprintf(stderr, "cannot open card(%d) device (%d): %s\n",
+                card, device, strerror(errno));
         goto err_open;
     }
 
@@ -620,19 +635,21 @@ struct pcm_params *pcm_params_get(unsigned int card, unsigned int device,
         goto err_calloc;
 
     param_init(params);
-    if (ioctl(fd, SNDRV_PCM_IOCTL_HW_REFINE, params)) {
+    if (ops->ioctl(data, SNDRV_PCM_IOCTL_HW_REFINE, params)) {
         fprintf(stderr, "SNDRV_PCM_IOCTL_HW_REFINE error (%d)\n", errno);
         goto err_hw_refine;
     }
 
-    close(fd);
+    snd_utils_put_dev_node(snd_node);
+    ops->close(data);
 
     return (struct pcm_params *)params;
 
 err_hw_refine:
     free(params);
 err_calloc:
-    close(fd);
+    snd_utils_put_dev_node(snd_node);
+    ops->close(data);
 err_open:
     return NULL;
 }
@@ -787,6 +804,7 @@ int pcm_close(struct pcm *pcm)
         munmap(pcm->mmap_buffer, pcm_frames_to_bytes(pcm, pcm->buffer_size));
     }
 
+    snd_utils_put_dev_node(pcm->snd_node);
     if (pcm->fd >= 0)
         close(pcm->fd);
     pcm->buffer_size = 0;
@@ -851,29 +869,30 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 {
     struct pcm *pcm;
     struct snd_pcm_info info;
-    char fn[256];
-    int rc;
+    int pcm_type, rc;
 
     pcm = calloc(1, sizeof(struct pcm));
     if (!pcm)
         return &bad_pcm;
 
-    snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,
-             flags & PCM_IN ? 'c' : 'p');
-
-    pcm->flags = flags;
-
-    if (flags & PCM_NONBLOCK)
-        pcm->fd = open(fn, O_RDWR | O_NONBLOCK);
+    pcm->snd_node = snd_utils_get_dev_node(card, device, NODE_PCM);
+    pcm_type = snd_utils_get_node_type(pcm->snd_node);
+    if (pcm_type == SND_NODE_TYPE_PLUGIN)
+        pcm->ops = &plug_ops;
     else
-        pcm->fd = open(fn, O_RDWR);
+        pcm->ops = &hw_ops;
+
+    pcm->fd = pcm->ops->open(card, device, flags, &pcm->data, pcm->snd_node);
 
     if (pcm->fd < 0) {
-        oops(pcm, errno, "cannot open device '%s'", fn);
+        oops(pcm, errno, "cannot open card(%d) device(%d)",
+             card, device);
         return pcm;
     }
 
-    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_INFO, &info)) {
+    pcm->flags = flags;
+
+    if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_INFO, &info)) {
         oops(pcm, errno, "cannot get info");
         goto fail_close;
     }
@@ -891,7 +910,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 #ifdef SNDRV_PCM_IOCTL_TTSTAMP
     if (pcm->flags & PCM_MONOTONIC) {
         int arg = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC;
-        rc = ioctl(pcm->fd, SNDRV_PCM_IOCTL_TTSTAMP, &arg);
+        rc = pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_TTSTAMP, &arg);
         if (rc < 0) {
             oops(pcm, rc, "cannot set timestamp type");
             goto fail;
@@ -911,6 +930,7 @@ fail:
     if (flags & PCM_MMAP)
         munmap(pcm->mmap_buffer, pcm_frames_to_bytes(pcm, pcm->buffer_size));
 fail_close:
+    snd_utils_put_dev_node(pcm->snd_node);
     close(pcm->fd);
     pcm->fd = -1;
     return pcm;
@@ -970,7 +990,7 @@ int pcm_unlink(struct pcm *pcm)
  */
 int pcm_prepare(struct pcm *pcm)
 {
-    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_PREPARE) < 0)
+    if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_PREPARE) < 0)
         return oops(pcm, errno, "cannot prepare channel");
 
     /* get appl_ptr and avail_min from kernel */
@@ -991,7 +1011,7 @@ int pcm_start(struct pcm *pcm)
         return -1;
 
     if (pcm->mmap_status->state != PCM_STATE_RUNNING) {
-        if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_START) < 0)
+        if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_START) < 0)
             return oops(pcm, errno, "cannot start channel");
     }
 
@@ -1005,7 +1025,7 @@ int pcm_start(struct pcm *pcm)
  */
 int pcm_stop(struct pcm *pcm)
 {
-    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DROP) < 0)
+    if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_DROP) < 0)
         return oops(pcm, errno, "cannot stop channel");
 
     return 0;
@@ -1288,7 +1308,7 @@ int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
      */
     if (!is_playback && state == PCM_STATE_PREPARED &&
         frames >= pcm->config.start_threshold) {
-        err = ioctl(pcm->fd, SNDRV_PCM_IOCTL_START);
+            err = pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_START);
         if (err == -1)
             return -1;
         /* state = PCM_STATE_RUNNING */
@@ -1326,7 +1346,7 @@ int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
         /* start playback if written >= start_threshold */
         if (is_playback && state == PCM_STATE_PREPARED &&
             pcm->buffer_size - avail >= pcm->config.start_threshold) {
-            err = ioctl(pcm->fd, SNDRV_PCM_IOCTL_START);
+            err = pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_START);
             if (err == -1)
                 break;
         }
@@ -1365,9 +1385,9 @@ static int pcm_rw_transfer(struct pcm *pcm, void *data, unsigned int frames)
     transfer.frames = frames;
     transfer.result = 0;
 
-    res = ioctl(pcm->fd, is_playback
-                ? SNDRV_PCM_IOCTL_WRITEI_FRAMES
-                : SNDRV_PCM_IOCTL_READI_FRAMES, &transfer);
+    res = pcm->ops->ioctl(pcm->data, is_playback
+                          ? SNDRV_PCM_IOCTL_WRITEI_FRAMES
+                          : SNDRV_PCM_IOCTL_READI_FRAMES, &transfer);
 
     return res == 0 ? (int) transfer.result : -1;
 }

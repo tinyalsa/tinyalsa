@@ -4,11 +4,17 @@ project ('tinyalsa', 'c',
 
 tinyalsa_includes = include_directories('.', 'include')
 
+cc = meson.get_compiler('c')
+
+# Dependency on libdl
+dl_dep = cc.find_library('dl')
+
 tinyalsa = library('tinyalsa',
-  'src/mixer.c', 'src/pcm.c',
+  'src/mixer.c', 'src/pcm.c', 'src/pcm_hw.c', 'src/pcm_plugin.c', 'src/snd_utils.c',
   include_directories: tinyalsa_includes,
   version: meson.project_version(),
-  install: true)
+  install: true,
+  dependencies: dl_dep)
 
 # For use as a Meson subproject
 tinyalsa_dep = declare_dependency(link_with: tinyalsa,
