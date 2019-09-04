@@ -11,9 +11,9 @@ EXAMPLES += pcm-writei
 .PHONY: all
 all: $(EXAMPLES)
 
-pcm-readi: pcm-readi.c -ltinyalsa
+pcm-readi: pcm-readi.c -ltinyalsa -ldl
 
-pcm-writei: pcm-writei.c -ltinyalsa
+pcm-writei: pcm-writei.c -ltinyalsa -ldl
 
 .PHONY: clean
 clean:
