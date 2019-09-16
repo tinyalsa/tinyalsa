@@ -48,8 +48,8 @@ void usage(void)
 {
     printf("usage: tinymix [options] <command>\n");
     printf("options:\n");
-    printf("\t-h, --help        : prints this help message and exists\n");
-    printf("\t-v, --version     : prints this version of tinymix and exists\n");
+    printf("\t-h, --help        : prints this help message and exits\n");
+    printf("\t-v, --version     : prints this version of tinymix and exits\n");
     printf("\t-D, --card NUMBER : specifies the card number of the mixer\n");
     printf("commands:\n");
     printf("\tget NAME|ID       : prints the values of a control\n");
