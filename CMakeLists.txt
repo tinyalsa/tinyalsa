@@ -41,12 +41,20 @@ add_util("tinymix" "utils/tinymix.c")
 install(FILES ${HDRS}
     DESTINATION "include/tinyalsa")
 
+if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR lib)
+endif()
+
+if(NOT DEFINED CMAKE_INSTALL_BINDIR)
+	set(CMAKE_INSTALL_BINDIR bin)
+endif()
+
 install(TARGETS "tinyalsa"
                 "tinyplay"
                 "tinycap"
                 "tinymix"
                 "tinypcminfo"
-    RUNTIME DESTINATION "bin"
-    ARCHIVE DESTINATION "lib"
-    LIBRARY DESTINATION "lib")
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
