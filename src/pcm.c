@@ -409,7 +409,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
     memset(&sparams, 0, sizeof(sparams));
     sparams.tstamp_mode = SNDRV_PCM_TSTAMP_ENABLE;
     sparams.period_step = 1;
-    sparams.avail_min = 1;
+    sparams.avail_min = config->period_size;
 
     if (!config->start_threshold) {
         if (pcm->flags & PCM_IN)
