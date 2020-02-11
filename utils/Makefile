@@ -19,19 +19,19 @@ VPATH = ../src:../include/tinyalsa
 .PHONY: all
 all: -ltinyalsa tinyplay tinycap tinymix tinypcminfo
 
-tinyplay: tinyplay.o libtinyalsa.a
+tinyplay: tinyplay.o libtinyalsa.a -ldl
 
 tinyplay.o: tinyplay.c pcm.h mixer.h asoundlib.h
 
-tinycap: tinycap.o libtinyalsa.a
+tinycap: tinycap.o libtinyalsa.a -ldl
 
 tinycap.o: tinycap.c pcm.h mixer.h asoundlib.h
 
-tinymix: tinymix.o libtinyalsa.a
+tinymix: tinymix.o libtinyalsa.a -ldl
 
 tinymix.o: tinymix.c pcm.h mixer.h asoundlib.h
 
-tinypcminfo: tinypcminfo.o libtinyalsa.a
+tinypcminfo: tinypcminfo.o libtinyalsa.a -ldl
 
 tinypcminfo.o: tinypcminfo.c pcm.h mixer.h asoundlib.h
 

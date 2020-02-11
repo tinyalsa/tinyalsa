@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -57,6 +58,9 @@
 #include <sound/asound.h>
 
 #include <tinyalsa/mixer.h>
+#include <tinyalsa/plugin.h>
+
+#include "mixer_io.h"
 
 /** A mixer control.
  * @ingroup libtinyalsa-mixer
@@ -68,6 +72,21 @@ struct mixer_ctl {
     struct snd_ctl_elem_info info;
     /** A list of string representations of enumerated values (only valid for enumerated controls) */
     char **ename;
+    /** Pointer to the group that the control belongs to */
+    struct mixer_ctl_group *grp;
+};
+
+struct mixer_ctl_group {
+    /** A continuous array of mixer controls */
+    struct mixer_ctl *ctl;
+    /** The number of mixer controls */
+    unsigned int count;
+    /** The number of events associated with this group */
+    unsigned int event_cnt;
+    /** The operations corresponding to this group */
+    const struct mixer_ops *ops;
+    /** Private data for storing group specific data */
+    void *data;
 };
 
 /** A mixer handle.
@@ -78,10 +97,15 @@ struct mixer {
     int fd;
     /** Card information */
     struct snd_ctl_card_info card_info;
-    /** A continuous array of mixer controls */
-    struct mixer_ctl *ctl;
-    /** The number of mixer controls */
-    unsigned int count;
+    /* Hardware (kernel interface) mixer control group */
+    struct mixer_ctl_group *h_grp;
+    /* Virtual (Plugin interface) mixer control group */
+    struct mixer_ctl_group *v_grp;
+    /* Total count of mixer controls from both  groups */
+    unsigned int total_count;
+    /* Flag to track if card information is already retrieved */
+    bool is_card_info_retrieved;
+
 };
 
 static void mixer_cleanup_control(struct mixer_ctl *ctl)
@@ -96,25 +120,40 @@ static void mixer_cleanup_control(struct mixer_ctl *ctl)
     }
 }
 
+static void mixer_grp_close(struct mixer *mixer, struct mixer_ctl_group *grp)
+{
+    unsigned int n;
+
+    if (!grp)
+        return;
+
+    if (grp->ctl) {
+        for (n = 0; n < grp->count; n++)
+            mixer_cleanup_control(&grp->ctl[n]);
+        free(grp->ctl);
+    }
+
+    mixer->is_card_info_retrieved = false;
+}
+
 /** Closes a mixer returned by @ref mixer_open.
  * @param mixer A mixer handle.
  * @ingroup libtinyalsa-mixer
  */
 void mixer_close(struct mixer *mixer)
 {
-    unsigned int n;
-
     if (!mixer)
         return;
 
-    if (mixer->fd >= 0)
-        close(mixer->fd);
+    if (mixer->fd >= 0 && mixer->h_grp)
+        mixer->h_grp->ops->close(mixer->h_grp->data);
+    mixer_grp_close(mixer, mixer->h_grp);
 
-    if (mixer->ctl) {
-        for (n = 0; n < mixer->count; n++)
-            mixer_cleanup_control(&mixer->ctl[n]);
-        free(mixer->ctl);
-    }
+#ifdef TINYALSA_USES_PLUGINS
+    if (mixer->v_grp)
+        mixer->v_grp->ops->close(mixer->v_grp->data);
+    mixer_grp_close(mixer, mixer->v_grp);
+#endif
 
     free(mixer);
 
@@ -133,18 +172,17 @@ static void *mixer_realloc_z(void *ptr, size_t curnum, size_t newnum, size_t siz
         return newp;
 }
 
-static int add_controls(struct mixer *mixer)
+static int add_controls(struct mixer *mixer, struct mixer_ctl_group *grp)
 {
     struct snd_ctl_elem_list elist;
     struct snd_ctl_elem_id *eid = NULL;
     struct mixer_ctl *ctl;
-    int fd = mixer->fd;
-    const unsigned int old_count = mixer->count;
+    const unsigned int old_count = grp->count;
     unsigned int new_count;
     unsigned int n;
 
     memset(&elist, 0, sizeof(elist));
-    if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_LIST, &elist) < 0)
+    if (grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_LIST, &elist) < 0)
         goto fail;
 
     if (old_count == elist.count)
@@ -153,12 +191,12 @@ static int add_controls(struct mixer *mixer)
     if (old_count > elist.count)
         return -1; /* driver has removed controls - this is bad */
 
-    ctl = mixer_realloc_z(mixer->ctl, old_count, elist.count,
+    ctl = mixer_realloc_z(grp->ctl, old_count, elist.count,
                           sizeof(struct mixer_ctl));
     if (!ctl)
         goto fail;
 
-    mixer->ctl = ctl;
+    grp->ctl = ctl;
 
     /* ALSA drivers are not supposed to remove or re-order controls that
      * have already been created so we know that any new controls must
@@ -174,18 +212,21 @@ static int add_controls(struct mixer *mixer)
 
     elist.pids = eid;
 
-    if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_LIST, &elist) < 0)
+    if (grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_LIST, &elist) < 0)
         goto fail;
 
     for (n = old_count; n < new_count; n++) {
-        struct snd_ctl_elem_info *ei = &mixer->ctl[n].info;
+        struct snd_ctl_elem_info *ei = &grp->ctl[n].info;
         ei->id.numid = eid[n - old_count].numid;
-        if (ioctl(fd, SNDRV_CTL_IOCTL_ELEM_INFO, ei) < 0)
+        if (grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_INFO, ei) < 0)
             goto fail_extend;
         ctl[n].mixer = mixer;
+        ctl[n].grp = grp;
     }
 
-    mixer->count = new_count;
+    grp->count = new_count;
+    mixer->total_count += (new_count - old_count);
+
     free(eid);
     return 0;
 
@@ -196,11 +237,67 @@ fail_extend:
      */
     mixer_cleanup_control(&ctl[n]);
 
-    mixer->count = n;   /* keep controls we successfully added */
+    grp->count = n;   /* keep controls we successfully added */
+    mixer->total_count += (n - old_count);
     /* fall through... */
 fail:
     free(eid);
     return -1;
+}
+
+static int mixer_grp_open(struct mixer *mixer, unsigned int card, bool is_hw)
+{
+    struct mixer_ctl_group *grp = NULL;
+    const struct mixer_ops *ops = NULL;
+    void *data = NULL;
+    int fd, ret;
+
+    grp = calloc(1, sizeof(*grp));
+    if (!grp)
+        return -ENOMEM;
+
+    if (is_hw) {
+        mixer->fd = -1;
+        fd = mixer_hw_open(card, &data, &ops);
+        if (fd < 0) {
+            ret = fd;
+            goto err_open;
+        }
+        mixer->fd = fd;
+        mixer->h_grp = grp;
+    }
+#ifdef TINYALSA_USES_PLUGINS
+    else {
+        ret = mixer_plugin_open(card, &data, &ops);
+        if (ret < 0)
+            goto err_open;
+        mixer->v_grp = grp;
+    }
+#endif
+    grp->ops = ops;
+    grp->data = data;
+
+    if (!mixer->is_card_info_retrieved) {
+        ret = grp->ops->ioctl(data, SNDRV_CTL_IOCTL_CARD_INFO,
+                              &mixer->card_info);
+        if (ret < 0)
+            goto err_card_info;
+        mixer->is_card_info_retrieved = true;
+    }
+
+    ret = add_controls(mixer, grp);
+    if (ret < 0)
+        goto err_card_info;
+
+    return 0;
+
+err_card_info:
+    grp->ops->close(grp->data);
+
+err_open:
+    free(grp);
+    return ret;
+
 }
 
 /** Opens a mixer for a given card.
@@ -211,24 +308,20 @@ fail:
 struct mixer *mixer_open(unsigned int card)
 {
     struct mixer *mixer = NULL;
-    int fd;
-    char fn[256];
-
-    snprintf(fn, sizeof(fn), "/dev/snd/controlC%u", card);
-    fd = open(fn, O_RDWR);
-    if (fd < 0)
-        return 0;
+    int h_status, v_status = -1;
 
     mixer = calloc(1, sizeof(*mixer));
     if (!mixer)
         goto fail;
 
-    if (ioctl(fd, SNDRV_CTL_IOCTL_CARD_INFO, &mixer->card_info) < 0)
-        goto fail;
+    h_status = mixer_grp_open(mixer, card, true);
 
-    mixer->fd = fd;
+#ifdef TINYALSA_USES_PLUGINS
+    v_status = mixer_grp_open(mixer, card, false);
+#endif
 
-    if (add_controls(mixer) != 0)
+    /* both hw and virtual should fail for mixer_open to fail */
+    if (h_status < 0 && v_status < 0)
         goto fail;
 
     return mixer;
@@ -236,8 +329,7 @@ struct mixer *mixer_open(unsigned int card)
 fail:
     if (mixer)
         mixer_close(mixer);
-    else if (fd >= 0)
-        close(fd);
+
     return NULL;
 }
 
@@ -260,10 +352,27 @@ fail:
  */
 int mixer_add_new_ctls(struct mixer *mixer)
 {
+    int rc1 = 0, rc2 = 0;
+
     if (!mixer)
         return 0;
 
-    return add_controls(mixer);
+    /* add the h_grp controls */
+    if (mixer->h_grp)
+        rc1 = add_controls(mixer, mixer->h_grp);
+
+#ifdef TINYALSA_USES_PLUGINS
+    /* add the v_grp controls */
+    if (mixer->v_grp)
+        rc2 = add_controls(mixer, mixer->v_grp);
+#endif
+
+    if (rc1 < 0)
+        return rc1;
+    if (rc2 < 0)
+        return rc2;
+
+    return 0;
 }
 
 /** Gets the name of the mixer's card.
@@ -286,7 +395,7 @@ unsigned int mixer_get_num_ctls(const struct mixer *mixer)
     if (!mixer)
         return 0;
 
-    return mixer->count;
+    return mixer->total_count;
 }
 
 /** Gets the number of mixer controls, that go by a specified name, for a given mixer.
@@ -297,6 +406,7 @@ unsigned int mixer_get_num_ctls(const struct mixer *mixer)
  */
 unsigned int mixer_get_num_ctls_by_name(const struct mixer *mixer, const char *name)
 {
+    struct mixer_ctl_group *grp;
     unsigned int n;
     unsigned int count = 0;
     struct mixer_ctl *ctl;
@@ -304,11 +414,24 @@ unsigned int mixer_get_num_ctls_by_name(const struct mixer *mixer, const char *n
     if (!mixer)
         return 0;
 
-    ctl = mixer->ctl;
+    if (mixer->h_grp) {
+        grp = mixer->h_grp;
+        ctl = grp->ctl;
 
-    for (n = 0; n < mixer->count; n++)
-        if (!strcmp(name, (char*) ctl[n].info.id.name))
-            count++;
+        for (n = 0; n < grp->count; n++)
+            if (!strcmp(name, (char*) ctl[n].info.id.name))
+                count++;
+    }
+#ifdef TINYALSA_USES_PLUGINS
+    if (mixer->v_grp) {
+        grp = mixer->v_grp;
+        ctl = grp->ctl;
+
+        for (n = 0; n < grp->count; n++)
+            if (!strcmp(name, (char*) ctl[n].info.id.name))
+                count++;
+    }
+#endif
 
     return count;
 }
@@ -322,9 +445,21 @@ unsigned int mixer_get_num_ctls_by_name(const struct mixer *mixer, const char *n
  */
 int mixer_subscribe_events(struct mixer *mixer, int subscribe)
 {
-    if (ioctl(mixer->fd, SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS, &subscribe) < 0) {
-        return -1;
+    struct mixer_ctl_group *grp;
+
+    if (mixer->h_grp) {
+        grp = mixer->h_grp;
+        if (grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS, &subscribe) < 0)
+            return -1;
     }
+
+#ifdef TINYALSA_USES_PLUGINS
+    if (mixer->v_grp) {
+        grp = mixer->v_grp;
+        if (grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS, &subscribe) < 0)
+            return -1;
+    }
+#endif
     return 0;
 }
 
@@ -338,23 +473,74 @@ int mixer_subscribe_events(struct mixer *mixer, int subscribe)
  */
 int mixer_wait_event(struct mixer *mixer, int timeout)
 {
-    struct pollfd pfd;
+    struct pollfd *pfd;
+    struct mixer_ctl_group *grp;
+    int count = 0, num_fds = 0, i;
 
-    pfd.fd = mixer->fd;
-    pfd.events = POLLIN | POLLOUT | POLLERR | POLLNVAL;
+    if (mixer->fd >= 0)
+        num_fds++;
+
+#ifdef TINYALSA_USES_PLUGINS
+    if (mixer->v_grp)
+        num_fds++;
+#endif
+
+    pfd = (struct pollfd *)calloc(sizeof(struct pollfd), num_fds);
+    if (!pfd)
+        return -ENOMEM;
+
+    if (mixer->fd >= 0) {
+        pfd[count].fd = mixer->fd;
+        pfd[count].events = POLLIN | POLLOUT | POLLERR | POLLNVAL;
+        count++;
+    }
+
+#ifdef TINYALSA_USES_PLUGINS
+    if (mixer->v_grp) {
+        grp = mixer->v_grp;
+        if (!grp->ops->get_poll_fd(grp->data, pfd, count)) {
+            pfd[count].events = POLLIN | POLLERR | POLLNVAL;
+            count++;
+        }
+    }
+#endif
+
+    if (!count)
+        return 0;
 
     for (;;) {
         int err;
-        err = poll(&pfd, 1, timeout);
+        err = poll(pfd, count, timeout);
         if (err < 0)
             return -errno;
         if (!err)
             return 0;
-        if (pfd.revents & (POLLERR | POLLNVAL))
-            return -EIO;
-        if (pfd.revents & (POLLIN | POLLOUT))
-            return 1;
+        for (i = 0; i < count; i++) {
+            if (pfd[i].revents & (POLLERR | POLLNVAL))
+                return -EIO;
+            if (pfd[i].revents & (POLLIN | POLLOUT)) {
+                if ((i == 0) && mixer->fd >= 0) {
+                    grp = mixer->h_grp;
+                    grp->event_cnt++;
+                }
+#ifdef TINYALSA_USES_PLUGINS
+				else {
+                    grp = mixer->v_grp;
+                    grp->event_cnt++;
+                }
+#endif
+                return 1;
+            }
+        }
     }
+}
+
+static unsigned int mixer_grp_get_count(struct mixer_ctl_group *grp)
+{
+    if (!grp)
+        return 0;
+
+    return grp->count;
 }
 
 /** Gets a mixer control handle, by the mixer control's id.
@@ -366,8 +552,22 @@ int mixer_wait_event(struct mixer *mixer, int timeout)
  */
 const struct mixer_ctl *mixer_get_ctl_const(const struct mixer *mixer, unsigned int id)
 {
-    if (mixer && (id < mixer->count))
-        return mixer->ctl + id;
+    unsigned int h_count;
+
+    if (!mixer || (id >= mixer->total_count))
+        return NULL;
+
+    h_count = mixer_grp_get_count(mixer->h_grp);
+
+    if (id < h_count)
+        return mixer->h_grp->ctl + id;
+#ifdef TINYALSA_USES_PLUGINS
+    else {
+        unsigned int v_count = mixer_grp_get_count(mixer->v_grp);
+	    if ((id - h_count) < v_count)
+            return mixer->v_grp->ctl + (id - h_count);
+    }
+#endif
 
     return NULL;
 }
@@ -381,9 +581,22 @@ const struct mixer_ctl *mixer_get_ctl_const(const struct mixer *mixer, unsigned 
  */
 struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id)
 {
-    if (mixer && (id < mixer->count))
-        return mixer->ctl + id;
+    unsigned int h_count;
 
+    if (!mixer || (id >= mixer->total_count))
+        return NULL;
+
+    h_count = mixer_grp_get_count(mixer->h_grp);
+
+    if (id < h_count)
+        return mixer->h_grp->ctl + id;
+#ifdef TINYALSA_USES_PLUGINS
+    else {
+        unsigned int v_count = mixer_grp_get_count(mixer->v_grp);
+	    if ((id - h_count) < v_count)
+            return mixer->v_grp->ctl + (id - h_count);
+    }
+#endif
     return NULL;
 }
 
@@ -410,19 +623,34 @@ struct mixer_ctl *mixer_get_ctl_by_name_and_index(struct mixer *mixer,
                                                   const char *name,
                                                   unsigned int index)
 {
+    struct mixer_ctl_group *grp;
     unsigned int n;
     struct mixer_ctl *ctl;
 
     if (!mixer)
         return NULL;
 
-    ctl = mixer->ctl;
+    if (mixer->h_grp) {
+        grp = mixer->h_grp;
+        ctl = grp->ctl;
 
-    for (n = 0; n < mixer->count; n++)
-        if (!strcmp(name, (char*) ctl[n].info.id.name))
-            if (index-- == 0)
-                return mixer->ctl + n;
+        for (n = 0; n < grp->count; n++)
+            if (!strcmp(name, (char*) ctl[n].info.id.name))
+                if (index-- == 0)
+                    return ctl + n;
+    }
 
+#ifdef TINYALSA_USES_PLUGINS
+    if (mixer->v_grp) {
+        grp = mixer->v_grp;
+        ctl = grp->ctl;
+
+        for (n = 0; n < grp->count; n++)
+            if (!strcmp(name, (char*) ctl[n].info.id.name))
+                if (index-- == 0)
+                    return ctl + n;
+    }
+#endif
     return NULL;
 }
 
@@ -433,7 +661,13 @@ struct mixer_ctl *mixer_get_ctl_by_name_and_index(struct mixer *mixer,
  */
 void mixer_ctl_update(struct mixer_ctl *ctl)
 {
-    ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_INFO, ctl->info);
+    struct mixer_ctl_group *grp;
+
+    if (!ctl)
+        return;
+
+    grp  = ctl->grp;
+    grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_INFO, &ctl->info);
 }
 
 /** Checks the control for TLV Read/Write access.
@@ -595,15 +829,17 @@ int mixer_ctl_set_percent(struct mixer_ctl *ctl, unsigned int id, int percent)
  */
 int mixer_ctl_get_value(const struct mixer_ctl *ctl, unsigned int id)
 {
+    struct mixer_ctl_group *grp;
     struct snd_ctl_elem_value ev;
     int ret;
 
     if (!ctl || (id >= ctl->info.count))
         return -EINVAL;
 
+    grp = ctl->grp;
     memset(&ev, 0, sizeof(ev));
     ev.id.numid = ctl->info.id.numid;
-    ret = ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_READ, &ev);
+    ret = grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_READ, &ev);
     if (ret < 0)
         return ret;
 
@@ -641,6 +877,7 @@ int mixer_ctl_get_value(const struct mixer_ctl *ctl, unsigned int id)
  */
 int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
 {
+    struct mixer_ctl_group *grp;
     struct snd_ctl_elem_value ev;
     int ret = 0;
     size_t size;
@@ -650,6 +887,7 @@ int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
     if (!ctl || !count || !array)
         return -EINVAL;
 
+    grp = ctl->grp;
     total_count = ctl->info.count;
 
     if ((ctl->info.type == SNDRV_CTL_ELEM_TYPE_BYTES) &&
@@ -667,7 +905,7 @@ int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
     switch (ctl->info.type) {
     case SNDRV_CTL_ELEM_TYPE_BOOLEAN:
     case SNDRV_CTL_ELEM_TYPE_INTEGER:
-        ret = ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_READ, &ev);
+        ret = grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_READ, &ev);
         if (ret < 0)
             return ret;
         size = sizeof(ev.value.integer.value[0]);
@@ -687,7 +925,7 @@ int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
                 return -ENOMEM;
             tlv->numid = ctl->info.id.numid;
             tlv->length = count;
-            ret = ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_TLV_READ, tlv);
+            ret = grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_TLV_READ, tlv);
 
             source = tlv->tlv;
             memcpy(array, source, count);
@@ -696,7 +934,7 @@ int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
 
             return ret;
         } else {
-            ret = ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_READ, &ev);
+            ret = grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_READ, &ev);
             if (ret < 0)
                 return ret;
             size = sizeof(ev.value.bytes.data[0]);
@@ -725,15 +963,17 @@ int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
  */
 int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
 {
+    struct mixer_ctl_group *grp;
     struct snd_ctl_elem_value ev;
     int ret;
 
     if (!ctl || (id >= ctl->info.count))
         return -EINVAL;
 
+    grp = ctl->grp;
     memset(&ev, 0, sizeof(ev));
     ev.id.numid = ctl->info.id.numid;
-    ret = ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_READ, &ev);
+    ret = grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_READ, &ev);
     if (ret < 0)
         return ret;
 
@@ -763,7 +1003,7 @@ int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
         return -EINVAL;
     }
 
-    return ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
+    return grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
 }
 
 /** Sets the contents of a control's value array.
@@ -778,6 +1018,7 @@ int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
  */
 int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
 {
+    struct mixer_ctl_group *grp;
     struct snd_ctl_elem_value ev;
     size_t size;
     void *dest;
@@ -786,6 +1027,7 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
     if ((!ctl) || !count || !array)
         return -EINVAL;
 
+    grp = ctl->grp;
     total_count = ctl->info.count;
 
     if ((ctl->info.type == SNDRV_CTL_ELEM_TYPE_BYTES) &&
@@ -821,7 +1063,7 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
             tlv->length = count;
             memcpy(tlv->tlv, array, count);
 
-            ret = ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_TLV_WRITE, tlv);
+            ret = grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_TLV_WRITE, tlv);
             free(tlv);
 
             return ret;
@@ -837,7 +1079,7 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
 
     memcpy(dest, array, size * count);
 
-    return ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
+    return grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
 }
 
 /** Gets the minimum value of an control.
@@ -887,6 +1129,7 @@ unsigned int mixer_ctl_get_num_enums(const struct mixer_ctl *ctl)
 
 int mixer_ctl_fill_enum_string(struct mixer_ctl *ctl)
 {
+    struct mixer_ctl_group *grp = ctl->grp;
     struct snd_ctl_elem_info tmp;
     unsigned int m;
     char **enames;
@@ -902,7 +1145,7 @@ int mixer_ctl_fill_enum_string(struct mixer_ctl *ctl)
         memset(&tmp, 0, sizeof(tmp));
         tmp.id.numid = ctl->info.id.numid;
         tmp.value.enumerated.item = m;
-        if (ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_INFO, &tmp) < 0)
+        if (grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_INFO, &tmp) < 0)
             goto fail;
         enames[m] = strdup(tmp.value.enumerated.name);
         if (!enames[m])
@@ -949,6 +1192,7 @@ const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl,
  */
 int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string)
 {
+    struct mixer_ctl_group *grp;
     unsigned int i, num_enums;
     struct snd_ctl_elem_value ev;
     int ret;
@@ -957,13 +1201,14 @@ int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string)
         mixer_ctl_fill_enum_string(ctl) != 0)
         return -EINVAL;
 
+    grp = ctl->grp;
     num_enums = ctl->info.value.enumerated.items;
     for (i = 0; i < num_enums; i++) {
         if (!strcmp(string, ctl->ename[i])) {
             memset(&ev, 0, sizeof(ev));
             ev.value.enumerated.item[0] = i;
             ev.id.numid = ctl->info.id.numid;
-            ret = ioctl(ctl->mixer->fd, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
+            ret = grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_WRITE, &ev);
             if (ret < 0)
                 return ret;
             return 0;
@@ -972,4 +1217,3 @@ int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string)
 
     return -EINVAL;
 }
-
