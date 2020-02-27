@@ -19,7 +19,7 @@ VPATH = ../src:../include/tinyalsa
 .PHONY: all
 all: -ltinyalsa tinyplay tinycap tinymix tinypcminfo
 
-tinyplay tinycap tinypcminfo: LDLIBS+=-ldl
+tinyplay tinycap tinypcminfo tinymix: LDLIBS+=-ldl
 
 tinyplay: tinyplay.o libtinyalsa.a
 
