@@ -33,6 +33,7 @@ install:
 	install include/tinyalsa/mixer.h $(DESTDIR)$(INCDIR)/
 	install include/tinyalsa/asoundlib.h $(DESTDIR)$(INCDIR)/
 	install include/tinyalsa/version.h $(DESTDIR)$(INCDIR)/
+	install include/tinyalsa/plugin.h $(DESTDIR)$(INCDIR)/
 	$(MAKE) -C src install
 	$(MAKE) -C utils install
 	$(MAKE) -C doxygen install
