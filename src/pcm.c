@@ -394,7 +394,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
 
     if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
         int errno_copy = errno;
-        oops(pcm, -errno, "cannot set hw params");
+        oops(pcm, errno, "cannot set hw params");
         return -errno_copy;
     }
 
@@ -408,7 +408,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
                                 PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, pcm->fd, 0);
         if (pcm->mmap_buffer == MAP_FAILED) {
             int errno_copy = errno;
-            oops(pcm, -errno, "failed to mmap buffer %d bytes\n",
+            oops(pcm, errno, "failed to mmap buffer %d bytes\n",
                  pcm_frames_to_bytes(pcm, pcm->buffer_size));
             return -errno_copy;
         }
@@ -451,7 +451,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
 
     if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
         int errno_copy = errno;
-        oops(pcm, -errno, "cannot set sw params");
+        oops(pcm, errno, "cannot set sw params");
         return -errno_copy;
     }
 
