@@ -898,7 +898,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
         if (!pcm->snd_node || pcm_type != SND_NODE_TYPE_PLUGIN) {
             oops(pcm, -ENODEV, "no device (hw/plugin) for card(%u), device(%u)",
                  card, device);
-            return pcm;
+            goto fail_close;
         }
         pcm->ops = &plug_ops;
         pcm->fd = pcm->ops->open(card, device, flags, &pcm->data, pcm->snd_node);
@@ -907,7 +907,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     if (pcm->fd < 0) {
         oops(pcm, errno, "cannot open device (%u) for card (%u)",
              device, card);
-        return pcm;
+        goto fail_close;
     }
 
     pcm->flags = flags;
@@ -954,9 +954,8 @@ fail_close:
     if (pcm->snd_node)
         snd_utils_close_dev_node(pcm->snd_node);
 #endif
-    pcm->ops->close(pcm->data);
-    pcm->fd = -1;
-    return pcm;
+    pcm_close(pcm);
+    return &bad_pcm;
 }
 
 /** Checks if a PCM file has been opened without error.
