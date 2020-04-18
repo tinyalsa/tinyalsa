@@ -898,7 +898,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
         if (!pcm->snd_node || pcm_type != SND_NODE_TYPE_PLUGIN) {
             oops(pcm, -ENODEV, "no device (hw/plugin) for card(%u), device(%u)",
                  card, device);
-            goto fail_close;
+            goto fail_close_dev_node;
         }
         pcm->ops = &plug_ops;
         pcm->fd = pcm->ops->open(card, device, flags, &pcm->data, pcm->snd_node);
@@ -907,7 +907,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     if (pcm->fd < 0) {
         oops(pcm, errno, "cannot open device (%u) for card (%u)",
              device, card);
-        goto fail_close;
+        goto fail_close_dev_node;
     }
 
     pcm->flags = flags;
@@ -950,11 +950,13 @@ fail:
     if (flags & PCM_MMAP)
         munmap(pcm->mmap_buffer, pcm_frames_to_bytes(pcm, pcm->buffer_size));
 fail_close:
+    pcm->ops->close(pcm->data);
+fail_close_dev_node:
 #ifdef TINYALSA_USES_PLUGINS
     if (pcm->snd_node)
         snd_utils_close_dev_node(pcm->snd_node);
 #endif
-    pcm_close(pcm);
+    free(pcm);
     return &bad_pcm;
 }
 

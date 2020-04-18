@@ -97,6 +97,7 @@ static int pcm_hw_open(unsigned int card, unsigned int device,
         fd = open(fn, O_RDWR);
 
     if (fd < 0) {
+        free(hw_data);
         return fd;
     }
 
