@@ -188,10 +188,11 @@ int ctx_init(struct ctx* ctx, const struct cmd *cmd)
         return -1;
     }
     if (strcmp(cmd->filename, "-") == 0) {
-	    ctx->file = stdin;
+        ctx->file = stdin;
     } else {
-	    ctx->file = fopen(cmd->filename, "rb");
-	}
+        ctx->file = fopen(cmd->filename, "rb");
+    }
+
     if (ctx->file == NULL) {
         fprintf(stderr, "failed to open '%s'\n", cmd->filename);
         return -1;
@@ -209,7 +210,7 @@ int ctx_init(struct ctx* ctx, const struct cmd *cmd)
             fclose(ctx->file);
             return -1;
         }
-	unsigned int more_chunks = 1;
+        unsigned int more_chunks = 1;
         do {
             if (fread(&ctx->chunk_header, sizeof(ctx->chunk_header), 1, ctx->file) != 1){
                 fprintf(stderr, "error: '%s' does not contain a data chunk\n", cmd->filename);
@@ -412,8 +413,8 @@ int play_sample(struct ctx *ctx)
     do {
         num_read = fread(buffer, 1, size, ctx->file);
         if (num_read > 0) {
-		if (pcm_writei(ctx->pcm, buffer,
-			pcm_bytes_to_frames(ctx->pcm, num_read)) < 0) {
+            if (pcm_writei(ctx->pcm, buffer,
+                pcm_bytes_to_frames(ctx->pcm, num_read)) < 0) {
                 fprintf(stderr, "error playing sample\n");
                 break;
             }
