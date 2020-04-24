@@ -421,6 +421,8 @@ int play_sample(struct ctx *ctx)
         }
     } while (!close && num_read > 0);
 
+    pcm_wait(ctx->pcm, -1);
+
     free(buffer);
     return 0;
 }
