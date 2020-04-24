@@ -330,11 +330,6 @@ static int mixer_plug_get_card_info(struct mixer_plug_data *plug_data,
     /*TODO: Fill card_info here from snd-card-def */
     memset(card_info, 0, sizeof(*card_info));
     card_info->card = plug_data->card;
-    strncpy((char*)card_info->id, "card_id", sizeof(card_info->id));
-    strncpy((char*)card_info->driver, "mymixer-so-name", sizeof(card_info->driver));
-    strncpy((char*)card_info->name, "card-name", sizeof(card_info->name));
-    strncpy((char*)card_info->longname, "card-name", sizeof(card_info->longname));
-    strncpy((char*)card_info->mixername, "mixer-name", sizeof(card_info->mixername));
 
     return 0;
 }
