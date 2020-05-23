@@ -405,7 +405,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
 
     if (pcm->flags & PCM_MMAP) {
         pcm->mmap_buffer = mmap(NULL, pcm_frames_to_bytes(pcm, pcm->buffer_size),
-                                PROT_READ | PROT_WRITE, MAP_FILE | MAP_SHARED, pcm->fd, 0);
+                                PROT_READ | PROT_WRITE, MAP_SHARED, pcm->fd, 0);
         if (pcm->mmap_buffer == MAP_FAILED) {
             int errno_copy = errno;
             oops(pcm, errno, "failed to mmap buffer %d bytes\n",
@@ -544,7 +544,7 @@ static int pcm_hw_mmap_status(struct pcm *pcm)
         return 0;
 
     int page_size = sysconf(_SC_PAGE_SIZE);
-    pcm->mmap_status = mmap(NULL, page_size, PROT_READ, MAP_FILE | MAP_SHARED,
+    pcm->mmap_status = mmap(NULL, page_size, PROT_READ, MAP_SHARED,
                             pcm->fd, SNDRV_PCM_MMAP_OFFSET_STATUS);
     if (pcm->mmap_status == MAP_FAILED)
         pcm->mmap_status = NULL;
@@ -552,7 +552,7 @@ static int pcm_hw_mmap_status(struct pcm *pcm)
         goto mmap_error;
 
     pcm->mmap_control = mmap(NULL, page_size, PROT_READ | PROT_WRITE,
-                             MAP_FILE | MAP_SHARED, pcm->fd, SNDRV_PCM_MMAP_OFFSET_CONTROL);
+                             MAP_SHARED, pcm->fd, SNDRV_PCM_MMAP_OFFSET_CONTROL);
     if (pcm->mmap_control == MAP_FAILED)
         pcm->mmap_control = NULL;
     if (!pcm->mmap_control) {
