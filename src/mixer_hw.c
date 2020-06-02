@@ -82,9 +82,18 @@ static int mixer_hw_ioctl(void *data, unsigned int cmd, ...)
     return ioctl(hw_data->fd, cmd, arg);
 }
 
+static ssize_t mixer_hw_read_event(void *data, struct snd_ctl_event *ev,
+                                   size_t size)
+{
+    struct mixer_hw_data *hw_data = data;
+
+    return read(hw_data->fd, ev, size);
+}
+
 static const struct mixer_ops mixer_hw_ops = {
     .close = mixer_hw_close,
     .ioctl = mixer_hw_ioctl,
+    .read_event = mixer_hw_read_event,
 };
 
 int mixer_hw_open(unsigned int card, void **data,

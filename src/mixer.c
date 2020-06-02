@@ -545,15 +545,37 @@ int mixer_wait_event(struct mixer *mixer, int timeout)
  * @returns 0 on success.  -errno on failure.
  * @ingroup libtinyalsa-mixer
  */
-int mixer_consume_event(struct mixer *mixer) {
+int mixer_consume_event(struct mixer *mixer)
+{
     struct snd_ctl_event ev;
-    ssize_t count = read(mixer->fd, &ev, sizeof(ev));
-    // Exporting the actual event would require exposing snd_ctl_event
-    // via the header file, and all associated structs.
-    // The events generally tell you exactly which value changed,
-    // but reading values you're interested isn't hard and simplifies
-    // the interface greatly.
-    return (count >= 0) ? 0 : -errno;
+
+    return mixer_read_event(mixer, &ev);
+}
+
+int mixer_read_event(struct mixer *mixer, struct snd_ctl_event *ev)
+{
+    struct mixer_ctl_group *grp;
+    ssize_t count = 0;
+
+    if (mixer->h_grp) {
+        grp = mixer->h_grp;
+        if (grp->event_cnt) {
+            grp->event_cnt--;
+            count = grp->ops->read_event(grp->data, ev, sizeof(*ev));
+            return (count >= 0) ? 0 : -errno;
+        }
+    }
+#ifdef TINYALSA_USES_PLUGINS
+    if (mixer->v_grp) {
+        grp = mixer->v_grp;
+        if (grp->event_cnt) {
+            grp->event_cnt--;
+            count = grp->ops->read_event(grp->data, ev, sizeof(*ev));
+            return (count >= 0) ? 0 : -errno;
+        }
+    }
+#endif
+    return 0;
 }
 
 static unsigned int mixer_grp_get_count(struct mixer_ctl_group *grp)
