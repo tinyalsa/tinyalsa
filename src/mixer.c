@@ -475,7 +475,7 @@ int mixer_wait_event(struct mixer *mixer, int timeout)
 {
     struct pollfd *pfd;
     struct mixer_ctl_group *grp;
-    int count = 0, num_fds = 0, i;
+    int count = 0, num_fds = 0, i, ret = 0;
 
     if (mixer->fd >= 0)
         num_fds++;
@@ -485,7 +485,7 @@ int mixer_wait_event(struct mixer *mixer, int timeout)
         num_fds++;
 #endif
 
-    pfd = (struct pollfd *)calloc(sizeof(struct pollfd), num_fds);
+    pfd = (struct pollfd *)calloc(num_fds, sizeof(struct pollfd));
     if (!pfd)
         return -ENOMEM;
 
@@ -506,33 +506,85 @@ int mixer_wait_event(struct mixer *mixer, int timeout)
 #endif
 
     if (!count)
-        return 0;
+        goto exit;
 
     for (;;) {
         int err;
         err = poll(pfd, count, timeout);
-        if (err < 0)
-            return -errno;
+        if (err < 0) {
+            ret = -errno;
+            goto exit;
+        }
         if (!err)
-            return 0;
+            goto exit;
+
         for (i = 0; i < count; i++) {
-            if (pfd[i].revents & (POLLERR | POLLNVAL))
-                return -EIO;
+            if (pfd[i].revents & (POLLERR | POLLNVAL)) {
+                ret = -EIO;
+                goto exit;
+            }
             if (pfd[i].revents & (POLLIN | POLLOUT)) {
                 if ((i == 0) && mixer->fd >= 0) {
                     grp = mixer->h_grp;
                     grp->event_cnt++;
                 }
 #ifdef TINYALSA_USES_PLUGINS
-				else {
+                 else {
                     grp = mixer->v_grp;
                     grp->event_cnt++;
                 }
 #endif
-                return 1;
+                ret = 1;
+                goto exit;
             }
         }
     }
+exit:
+    free(pfd);
+    return ret;
+}
+
+/** Consume a mixer event.
+ * If mixer_subscribe_events has been called,
+ * mixer_wait_event will identify when a control value has changed.
+ * This function will clear a single event from the mixer so that
+ * further events can be alerted.
+ *
+ * @param mixer A mixer handle.
+ * @returns 0 on success.  -errno on failure.
+ * @ingroup libtinyalsa-mixer
+ */
+int mixer_consume_event(struct mixer *mixer)
+{
+    struct snd_ctl_event ev;
+
+    return mixer_read_event(mixer, &ev);
+}
+
+int mixer_read_event(struct mixer *mixer, struct snd_ctl_event *ev)
+{
+    struct mixer_ctl_group *grp;
+    ssize_t count = 0;
+
+    if (mixer->h_grp) {
+        grp = mixer->h_grp;
+        if (grp->event_cnt) {
+            grp->event_cnt--;
+            count = grp->ops->read_event(grp->data, ev, sizeof(*ev));
+            return (count >= 0) ? 0 : -errno;
+        }
+    }
+#ifdef TINYALSA_USES_PLUGINS
+    if (mixer->v_grp) {
+        grp = mixer->v_grp;
+        if (grp->event_cnt) {
+            grp->event_cnt--;
+            count = grp->ops->read_event(grp->data, ev, sizeof(*ev));
+            return (count >= 0) ? 0 : -errno;
+        }
+    }
+#endif
+    return 0;
 }
 
 static unsigned int mixer_grp_get_count(struct mixer_ctl_group *grp)

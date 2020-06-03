@@ -35,7 +35,9 @@
 #ifndef TINYALSA_MIXER_H
 #define TINYALSA_MIXER_H
 
+#include <sys/time.h>
 #include <stddef.h>
+#include <sound/asound.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -136,6 +138,9 @@ int mixer_ctl_get_range_min(const struct mixer_ctl *ctl);
 
 int mixer_ctl_get_range_max(const struct mixer_ctl *ctl);
 
+int mixer_read_event(struct mixer *mixer, struct snd_ctl_event *ev);
+
+int mixer_consume_event(struct mixer *mixer);
 #if defined(__cplusplus)
 }  /* extern "C" */
 #endif

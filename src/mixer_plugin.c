@@ -137,8 +137,8 @@ static int mixer_plug_info_integer(struct snd_control *ctl,
 
 void mixer_plug_notifier_cb(struct mixer_plugin *plugin)
 {
-    eventfd_write(plugin->eventfd, 1);
     plugin->event_cnt++;
+    eventfd_write(plugin->eventfd, 1);
 }
 
 /* In consume_event/read, do not call eventfd_read until all events are read from list.
