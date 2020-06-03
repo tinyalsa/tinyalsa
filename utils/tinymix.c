@@ -30,10 +30,12 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
+
+#define OPTPARSE_IMPLEMENTATION
+#include "optparse.h"
 
 static void tinymix_list_controls(struct mixer *mixer, int print_all);
 
@@ -66,29 +68,22 @@ void version(void)
 int main(int argc, char **argv)
 {
     struct mixer *mixer;
-    int card = 0;
+    int card = 0, c;
     char *cmd;
+    struct optparse opts;
+    static struct optparse_long long_options[] = {
+        { "card",    'D', OPTPARSE_REQUIRED },
+        { "version", 'v', OPTPARSE_NONE     },
+        { "help",    'h', OPTPARSE_NONE     },
+        { 0, 0, 0 }
+    };
 
-    while (1) {
-        static struct option long_options[] = {
-            { "version", no_argument, NULL, 'v' },
-            { "help",    no_argument, NULL, 'h' },
-            { 0, 0, 0, 0 }
-        };
-
-        /* getopt_long stores the option index here. */
-        int option_index = 0;
-        int c = 0;
-
-        c = getopt_long (argc, argv, "c:D:hv", long_options, &option_index);
-
-        /* Detect the end of the options. */
-        if (c == -1)
-            break;
-
+    optparse_init(&opts, argv);
+    /* Detect the end of the options. */
+    while ((c = optparse_long(&opts, long_options, NULL)) != -1) {
         switch (c) {
         case 'D':
-            card = atoi(optarg);
+            card = atoi(opts.optarg);
             break;
         case 'h':
             usage();
@@ -96,6 +91,9 @@ int main(int argc, char **argv)
         case 'v':
             version();
             return EXIT_SUCCESS;
+        case '?':
+            fprintf(stderr, "%s\n", opts.errmsg);
+            return EXIT_FAILURE;
         }
     }
 
@@ -105,31 +103,32 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    cmd = argv[optind];
+    cmd = argv[opts.optind];
     if (cmd == NULL) {
         fprintf(stderr, "no command specified (see --help)\n");
         mixer_close(mixer);
         return EXIT_FAILURE;
     } else if (strcmp(cmd, "get") == 0) {
-        if ((optind + 1) >= argc) {
+        if ((opts.optind + 1) >= argc) {
             fprintf(stderr, "no control specified\n");
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-        tinymix_detail_control(mixer, argv[optind + 1]);
+        tinymix_detail_control(mixer, argv[opts.optind + 1]);
         printf("\n");
     } else if (strcmp(cmd, "set") == 0) {
-        if ((optind + 1) >= argc) {
+        if ((opts.optind + 1) >= argc) {
             fprintf(stderr, "no control specified\n");
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-        if ((optind + 2) >= argc) {
+        if ((opts.optind + 2) >= argc) {
             fprintf(stderr, "no value(s) specified\n");
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-        tinymix_set_value(mixer, argv[optind + 1], &argv[optind + 2], argc - optind - 2);
+        tinymix_set_value(mixer, argv[opts.optind + 1], &argv[opts.optind + 2],
+            argc - opts.optind - 2);
     } else if (strcmp(cmd, "controls") == 0) {
         tinymix_list_controls(mixer, 0);
     } else if (strcmp(cmd, "contents") == 0) {

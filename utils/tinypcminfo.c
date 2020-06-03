@@ -31,6 +31,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define OPTPARSE_IMPLEMENTATION
+#include "optparse.h"
+
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 #endif
@@ -102,27 +105,32 @@ int main(int argc, char **argv)
     unsigned int device = 0;
     unsigned int card = 0;
     int i;
+    struct optparse opts;
+    struct optparse_long long_options[] = {
+        { "help",   'h', OPTPARSE_NONE     },
+        { "card",   'D', OPTPARSE_REQUIRED },
+        { "device", 'd', OPTPARSE_REQUIRED },
+        { 0, 0, 0 }
+    };
 
-    if ((argc == 2) && (strcmp(argv[1], "--help") == 0)) {
-        fprintf(stderr, "Usage: %s -D card -d device\n", argv[0]);
-        return 1;
-    }
-
+    (void)argc; /* silence -Wunused-parameter */
     /* parse command line arguments */
-    argv += 1;
-    while (*argv) {
-        if (strcmp(*argv, "-D") == 0) {
-            argv++;
-            if (*argv)
-                card = atoi(*argv);
+    optparse_init(&opts, argv);
+    while ((i = optparse_long(&opts, long_options, NULL)) != -1) {
+        switch (i) {
+        case 'D':
+            card = atoi(opts.optarg);
+            break;
+        case 'd':
+            device = atoi(opts.optarg);
+            break;
+        case 'h':
+            fprintf(stderr, "Usage: %s -D card -d device\n", argv[0]);
+            return 0;
+        case '?':
+            fprintf(stderr, "%s\n", opts.errmsg);
+            return EXIT_FAILURE;
         }
-        if (strcmp(*argv, "-d") == 0) {
-            argv++;
-            if (*argv)
-                device = atoi(*argv);
-        }
-        if (*argv)
-            argv++;
     }
 
     printf("Info for card %u, device %u:\n", card, device);
