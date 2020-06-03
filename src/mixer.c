@@ -133,6 +133,8 @@ static void mixer_grp_close(struct mixer *mixer, struct mixer_ctl_group *grp)
         free(grp->ctl);
     }
 
+    free(grp);
+
     mixer->is_card_info_retrieved = false;
 }
 
