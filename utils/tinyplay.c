@@ -33,6 +33,9 @@
 #include <string.h>
 #include <signal.h>
 
+#define OPTPARSE_IMPLEMENTATION
+#include "optparse.h"
+
 struct cmd {
     const char *filename;
     const char *filetype;
@@ -59,88 +62,6 @@ void cmd_init(struct cmd *cmd)
     cmd->config.stop_threshold = 1024 * 2;
     cmd->config.start_threshold = 1024;
     cmd->bits = 16;
-}
-
-int cmd_parse_arg(struct cmd *cmd, int argc, const char **argv)
-{
-    if (argc < 1) {
-        return 0;
-    }
-
-    if ((strcmp(argv[0], "-M") == 0) || (strcmp(argv[0], "--mmap") == 0)) {
-        cmd->flags |= PCM_MMAP;
-        return 1;
-    }
-
-    if (argv[0][0] != '-' || (strcmp(argv[0],"-") == 0)) {
-        cmd->filename = argv[0];
-        return 1;
-    }
-
-    if (argc < 2) {
-        fprintf(stderr, "option '%s' is missing argument\n", argv[0]);
-        return -1;
-    }
-
-    if ((strcmp(argv[0], "-D") == 0) || (strcmp(argv[0], "--card") == 0)) {
-        if (sscanf(argv[1], "%u", &cmd->card) != 1) {
-            fprintf(stderr, "failed parsing card number '%s'\n", argv[1]);
-            return -1;
-        }
-    } else if ((strcmp(argv[0], "-d") == 0) || (strcmp(argv[0], "--device") == 0)) {
-        if (sscanf(argv[1], "%u", &cmd->device) != 1) {
-            fprintf(stderr, "failed parsing device number '%s'\n", argv[1]);
-            return -1;
-        }
-    } else if ((strcmp(argv[0], "-p") == 0) || (strcmp(argv[0], "--period-size") == 0)) {
-        if (sscanf(argv[1], "%u", &cmd->config.period_size) != 1) {
-            fprintf(stderr, "failed parsing period size '%s'\n", argv[1]);
-            return -1;
-        }
-    } else if ((strcmp(argv[0], "-n") == 0) || (strcmp(argv[0], "--period-count") == 0)) {
-        if (sscanf(argv[1], "%u", &cmd->config.period_count) != 1) {
-            fprintf(stderr, "failed parsing period count '%s'\n", argv[1]);
-            return -1;
-        }
-    } else if ((strcmp(argv[0], "-c") == 0) || (strcmp(argv[0], "--channels") == 0)) {
-        if (sscanf(argv[1], "%u", &cmd->config.channels) != 1) {
-            fprintf(stderr, "failed parsing channel count '%s'\n", argv[1]);
-            return -1;
-        }
-    } else if ((strcmp(argv[0], "-r") == 0) || (strcmp(argv[0], "--rate") == 0)) {
-        if (sscanf(argv[1], "%u", &cmd->config.rate) != 1) {
-            fprintf(stderr, "failed parsing rate '%s'\n", argv[1]);
-            return -1;
-        }
-    } else if ((strcmp(argv[0], "-i") == 0) || (strcmp(argv[0], "--file-type") == 0)) {
-        cmd->filetype = argv[1];
-    } else {
-        fprintf(stderr, "unknown option '%s'\n", argv[0]);
-        return -1;
-    }
-    return 2;
-}
-
-int cmd_parse_args(struct cmd *cmd, int argc, const char **argv)
-{
-    int i = 0;
-    while (i < argc) {
-        int j = cmd_parse_arg(cmd, argc - i, &argv[i]);
-        if (j < 0){
-            break;
-        }
-        i += j;
-    }
-
-    if ((cmd->filename != NULL)
-     && (cmd->filetype == NULL)) {
-        cmd->filetype = strrchr(cmd->filename, '.');
-        if (cmd->filetype != NULL) {
-            cmd->filetype++;
-        }
-    }
-
-    return i;
 }
 
 #define ID_RIFF 0x46464952
@@ -313,10 +234,25 @@ void print_usage(const char *argv0)
     fprintf(stderr, "-M | --mmap                    Use memory mapped IO to play audio\n");
 }
 
-int main(int argc, const char **argv)
+int main(int argc, char **argv)
 {
+    int c;
     struct cmd cmd;
     struct ctx ctx;
+    struct optparse opts;
+    struct optparse_long long_options[] = {
+        { "card",         'D', OPTPARSE_REQUIRED },
+        { "device",       'd', OPTPARSE_REQUIRED },
+        { "period-size",  'p', OPTPARSE_REQUIRED },
+        { "period-count", 'n', OPTPARSE_REQUIRED },
+        { "file-type",    'i', OPTPARSE_REQUIRED },
+        { "channels",     'c', OPTPARSE_REQUIRED },
+        { "rate",         'r', OPTPARSE_REQUIRED },
+        { "bits",         'b', OPTPARSE_REQUIRED },
+        { "mmap",         'M', OPTPARSE_NONE     },
+        { "help",         'h', OPTPARSE_NONE     },
+        { 0, 0, 0 }
+    };
 
     if (argc < 2) {
         print_usage(argv[0]);
@@ -324,8 +260,61 @@ int main(int argc, const char **argv)
     }
 
     cmd_init(&cmd);
-    if (cmd_parse_args(&cmd, argc - 1, &argv[1]) < 0) {
-        return EXIT_FAILURE;
+    optparse_init(&opts, argv);
+    while ((c = optparse_long(&opts, long_options, NULL)) != -1) {
+        switch (c) {
+        case 'D':
+            if (sscanf(opts.optarg, "%u", &cmd.card) != 1) {
+                fprintf(stderr, "failed parsing card number '%s'\n", argv[1]);
+                return EXIT_FAILURE;
+            }
+            break;
+        case 'd':
+            if (sscanf(opts.optarg, "%u", &cmd.device) != 1) {
+                fprintf(stderr, "failed parsing device number '%s'\n", argv[1]);
+                return EXIT_FAILURE;
+            }
+            break;
+        case 'p':
+            if (sscanf(opts.optarg, "%u", &cmd.config.period_size) != 1) {
+                fprintf(stderr, "failed parsing period size '%s'\n", argv[1]);
+                return EXIT_FAILURE;
+            }
+            break;
+        case 'n':
+            if (sscanf(opts.optarg, "%u", &cmd.config.period_count) != 1) {
+                fprintf(stderr, "failed parsing period count '%s'\n", argv[1]);
+                return EXIT_FAILURE;
+            }
+            break;
+        case 'c':
+            if (sscanf(opts.optarg, "%u", &cmd.config.channels) != 1) {
+                fprintf(stderr, "failed parsing channel count '%s'\n", argv[1]);
+                return EXIT_FAILURE;
+            }
+            break;
+        case 'r':
+            if (sscanf(opts.optarg, "%u", &cmd.config.rate) != 1) {
+                fprintf(stderr, "failed parsing rate '%s'\n", argv[1]);
+                return EXIT_FAILURE;
+            }
+            break;
+        case 'i':
+            cmd.filetype = opts.optarg;
+            break;
+        case 'h':
+            print_usage(argv[0]);
+            return EXIT_SUCCESS;
+        case '?':
+            fprintf(stderr, "%s\n", opts.errmsg);
+            return EXIT_FAILURE;
+        }
+    }
+    cmd.filename = optparse_arg(&opts);
+
+    if (cmd.filename != NULL && cmd.filetype == NULL &&
+        (cmd.filetype = strrchr(cmd.filename, '.')) != NULL) {
+        cmd.filetype++;
     }
 
     if (ctx_init(&ctx, &cmd) < 0) {
