@@ -32,7 +32,6 @@
 #include <string.h>
 #include <signal.h>
 #include <math.h>
-#include <malloc.h>
 
 #define ID_RIFF 0x46464952
 #define ID_WAVE 0x45564157
@@ -155,9 +154,8 @@ void analyse_sample(FILE *file, unsigned int channels, unsigned int bits,
     normalization_factor = (float)pow(2.0, (bits-1));
 
     size = channels * byte_align * frame_size;
-    buffer = memalign(byte_align, size);
 
-    if (!buffer) {
+    if (posix_memalign(&buffer, byte_align, size)) {
         fprintf(stderr, "Unable to allocate %d bytes\n", size);
         free(buffer);
         return;
