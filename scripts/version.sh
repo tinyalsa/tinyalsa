@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #
@@ -58,13 +58,13 @@ check_files()
 #   TINYALSA_VERSION_MAJOR
 get_version_part()
 {
-  local V=$(grep -m 1 "^#define\([ \t]*\)$1" ${VERSION_FILE} | sed 's/[^0-9]*//g')
+  set -- "$1" "$(grep -m 1 "^#define\([ \t]*\)$1" ${VERSION_FILE} | sed 's/[^0-9]*//g')"
 
-  if [ -z ${V} ]; then
+  if [ -z "$2" ]; then
     die "Could not get $1 from ${VERSION_FILE}"
   fi
 
-  echo ${V}
+  echo "$2"
 }
 
 
@@ -136,13 +136,7 @@ print_version()
 
 bump_version()
 {
-  local PART="patch"
-
-  if [ ! -z $1 ]; then
-    PART="$1"
-  fi
-
-  case "$PART" in
+  case "${1:-patch}" in
     major)
       VERSION_MAJOR=$((VERSION_MAJOR+1))
       VERSION_MINOR=0
@@ -170,14 +164,16 @@ bump_version()
 
 check_version()
 {
-  local LOG_VERSION=$(grep -m 1 "^tinyalsa (" ${CHANGELOG_FILE}| sed "s/[^0-9.]*//g")
-  local REF_VERSION="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
+  # set $1 to log version, and $2 to ref version
+  set -- \
+    "$(grep -m 1 "^tinyalsa (" ${CHANGELOG_FILE}| sed "s/[^0-9.]*//g")" \
+    "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
 
-  if [ "${LOG_VERSION}" != "${REF_VERSION}" ]; then
-    die "Changelog version (${LOG_VERSION}) does not match package version (${REF_VERSION})."
+  if [ "$1" != "$2" ]; then
+    die "Changelog version ($1) does not match package version ($2)."
   fi
 
-  printf "Changelog version (${LOG_VERSION}) OK!${LF}"
+  printf "Changelog version ($1) OK!${LF}"
   return 0
 }
 
