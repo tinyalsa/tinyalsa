@@ -34,6 +34,9 @@
 #include <string.h>
 #include <limits.h>
 
+#define OPTPARSE_IMPLEMENTATION
+#include "optparse.h"
+
 #define ID_RIFF 0x46464952
 #define ID_WAVE 0x45564157
 #define ID_FMT  0x20746d66
@@ -86,7 +89,8 @@ int main(int argc, char **argv)
     unsigned int period_count = 4;
     unsigned int capture_time = UINT_MAX;
     enum pcm_format format;
-    int no_header = 0;
+    int no_header = 0, c;
+    struct optparse opts;
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s {file.wav | --} [-D card] [-d device] [-c channels] "
@@ -108,43 +112,37 @@ int main(int argc, char **argv)
     }
 
     /* parse command line arguments */
-    argv += 2;
-    while (*argv) {
-        if (strcmp(*argv, "-d") == 0) {
-            argv++;
-            if (*argv)
-                device = atoi(*argv);
-        } else if (strcmp(*argv, "-c") == 0) {
-            argv++;
-            if (*argv)
-                channels = atoi(*argv);
-        } else if (strcmp(*argv, "-r") == 0) {
-            argv++;
-            if (*argv)
-                rate = atoi(*argv);
-        } else if (strcmp(*argv, "-b") == 0) {
-            argv++;
-            if (*argv)
-                bits = atoi(*argv);
-        } else if (strcmp(*argv, "-D") == 0) {
-            argv++;
-            if (*argv)
-                card = atoi(*argv);
-        } else if (strcmp(*argv, "-p") == 0) {
-            argv++;
-            if (*argv)
-                period_size = atoi(*argv);
-        } else if (strcmp(*argv, "-n") == 0) {
-            argv++;
-            if (*argv)
-                period_count = atoi(*argv);
-        } else if (strcmp(*argv, "-t") == 0) {
-            argv++;
-            if (*argv)
-                capture_time = atoi(*argv);
+    optparse_init(&opts, argv + 1);
+    while ((c = optparse(&opts, "D:d:c:r:b:p:n:t:")) != -1) {
+        switch (c) {
+        case 'd':
+            device = atoi(opts.optarg);
+            break;
+        case 'c':
+            channels = atoi(opts.optarg);
+            break;
+        case 'r':
+            rate = atoi(opts.optarg);
+            break;
+        case 'b':
+            bits = atoi(opts.optarg);
+            break;
+        case 'D':
+            card = atoi(opts.optarg);
+            break;
+        case 'p':
+            period_size = atoi(opts.optarg);
+            break;
+        case 'n':
+            period_count = atoi(opts.optarg);
+            break;
+        case 't':
+            capture_time = atoi(opts.optarg);
+            break;
+        case '?':
+            fprintf(stderr, "%s\n", opts.errmsg);
+            return EXIT_FAILURE;
         }
-        if (*argv)
-            argv++;
     }
 
     header.riff_id = ID_RIFF;
