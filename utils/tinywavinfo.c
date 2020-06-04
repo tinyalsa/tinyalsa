@@ -155,7 +155,7 @@ void analyse_sample(FILE *file, unsigned int channels, unsigned int bits,
 
     size = channels * byte_align * frame_size;
 
-    if (posix_memalign(&buffer, byte_align, size)) {
+    if (posix_memalign(&buffer, byte_align * sizeof(void *), size)) {
         fprintf(stderr, "Unable to allocate %d bytes\n", size);
         free(buffer);
         return;
