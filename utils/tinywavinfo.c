@@ -70,6 +70,17 @@ void stream_close(int sig)
     close = 1;
 }
 
+size_t xfread(void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+    size_t sz = fread(ptr, size, nmemb, stream);
+
+    if (sz != nmemb && ferror(stream)) {
+        fprintf(stderr, "Error: fread failed\n");
+        exit(1);
+    }
+    return sz;
+}
+
 int main(int argc, char **argv)
 {
     FILE *file;
@@ -91,7 +102,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    fread(&riff_wave_header, sizeof(riff_wave_header), 1, file);
+    xfread(&riff_wave_header, sizeof(riff_wave_header), 1, file);
     if ((riff_wave_header.riff_id != ID_RIFF) ||
         (riff_wave_header.wave_id != ID_WAVE)) {
         fprintf(stderr, "Error: '%s' is not a riff/wave file\n", filename);
@@ -100,11 +111,11 @@ int main(int argc, char **argv)
     }
 
     do {
-        fread(&chunk_header, sizeof(chunk_header), 1, file);
+        xfread(&chunk_header, sizeof(chunk_header), 1, file);
 
         switch (chunk_header.id) {
         case ID_FMT:
-            fread(&chunk_fmt, sizeof(chunk_fmt), 1, file);
+            xfread(&chunk_fmt, sizeof(chunk_fmt), 1, file);
             /* If the format header is larger, skip the rest */
             if (chunk_header.sz > sizeof(chunk_fmt))
                 fseek(file, chunk_header.sz - sizeof(chunk_fmt), SEEK_CUR);
@@ -170,7 +181,7 @@ void analyse_sample(FILE *file, unsigned int channels, unsigned int bits,
     signal(SIGINT, stream_close);
 
     do {
-        num_read = fread(buffer, 1, size, file);
+        num_read = xfread(buffer, 1, size, file);
         if (num_read > 0) {
             if (2 == bytes_per_sample) {
                 short *buffer_ptr = (short *)buffer;
