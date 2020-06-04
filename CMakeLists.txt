@@ -41,8 +41,8 @@ add_example("pcm-writei" "examples/pcm-writei.c")
 
 macro(ADD_UTIL UTIL)
     add_executable(${UTIL} ${ARGN})
-    target_link_libraries(${UTIL} "tinyalsa")
-    target_link_libraries(${UTIL} "dl")
+    target_link_libraries(${UTIL} PRIVATE "tinyalsa")
+    target_link_libraries(${UTIL} PRIVATE "dl")
     target_compile_options(${UTIL} PRIVATE -Wall -Wextra -Werror -Wfatal-errors)
     target_include_directories(${UTIL} PRIVATE "include")
 endmacro(ADD_UTIL UTIL)
@@ -51,6 +51,9 @@ add_util("tinyplay" "utils/tinyplay.c")
 add_util("tinycap" "utils/tinycap.c")
 add_util("tinypcminfo" "utils/tinypcminfo.c")
 add_util("tinymix" "utils/tinymix.c")
+add_util("tinywavinfo" "utils/tinywavinfo.c")
+
+target_link_libraries("tinywavinfo" PRIVATE m)
 
 install(FILES ${HDRS}
     DESTINATION "include/tinyalsa")
