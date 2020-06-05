@@ -81,7 +81,7 @@ enum snd_node_type snd_utils_get_node_type(struct snd_node *node)
     node->ops->get_int(node->dev_node, "type", &val);
 
     return val;
-};
+}
 
 static int snd_utils_resolve_symbols(struct snd_node *node)
 {
