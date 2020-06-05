@@ -1,22 +1,19 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.1)
 
-project("TinyALSA" C)
+execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/version.sh -s print
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE TINYALSA_VERSION)
 
+project("TinyALSA" VERSION ${TINYALSA_VERSION} LANGUAGES C)
+
+# Options
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(TINYALSA_USES_PLUGINS "Whether or not to build with plugin support" OFF)
+option(TINYALSA_BUILD_EXAMPLES "Build examples" ON)
+option(TINYALSA_BUILD_UTILS "Build utility tools" ON)
 
-if (TINYALSA_USES_PLUGINS)
-    set (plugin_opt -DTINYALSA_USES_PLUGINS=1)
-endif (TINYALSA_USES_PLUGINS)
-
-set (HDRS
-    "include/tinyalsa/attributes.h"
-    "include/tinyalsa/version.h"
-    "include/tinyalsa/asoundlib.h"
-    "include/tinyalsa/pcm.h"
-    "include/tinyalsa/plugin.h"
-    "include/tinyalsa/mixer.h")
-
-set (SRCS
+# Library
+add_library("tinyalsa"
     "src/pcm.c"
     "src/pcm_hw.c"
     "src/pcm_plugin.c"
@@ -25,53 +22,68 @@ set (SRCS
     "src/mixer_hw.c"
     "src/mixer_plugin.c")
 
-add_library("tinyalsa" ${HDRS} ${SRCS})
-target_compile_options("tinyalsa" PRIVATE -Wall -Wextra -Werror -Wfatal-errors ${plugin_opt})
-target_include_directories("tinyalsa" PRIVATE "include")
+set_property(TARGET "tinyalsa" PROPERTY PUBLIC_HEADER
+    "include/tinyalsa/attributes.h"
+    "include/tinyalsa/version.h"
+    "include/tinyalsa/asoundlib.h"
+    "include/tinyalsa/pcm.h"
+    "include/tinyalsa/plugin.h"
+    "include/tinyalsa/mixer.h")
 
-macro(ADD_EXAMPLE EXAMPLE)
-    add_executable(${EXAMPLE} ${ARGN})
-    target_link_libraries(${EXAMPLE} "tinyalsa")
-    target_link_libraries(${EXAMPLE} "dl")
-    target_include_directories(${EXAMPLE} PRIVATE "include")
-endmacro(ADD_EXAMPLE EXAMPLE)
+set_target_properties("tinyalsa" PROPERTIES
+    VERSION ${TinyALSA_VERSION}
+    SOVERSION ${TinyALSA_VERSION_MAJOR})
 
-add_example("pcm-readi" "examples/pcm-readi.c")
-add_example("pcm-writei" "examples/pcm-writei.c")
+target_include_directories("tinyalsa" PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+target_compile_definitions("tinyalsa" PRIVATE
+    $<$<BOOL:${TINYALSA_USES_PLUGINS}>:TINYALSA_USES_PLUGINS>)
+target_link_libraries("tinyalsa" PUBLIC ${CMAKE_DL_LIBS})
 
-macro(ADD_UTIL UTIL)
-    add_executable(${UTIL} ${ARGN})
-    target_link_libraries(${UTIL} PRIVATE "tinyalsa")
-    target_link_libraries(${UTIL} PRIVATE "dl")
-    target_compile_options(${UTIL} PRIVATE -Wall -Wextra -Werror -Wfatal-errors)
-    target_include_directories(${UTIL} PRIVATE "include")
-endmacro(ADD_UTIL UTIL)
+# Examples
+if(TINYALSA_BUILD_EXAMPLES)
+    set(TINYALSA_EXAMPLES pcm-readi pcm-writei)
+else()
+    set(TINYALSA_EXAMPLES)
+endif()
 
-add_util("tinyplay" "utils/tinyplay.c")
-add_util("tinycap" "utils/tinycap.c")
-add_util("tinypcminfo" "utils/tinypcminfo.c")
-add_util("tinymix" "utils/tinymix.c")
-add_util("tinywavinfo" "utils/tinywavinfo.c")
+foreach(EXAMPLE IN LISTS TINYALSA_EXAMPLES)
+    add_executable("${EXAMPLE}" "examples/${EXAMPLE}.c")
+    target_link_libraries("${EXAMPLE}" PRIVATE "tinyalsa")
+endforeach()
 
+# Utilities
+if(TINYALSA_BUILD_UTILS)
+    set(TINYALSA_UTILS tinyplay tinycap tinypcminfo tinymix tinywavinfo)
+else()
+    set(TINYALSA_UTILS)
+endif()
+
+foreach(UTIL IN LISTS TINYALSA_UTILS)
+    add_executable("${UTIL}" "utils/${UTIL}.c")
+    target_link_libraries("${UTIL}" PRIVATE "tinyalsa")
+endforeach()
 target_link_libraries("tinywavinfo" PRIVATE m)
 
-install(FILES ${HDRS}
-    DESTINATION "include/tinyalsa")
+# Add C warning flags
+include(CheckCCompilerFlag)
+foreach(FLAG IN ITEMS -Wall -Wextra -Werror -Wfatal-errors)
+    string(TOUPPER "HAVE${FLAG}" HAVE_VAR)
+    string(REPLACE "-" "_" HAVE_VAR "${HAVE_VAR}")
+    check_c_compiler_flag("${FLAG}" "${HAVE_VAR}")
+    if("${${HAVE_VAR}}")
+        target_compile_options("tinyalsa" PRIVATE "${FLAG}")
+        foreach(UTIL IN LISTS TINYALSA_UTILS)
+            target_compile_options("${UTIL}" PRIVATE "${FLAG}")
+        endforeach()
+    endif()
+endforeach()
 
-if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
-    set(CMAKE_INSTALL_LIBDIR lib)
-endif()
-
-if(NOT DEFINED CMAKE_INSTALL_BINDIR)
-	set(CMAKE_INSTALL_BINDIR bin)
-endif()
-
-install(TARGETS "tinyalsa"
-                "tinyplay"
-                "tinycap"
-                "tinymix"
-                "tinypcminfo"
+# Install
+include(GNUInstallDirs)
+install(TARGETS "tinyalsa" ${TINYALSA_UTILS}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
