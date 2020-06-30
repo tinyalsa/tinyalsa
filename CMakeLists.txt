@@ -6,6 +6,10 @@ execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/version.sh -s print
 
 project("TinyALSA" VERSION ${TINYALSA_VERSION} LANGUAGES C)
 
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+
 # Options
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(TINYALSA_USES_PLUGINS "Whether or not to build with plugin support" OFF)
@@ -38,7 +42,8 @@ target_include_directories("tinyalsa" PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 target_compile_definitions("tinyalsa" PRIVATE
-    $<$<BOOL:${TINYALSA_USES_PLUGINS}>:TINYALSA_USES_PLUGINS>)
+    $<$<BOOL:${TINYALSA_USES_PLUGINS}>:TINYALSA_USES_PLUGINS>
+    PUBLIC _POSIX_C_SOURCE=200809L)
 target_link_libraries("tinyalsa" PUBLIC ${CMAKE_DL_LIBS})
 
 # Examples
@@ -68,7 +73,7 @@ target_link_libraries("tinywavinfo" PRIVATE m)
 
 # Add C warning flags
 include(CheckCCompilerFlag)
-foreach(FLAG IN ITEMS -Wall -Wextra -Werror -Wfatal-errors)
+foreach(FLAG IN ITEMS -Wall -Wextra -Wpedantic -Werror -Wfatal-errors)
     string(TOUPPER "HAVE${FLAG}" HAVE_VAR)
     string(REPLACE "-" "_" HAVE_VAR "${HAVE_VAR}")
     check_c_compiler_flag("${FLAG}" "${HAVE_VAR}")

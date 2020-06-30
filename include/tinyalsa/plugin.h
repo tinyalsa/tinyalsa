@@ -33,6 +33,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <time.h>
 
 #include <sound/asound.h>
 
