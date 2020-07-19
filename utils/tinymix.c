@@ -331,22 +331,7 @@ fail:
 
 static int is_int(const char *value)
 {
-    if ((value[0] == '%')
-     || (value[0] == '+')
-     || (value[0] == '-')) {
-        value++;
-    }
-
-    char* end;
-    long int result;
-
-    errno = 0;
-    result = strtol(value, &end, 10);
-
-    if (result == LONG_MIN || result == LONG_MAX)
-        return 0;
-
-    return errno == 0 && *end == '\0';
+    return (value[0] >= '0') || (value[0] <= '9');
 }
 
 struct parsed_int
@@ -355,8 +340,6 @@ struct parsed_int
   int valid;
   /** The value of the parsed integer. */
   int value;
-  /** Whether or not the '-' or '+' was specified. */
-  int has_sign;
   /** The number of characters that were parsed. */
   unsigned int length;
   /** The number of characters remaining in the string. */
@@ -370,7 +353,6 @@ static struct parsed_int parse_int(const char* str)
   struct parsed_int out = {
     0 /* valid */,
     0 /* value */,
-    0 /* has sign */,
     0 /* length */,
     0 /* remaining length */,
     "" /* remaining characters */
@@ -378,18 +360,7 @@ static struct parsed_int parse_int(const char* str)
 
   unsigned int max = strlen(str);
 
-  unsigned int begin = 0;
-
-  int sign = 1;
-
-  if (str[begin] == '+') {
-    out.has_sign = 1;
-  } else if (str[begin] == '-') {
-    out.has_sign = 1;
-    sign = -1;
-  }
-
-  for (unsigned int i = begin; i < max; i++) {
+  for (unsigned int i = 0; i < max; i++) {
 
     char c = str[i];
 
@@ -403,7 +374,6 @@ static struct parsed_int parse_int(const char* str)
     out.length++;
   }
 
-  out.value *= sign;
   out.valid = out.length > 0;
   out.remaining_length = max - out.length;
   out.remaining = str + out.length;
@@ -415,23 +385,56 @@ struct control_value
 {
     int value;
     int is_percent;
+    int is_relative;
 };
 
 static struct control_value to_control_value(const char* value_string)
 {
-    struct parsed_int i = parse_int(value_string);
+    struct parsed_int parsed_int = parse_int(value_string);
 
     struct control_value out = {
         0 /* value */,
-        0 /* is percent */
+        0 /* is percent */,
+        0 /* is relative */
     };
 
-    out.value = i.value;
+    out.value = parsed_int.value;
 
-    if (i.remaining[0] == '%') {
+    unsigned int i = 0;
+
+    if (parsed_int.remaining[i] == '%') {
       out.is_percent = 1;
+      i++;
     }
+
+    if (parsed_int.remaining[i] == '+') {
+      out.is_relative = 1;
+    } else if (parsed_int.remaining[i] == '-') {
+      out.is_relative = 1;
+      out.value *= -1;
+    }
+
     return out;
+}
+
+static int set_control_value(struct mixer_ctl* ctl, unsigned int i, const struct control_value* value)
+{
+    int next_value = value->value;
+
+    if (value->is_relative) {
+
+        int prev_value = value->is_percent ? mixer_ctl_get_percent(ctl, i)
+                                           : mixer_ctl_get_value(ctl, i);
+
+        if (prev_value < 0) {
+          return prev_value;
+        }
+
+        next_value += prev_value;
+    }
+
+    return value->is_percent ? mixer_ctl_set_percent(ctl, i, next_value)
+                             : mixer_ctl_set_value(ctl, i, next_value);
 }
 
 static int set_control_values(struct mixer_ctl* ctl,
@@ -441,22 +444,20 @@ static int set_control_values(struct mixer_ctl* ctl,
     unsigned int num_ctl_values = mixer_ctl_get_num_values(ctl);
 
     if (num_values == 1) {
+
         /* Set all values the same */
         struct control_value value = to_control_value(values[0]);
 
         for (unsigned int i = 0; i < num_values; i++) {
-            int res = 0;
-            if (value.is_percent) {
-                res = mixer_ctl_set_percent(ctl, i, value.value);
-            } else {
-                res = mixer_ctl_set_value(ctl, i, value.value);
-            }
+            int res = set_control_value(ctl, i, &value);
             if (res != 0) {
                 fprintf(stderr, "Error: invalid value\n");
                 return -1;
             }
         }
+
     } else {
+
         /* Set multiple values */
         if (num_values > num_ctl_values) {
             fprintf(stderr,
@@ -464,18 +465,12 @@ static int set_control_values(struct mixer_ctl* ctl,
                     num_values, num_ctl_values);
             return -1;
         }
+
         for (unsigned int i = 0; i < num_values; i++) {
 
             struct control_value v = to_control_value(values[i]);
 
-            int res = 0;
-
-            if (v.is_percent) {
-              res = mixer_ctl_set_percent(ctl, i, v.value);
-            } else {
-              res = mixer_ctl_set_value(ctl, i, v.value);
-            }
-
+            int res = set_control_value(ctl, i, &v);
             if (res != 0) {
                 fprintf(stderr, "Error: invalid value for index %u\n", i);
                 return -1;
