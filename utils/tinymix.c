@@ -41,8 +41,8 @@ static void tinymix_list_controls(struct mixer *mixer, int print_all);
 
 static void tinymix_detail_control(struct mixer *mixer, const char *control);
 
-static void tinymix_set_value(struct mixer *mixer, const char *control,
-                              char **values, unsigned int num_values);
+static int tinymix_set_value(struct mixer *mixer, const char *control,
+                             char **values, unsigned int num_values);
 
 static void tinymix_print_enum(struct mixer_ctl *ctl);
 
@@ -127,8 +127,11 @@ int main(int argc, char **argv)
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-        tinymix_set_value(mixer, argv[opts.optind + 1], &argv[opts.optind + 2],
-            argc - opts.optind - 2);
+        int res = tinymix_set_value(mixer, argv[opts.optind + 1], &argv[opts.optind + 2], argc - opts.optind - 2);
+        if (res != 0) {
+            mixer_close(mixer);
+            return EXIT_FAILURE;
+        }
     } else if (strcmp(cmd, "controls") == 0) {
         tinymix_list_controls(mixer, 0);
     } else if (strcmp(cmd, "contents") == 0) {
@@ -326,8 +329,14 @@ fail:
     exit(EXIT_FAILURE);
 }
 
-static int is_int(char *value)
+static int is_int(const char *value)
 {
+    if ((value[0] == '%')
+     || (value[0] == '+')
+     || (value[0] == '-')) {
+        value++;
+    }
+
     char* end;
     long int result;
 
@@ -340,13 +349,148 @@ static int is_int(char *value)
     return errno == 0 && *end == '\0';
 }
 
-static void tinymix_set_value(struct mixer *mixer, const char *control,
-                              char **values, unsigned int num_values)
+struct parsed_int
+{
+  /** Wether or not the integer was valid. */
+  int valid;
+  /** The value of the parsed integer. */
+  int value;
+  /** Whether or not the '-' or '+' was specified. */
+  int has_sign;
+  /** The number of characters that were parsed. */
+  unsigned int length;
+  /** The number of characters remaining in the string. */
+  unsigned int remaining_length;
+  /** The remaining characters (or suffix) of the integer. */
+  const char* remaining;
+};
+
+static struct parsed_int parse_int(const char* str)
+{
+  struct parsed_int out = {
+    0 /* valid */,
+    0 /* value */,
+    0 /* has sign */,
+    0 /* length */,
+    0 /* remaining length */,
+    "" /* remaining characters */
+  };
+
+  unsigned int max = strlen(str);
+
+  unsigned int begin = 0;
+
+  int sign = 1;
+
+  if (str[begin] == '+') {
+    out.has_sign = 1;
+  } else if (str[begin] == '-') {
+    out.has_sign = 1;
+    sign = -1;
+  }
+
+  for (unsigned int i = begin; i < max; i++) {
+
+    char c = str[i];
+
+    if ((c < '0') || (c > '9')) {
+      break;
+    }
+
+    out.value *= 10;
+    out.value += c - '0';
+
+    out.length++;
+  }
+
+  out.value *= sign;
+  out.valid = out.length > 0;
+  out.remaining_length = max - out.length;
+  out.remaining = str + out.length;
+
+  return out;
+}
+
+struct control_value
+{
+    int value;
+    int is_percent;
+};
+
+static struct control_value to_control_value(const char* value_string)
+{
+    struct parsed_int i = parse_int(value_string);
+
+    struct control_value out = {
+        0 /* value */,
+        0 /* is percent */
+    };
+
+    out.value = i.value;
+
+    if (i.remaining[0] == '%') {
+      out.is_percent = 1;
+    }
+    return out;
+}
+
+static int set_control_values(struct mixer_ctl* ctl,
+                              char** values,
+                              unsigned int num_values)
+{
+    unsigned int num_ctl_values = mixer_ctl_get_num_values(ctl);
+
+    if (num_values == 1) {
+        /* Set all values the same */
+        struct control_value value = to_control_value(values[0]);
+
+        for (unsigned int i = 0; i < num_values; i++) {
+            int res = 0;
+            if (value.is_percent) {
+                res = mixer_ctl_set_percent(ctl, i, value.value);
+            } else {
+                res = mixer_ctl_set_value(ctl, i, value.value);
+            }
+            if (res != 0) {
+                fprintf(stderr, "Error: invalid value\n");
+                return -1;
+            }
+        }
+    } else {
+        /* Set multiple values */
+        if (num_values > num_ctl_values) {
+            fprintf(stderr,
+                    "Error: %u values given, but control only takes %u\n",
+                    num_values, num_ctl_values);
+            return -1;
+        }
+        for (unsigned int i = 0; i < num_values; i++) {
+
+            struct control_value v = to_control_value(values[i]);
+
+            int res = 0;
+
+            if (v.is_percent) {
+              res = mixer_ctl_set_percent(ctl, i, v.value);
+            } else {
+              res = mixer_ctl_set_value(ctl, i, v.value);
+            }
+
+            if (res != 0) {
+                fprintf(stderr, "Error: invalid value for index %u\n", i);
+                return -1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+static int tinymix_set_value(struct mixer *mixer, const char *control,
+                             char **values, unsigned int num_values)
 {
     struct mixer_ctl *ctl;
     enum mixer_ctl_type type;
-    unsigned int num_ctl_values;
-    unsigned int i;
 
     if (isdigit(control[0]))
         ctl = mixer_get_ctl(mixer, atoi(control));
@@ -355,54 +499,34 @@ static void tinymix_set_value(struct mixer *mixer, const char *control,
 
     if (!ctl) {
         fprintf(stderr, "Invalid mixer control\n");
-        return;
+        return -1;
     }
 
     type = mixer_ctl_get_type(ctl);
-    num_ctl_values = mixer_ctl_get_num_values(ctl);
 
     if (type == MIXER_CTL_TYPE_BYTE) {
         tinymix_set_byte_ctl(ctl, values, num_values);
-        return;
+        return 0;
     }
 
     if (is_int(values[0])) {
-        if (num_values == 1) {
-            /* Set all values the same */
-            int value = atoi(values[0]);
-
-            for (i = 0; i < num_ctl_values; i++) {
-                if (mixer_ctl_set_value(ctl, i, value)) {
-                    fprintf(stderr, "Error: invalid value\n");
-                    return;
-                }
-            }
-        } else {
-            /* Set multiple values */
-            if (num_values > num_ctl_values) {
-                fprintf(stderr,
-                        "Error: %u values given, but control only takes %u\n",
-                        num_values, num_ctl_values);
-                return;
-            }
-            for (i = 0; i < num_values; i++) {
-                if (mixer_ctl_set_value(ctl, i, atoi(values[i]))) {
-                    fprintf(stderr, "Error: invalid value for index %u\n", i);
-                    return;
-                }
-            }
-        }
+        set_control_values(ctl, values, num_values);
     } else {
         if (type == MIXER_CTL_TYPE_ENUM) {
             if (num_values != 1) {
                 fprintf(stderr, "Enclose strings in quotes and try again\n");
-                return;
+                return -1;
             }
-            if (mixer_ctl_set_enum_by_string(ctl, values[0]))
+            if (mixer_ctl_set_enum_by_string(ctl, values[0])) {
                 fprintf(stderr, "Error: invalid enum value\n");
+                return -1;
+            }
         } else {
             fprintf(stderr, "Error: only enum types can be set with strings\n");
+            return -1;
         }
     }
+
+    return 0;
 }
 
