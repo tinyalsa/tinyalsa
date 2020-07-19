@@ -31,7 +31,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <signal.h>
-#include <math.h>
 
 #define ID_RIFF 0x46464952
 #define ID_WAVE 0x45564157
@@ -162,7 +161,7 @@ void analyse_sample(FILE *file, unsigned int channels, unsigned int bits,
     else if (bits == 16)
         bytes_per_sample = 2;
 
-    normalization_factor = (float)pow(2.0, (bits-1));
+    normalization_factor = 1 << (bits-1);
 
     size = channels * bytes_per_sample * frame_size;
 
