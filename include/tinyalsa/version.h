@@ -33,11 +33,11 @@
 #define TINYALSA_VERSION_STR_EX(number) #number
 #define TINYALSA_VERSION_STR(number) TINYALSA_VERSION_STR_EX (number)
 
-#define TINYALSA_VERSION_MAJOR 1
+#define TINYALSA_VERSION_MAJOR 2
 
-#define TINYALSA_VERSION_MINOR 1
+#define TINYALSA_VERSION_MINOR 0
 
-#define TINYALSA_VERSION_PATCH 1
+#define TINYALSA_VERSION_PATCH 0
 
 /* The final version number is constructed based on minor, major and patch */
 #define TINYALSA_VERSION \
