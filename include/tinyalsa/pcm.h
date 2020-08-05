@@ -141,22 +141,31 @@ extern "C" {
  * @ingroup libtinyalsa-pcm
  */
 enum pcm_format {
-    /** Signed, 8-bit */
-    PCM_FORMAT_S8 = 1,
+
+/* Note: This section must stay in the same
+ * order for binary compatibility with older
+ * versions of TinyALSA. */
+
+    PCM_FORMAT_INVALID = -1,
     /** Signed 16-bit, little endian */
     PCM_FORMAT_S16_LE = 0,
-    /** Signed, 16-bit, big endian */
-    PCM_FORMAT_S16_BE = 2,
-    /** Signed, 24-bit (32-bit in memory), little endian */
-    PCM_FORMAT_S24_LE,
-    /** Signed, 24-bit (32-bit in memory), big endian */
-    PCM_FORMAT_S24_BE,
-    /** Signed, 24-bit, little endian */
-    PCM_FORMAT_S24_3LE,
-    /** Signed, 24-bit, big endian */
-    PCM_FORMAT_S24_3BE,
     /** Signed, 32-bit, little endian */
     PCM_FORMAT_S32_LE,
+    /** Signed, 8-bit */
+    PCM_FORMAT_S8,
+    /** Signed, 24-bit (32-bit in memory), little endian */
+    PCM_FORMAT_S24_LE,
+    /** Signed, 24-bit, little endian */
+    PCM_FORMAT_S24_3LE,
+
+/* End of compatibility section. */
+
+    /** Signed, 16-bit, big endian */
+    PCM_FORMAT_S16_BE,
+    /** Signed, 24-bit (32-bit in memory), big endian */
+    PCM_FORMAT_S24_BE,
+    /** Signed, 24-bit, big endian */
+    PCM_FORMAT_S24_3BE,
     /** Signed, 32-bit, big endian */
     PCM_FORMAT_S32_BE,
     /** Max of the enumeration list, not an actual format. */
