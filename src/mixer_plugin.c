@@ -95,7 +95,7 @@ static int mixer_plug_info_enum(struct snd_control *ctl,
     einfo->count = 1;
     einfo->value.enumerated.items = val->items;
 
-    if (einfo->value.enumerated.item > val->items)
+    if (einfo->value.enumerated.item >= val->items)
         return -EINVAL;
 
     strncpy(einfo->value.enumerated.name,
