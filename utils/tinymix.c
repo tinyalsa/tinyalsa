@@ -359,8 +359,9 @@ static struct parsed_int parse_int(const char* str)
   };
 
   unsigned int max = strlen(str);
+  unsigned int i;
 
-  for (unsigned int i = 0; i < max; i++) {
+  for (i = 0; i < max; i++) {
 
     char c = str[i];
 
@@ -442,13 +443,14 @@ static int set_control_values(struct mixer_ctl* ctl,
                               unsigned int num_values)
 {
     unsigned int num_ctl_values = mixer_ctl_get_num_values(ctl);
+    unsigned int i;
 
     if (num_values == 1) {
 
         /* Set all values the same */
         struct control_value value = to_control_value(values[0]);
 
-        for (unsigned int i = 0; i < num_values; i++) {
+        for (i = 0; i < num_values; i++) {
             int res = set_control_value(ctl, i, &value);
             if (res != 0) {
                 fprintf(stderr, "Error: invalid value\n");
@@ -466,7 +468,7 @@ static int set_control_values(struct mixer_ctl* ctl,
             return -1;
         }
 
-        for (unsigned int i = 0; i < num_values; i++) {
+        for (i = 0; i < num_values; i++) {
 
             struct control_value v = to_control_value(values[i]);
 
