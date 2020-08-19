@@ -404,8 +404,8 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
     pcm->buffer_size = config->period_count * config->period_size;
 
     if (pcm->flags & PCM_MMAP) {
-        pcm->mmap_buffer = mmap(NULL, pcm_frames_to_bytes(pcm, pcm->buffer_size),
-                                PROT_READ | PROT_WRITE, MAP_SHARED, pcm->fd, 0);
+        pcm->mmap_buffer = pcm->ops->mmap(pcm->data, NULL, pcm_frames_to_bytes(pcm, pcm->buffer_size),
+                                PROT_READ | PROT_WRITE, MAP_SHARED, 0);
         if (pcm->mmap_buffer == MAP_FAILED) {
             int errno_copy = errno;
             oops(pcm, errno, "failed to mmap buffer %d bytes\n",
@@ -544,19 +544,19 @@ static int pcm_hw_mmap_status(struct pcm *pcm)
         return 0;
 
     int page_size = sysconf(_SC_PAGE_SIZE);
-    pcm->mmap_status = mmap(NULL, page_size, PROT_READ, MAP_SHARED,
-                            pcm->fd, SNDRV_PCM_MMAP_OFFSET_STATUS);
+    pcm->mmap_status = pcm->ops->mmap(pcm->data, NULL, page_size, PROT_READ, MAP_SHARED,
+                            SNDRV_PCM_MMAP_OFFSET_STATUS);
     if (pcm->mmap_status == MAP_FAILED)
         pcm->mmap_status = NULL;
     if (!pcm->mmap_status)
         goto mmap_error;
 
-    pcm->mmap_control = mmap(NULL, page_size, PROT_READ | PROT_WRITE,
-                             MAP_SHARED, pcm->fd, SNDRV_PCM_MMAP_OFFSET_CONTROL);
+    pcm->mmap_control = pcm->ops->mmap(pcm->data, NULL, page_size, PROT_READ | PROT_WRITE,
+                             MAP_SHARED, SNDRV_PCM_MMAP_OFFSET_CONTROL);
     if (pcm->mmap_control == MAP_FAILED)
         pcm->mmap_control = NULL;
     if (!pcm->mmap_control) {
-        munmap(pcm->mmap_status, page_size);
+        pcm->ops->munmap(pcm->data, pcm->mmap_status, page_size);
         pcm->mmap_status = NULL;
         goto mmap_error;
     }
@@ -581,9 +581,9 @@ static void pcm_hw_munmap_status(struct pcm *pcm) {
     } else {
         int page_size = sysconf(_SC_PAGE_SIZE);
         if (pcm->mmap_status)
-            munmap(pcm->mmap_status, page_size);
+            pcm->ops->munmap(pcm->data, pcm->mmap_status, page_size);
         if (pcm->mmap_control)
-            munmap(pcm->mmap_control, page_size);
+            pcm->ops->munmap(pcm->data, pcm->mmap_control, page_size);
     }
     pcm->mmap_status = NULL;
     pcm->mmap_control = NULL;
@@ -813,7 +813,7 @@ int pcm_close(struct pcm *pcm)
 
     if (pcm->flags & PCM_MMAP) {
         pcm_stop(pcm);
-        munmap(pcm->mmap_buffer, pcm_frames_to_bytes(pcm, pcm->buffer_size));
+        pcm->ops->munmap(pcm->data, pcm->mmap_buffer, pcm_frames_to_bytes(pcm, pcm->buffer_size));
     }
 
     snd_utils_close_dev_node(pcm->snd_node);
@@ -948,7 +948,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 fail:
     pcm_hw_munmap_status(pcm);
     if (flags & PCM_MMAP)
-        munmap(pcm->mmap_buffer, pcm_frames_to_bytes(pcm, pcm->buffer_size));
+        pcm->ops->munmap(pcm->data, pcm->mmap_buffer, pcm_frames_to_bytes(pcm, pcm->buffer_size));
 fail_close:
     pcm->ops->close(pcm->data);
 fail_close_dev_node:
@@ -1264,7 +1264,7 @@ int pcm_wait(struct pcm *pcm, int timeout)
 
     do {
         /* let's wait for avail or timeout */
-        err = poll(&pfd, 1, timeout);
+        err = pcm->ops->poll(pcm->data, &pfd, 1, timeout);
         if (err < 0)
             return -errno;
 

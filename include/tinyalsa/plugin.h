@@ -30,6 +30,7 @@
 #ifndef TINYALSA_PLUGIN_H
 #define TINYALSA_PLUGIN_H
 
+#include <poll.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -128,6 +129,11 @@ struct pcm_plugin_ops {
     /** Any custom or alsa specific ioctl implementation */
     int (*ioctl) (struct pcm_plugin *plugin,
                   int cmd, void *arg);
+    void *(*mmap) (struct pcm_plugin *plugin, void *addr, size_t length,
+                   int prot, int flags, off_t offset);
+    int (*munmap) (struct pcm_plugin *plugin, void *addr, size_t length);
+    int (*poll) (struct pcm_plugin *plugin, struct pollfd *pfd, nfds_t nfds,
+                 int timeout);
 };
 
 /** Minimum and maximum values for hardware parameter constraints.

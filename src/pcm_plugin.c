@@ -672,6 +672,38 @@ static int pcm_plug_ioctl(void *data, unsigned int cmd, ...)
     return ret;
 }
 
+static int pcm_plug_poll(void *data, struct pollfd *pfd, nfds_t nfds,
+        int timeout)
+{
+    struct pcm_plug_data *plug_data = data;
+    struct pcm_plugin *plugin = plug_data->plugin;
+
+    return plug_data->ops->poll(plugin, pfd, nfds, timeout);
+}
+
+static void *pcm_plug_mmap(void *data, void *addr, size_t length, int prot,
+                       int flags, off_t offset)
+{
+    struct pcm_plug_data *plug_data = data;
+    struct pcm_plugin *plugin = plug_data->plugin;
+
+    if (plugin->state != PCM_PLUG_STATE_SETUP)
+        return NULL;
+
+    return plug_data->ops->mmap(plugin, addr, length, prot, flags, offset);
+}
+
+static int pcm_plug_munmap(void *data, void *addr, size_t length)
+{
+    struct pcm_plug_data *plug_data = data;
+    struct pcm_plugin *plugin = plug_data->plugin;
+
+    if (plugin->state != PCM_PLUG_STATE_SETUP)
+        return -EBADFD;
+
+    return plug_data->ops->munmap(plugin, addr, length);
+}
+
 static int pcm_plug_open(unsigned int card, unsigned int device,
                          unsigned int flags, void **data, struct snd_node *pcm_node)
 {
@@ -740,4 +772,7 @@ const struct pcm_ops plug_ops = {
     .open = pcm_plug_open,
     .close = pcm_plug_close,
     .ioctl = pcm_plug_ioctl,
+    .mmap = pcm_plug_mmap,
+    .munmap = pcm_plug_munmap,
+    .poll = pcm_plug_poll,
 };
