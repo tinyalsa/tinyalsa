@@ -89,6 +89,24 @@ static unsigned int param_list[] = {
     SNDRV_PCM_HW_PARAM_PERIODS,
 };
 
+static int convert_plugin_to_pcm_state(int plugin_state)
+{
+    switch (plugin_state) {
+    case PCM_PLUG_STATE_SETUP:
+        return PCM_STATE_SETUP;
+    case PCM_PLUG_STATE_RUNNING:
+        return PCM_STATE_RUNNING;
+    case PCM_PLUG_STATE_PREPARED:
+        return PCM_STATE_PREPARED;
+    case PCM_PLUG_STATE_OPEN:
+        return PCM_STATE_OPEN;
+    default:
+        break;
+    }
+
+    return PCM_STATE_OPEN;
+}
+
 static void pcm_plug_close(void *data)
 {
     struct pcm_plug_data *plug_data = data;
@@ -513,8 +531,15 @@ static int pcm_plug_sync_ptr(struct pcm_plug_data *plug_data,
                 struct snd_pcm_sync_ptr *sync_ptr)
 {
     struct pcm_plugin *plugin = plug_data->plugin;
+    int ret = -EBADFD;
 
-    return plug_data->ops->sync_ptr(plugin, sync_ptr);
+    if (plugin->state >= PCM_PLUG_STATE_SETUP) {
+        ret = plug_data->ops->sync_ptr(plugin, sync_ptr);
+        if (ret == 0)
+            sync_ptr->s.status.state = convert_plugin_to_pcm_state(plugin->state);
+    }
+
+    return ret;
 }
 
 static int pcm_plug_writei_frames(struct pcm_plug_data *plug_data,
