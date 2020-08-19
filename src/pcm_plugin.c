@@ -570,7 +570,7 @@ static int pcm_plug_ttstamp(struct pcm_plug_data *plug_data,
 {
     struct pcm_plugin *plugin = plug_data->plugin;
 
-    if (plugin->state != PCM_PLUG_STATE_RUNNING)
+    if (plugin->state < PCM_PLUG_STATE_SETUP)
         return -EBADFD;
 
     return plug_data->ops->ttstamp(plugin, tstamp);
