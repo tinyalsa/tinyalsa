@@ -95,6 +95,16 @@
  * */
 #define PCM_NONBLOCK 0x00000010
 
+/** Means a PCM is opened
+ * @ingroup libtinyalsa-pcm
+ */
+#define PCM_STATE_OPEN 0x00
+
+/** Means a PCM HW_PARAMS is set
+ * @ingroup libtinyalsa-pcm
+ */
+#define PCM_STATE_SETUP 0x01
+
 /** Means a PCM is prepared
  * @ingroup libtinyalsa-pcm
  */
