@@ -74,7 +74,7 @@ static int write_frames(const void * frames, size_t byte_count){
     unsigned int frame_count = pcm_bytes_to_frames(pcm, byte_count);
 
     int err = pcm_writei(pcm, frames, frame_count);
-    if (err != 0) {
+    if (err < 0) {
       printf("error: %s\n", pcm_get_error(pcm));
     }
 
