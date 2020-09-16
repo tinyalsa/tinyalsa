@@ -23,19 +23,19 @@ tinyplay tinycap tinypcminfo tinymix: LDLIBS+=-ldl
 
 tinyplay: tinyplay.o libtinyalsa.a
 
-tinyplay.o: tinyplay.c pcm.h mixer.h asoundlib.h
+tinyplay.o: tinyplay.c pcm.h mixer.h asoundlib.h optparse.h
 
 tinycap: tinycap.o libtinyalsa.a
 
-tinycap.o: tinycap.c pcm.h mixer.h asoundlib.h
+tinycap.o: tinycap.c pcm.h mixer.h asoundlib.h optparse.h
 
 tinymix: tinymix.o libtinyalsa.a
 
-tinymix.o: tinymix.c pcm.h mixer.h asoundlib.h
+tinymix.o: tinymix.c pcm.h mixer.h asoundlib.h optparse.h
 
 tinypcminfo: tinypcminfo.o libtinyalsa.a
 
-tinypcminfo.o: tinypcminfo.c pcm.h mixer.h asoundlib.h
+tinypcminfo.o: tinypcminfo.c pcm.h mixer.h asoundlib.h optparse.h
 
 .PHONY: clean
 clean:

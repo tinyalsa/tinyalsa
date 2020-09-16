@@ -23,19 +23,19 @@ LIBVERSION = $(TINYALSA_VERSION)
 .PHONY: all
 all: libtinyalsa.a libtinyalsa.so
 
-pcm.o: pcm.c pcm.h
+pcm.o: pcm.c limits.h pcm.h pcm_io.h plugin.h snd_card_plugin.h
 
-pcm_plugin.o: pcm_plugin.c pcm_io.h
+pcm_plugin.o: pcm_plugin.c asoundlib.h pcm_io.h plugin.h snd_card_plugin.h
 
-pcm_hw.o: pcm_hw.c pcm_io.h
+pcm_hw.o: pcm_hw.c asoundlib.h pcm_io.h
 
 limits.o: limits.c limits.h
 
-mixer.o: mixer.c mixer.h
+mixer.o: mixer.c mixer.h mixer_io.h plugin.h
 
-snd_card_plugin.o: snd_card_plugin.c snd_card_plugin.h
+snd_card_plugin.o: snd_card_plugin.c plugin.h snd_card_plugin.h
 
-mixer_plugin.o: mixer_plugin.c mixer_io.h
+mixer_plugin.o: mixer_plugin.c mixer_io.h plugin.h snd_card_plugin.h
 
 mixer_hw.o: mixer_hw.c mixer_io.h
 
