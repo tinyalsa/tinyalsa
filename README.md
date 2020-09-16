@@ -15,7 +15,12 @@ The aims are:
 
 ### Building
 
-TinyALSA uses Makefile as the primary build system.
+TinyALSA supports these build systems:
+
+ - [CMake](https://en.wikipedia.org/wiki/CMake)
+ - [Make](https://en.wikipedia.org/wiki/Make_(software))
+ - [Meson](https://en.wikipedia.org/wiki/Meson_(software))
+ - [Soong](https://android.googlesource.com/platform/build/soong/+/refs/heads/master/README.md) for Android
 
 To build and install with Make, run the commands:
 
@@ -27,7 +32,8 @@ sudo ldconfig
 
 ### Installing
 
-TinyALSA is now available as a set of the following debian packages from [launchpad](https://launchpad.net/~taylorcholberton/+archive/ubuntu/tinyalsa):
+TinyALSA is now available as a set of the following [Debian](https://en.wikipedia.org/wiki/Debian)
+packages from [launchpad](https://launchpad.net/~taylorcholberton/+archive/ubuntu/tinyalsa):
 
 | Package Name:   | Description:                                        |
 |-----------------|-----------------------------------------------------|
