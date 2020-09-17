@@ -69,7 +69,10 @@ foreach(UTIL IN LISTS TINYALSA_UTILS)
     add_executable("${UTIL}" "utils/${UTIL}.c")
     target_link_libraries("${UTIL}" PRIVATE "tinyalsa")
 endforeach()
-target_link_libraries("tinywavinfo" PRIVATE m)
+
+if(TINYALSA_BUILD_UTILS)
+    target_link_libraries("tinywavinfo" PRIVATE m)
+endif()
 
 # Add C warning flags
 include(CheckCCompilerFlag)
