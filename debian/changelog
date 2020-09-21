@@ -1,3 +1,17 @@
+tinyalsa (2.0.0) xenial; urgency=medium
+
+ * Miscellaneous bugs fixed.
+ * PCM plugin support.
+ * Add CMake build support.
+ * Add meson build support.
+ * tinyplay can now read from stdin.
+ * Improved versioning support for library.
+ * Improvements to pcm actions (prepare at open time and after overrun, etc.)
+ * Improvements/fixes to pcm_get_htimestamp().
+ * Fixes for the mixer percent functions.
+
+ -- Simon Wilson <ksattic@gmail.com>  Mon, 21 Sep 2020 11:27:00 -0600
+
 tinyalsa (1.1.1) xenial; urgency=medium
 
   * Fixed some minor bugs
