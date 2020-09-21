@@ -200,7 +200,6 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control)
     int min, max;
     int ret;
     char *buf = NULL;
-    unsigned int tlv_header_size = 0;
 
     if (isdigit(control[0]))
         ctl = mixer_get_ctl(mixer, atoi(control));
@@ -216,16 +215,13 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control)
     num_values = mixer_ctl_get_num_values(ctl);
 
     if ((type == MIXER_CTL_TYPE_BYTE) && (num_values > 0)) {
-        if (mixer_ctl_is_access_tlv_rw(ctl) != 0) {
-            tlv_header_size = TLV_HEADER_SIZE;
-        }
-        buf = calloc(1, num_values + tlv_header_size);
+        buf = calloc(1, num_values);
         if (buf == NULL) {
             fprintf(stderr, "Failed to alloc mem for bytes %u\n", num_values);
             return;
         }
 
-        ret = mixer_ctl_get_array(ctl, buf, num_values + tlv_header_size);
+        ret = mixer_ctl_get_array(ctl, buf, num_values);
         if (ret < 0) {
             fprintf(stderr, "Failed to mixer_ctl_get_array\n");
             free(buf);
@@ -246,8 +242,7 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control)
             tinymix_print_enum(ctl);
             break;
         case MIXER_CTL_TYPE_BYTE:
-            /* skip printing TLV header if exists */
-            printf(" %02x", buf[i + tlv_header_size]);
+            printf(" %02x", buf[i]);
             break;
         default:
             printf("unknown");
@@ -275,24 +270,12 @@ static void tinymix_set_byte_ctl(struct mixer_ctl *ctl,
     char *end;
     unsigned int i;
     long n;
-    unsigned int *tlv, tlv_size;
-    unsigned int tlv_header_size = 0;
 
-    if (mixer_ctl_is_access_tlv_rw(ctl) != 0) {
-        tlv_header_size = TLV_HEADER_SIZE;
-    }
-
-    tlv_size = num_values + tlv_header_size;
-
-    buf = calloc(1, tlv_size);
+    buf = calloc(1, num_values);
     if (buf == NULL) {
         fprintf(stderr, "set_byte_ctl: Failed to alloc mem for bytes %u\n", num_values);
         exit(EXIT_FAILURE);
     }
-
-    tlv = (unsigned int *)buf;
-    tlv[0] = 0;
-    tlv[1] = num_values;
 
     for (i = 0; i < num_values; i++) {
         errno = 0;
@@ -311,11 +294,10 @@ static void tinymix_set_byte_ctl(struct mixer_ctl *ctl,
                 values[i]);
             goto fail;
         }
-        /* start filling after tlv header */
-        buf[i + tlv_header_size] = n;
+        buf[i] = n;
     }
 
-    ret = mixer_ctl_set_array(ctl, buf, tlv_size);
+    ret = mixer_ctl_set_array(ctl, buf, num_values);
     if (ret < 0) {
         fprintf(stderr, "Failed to set binary control\n");
         goto fail;

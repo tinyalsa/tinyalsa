@@ -936,21 +936,13 @@ int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
     int ret = 0;
     size_t size;
     void *source;
-    size_t total_count;
 
     if (!ctl || !count || !array)
         return -EINVAL;
 
     grp = ctl->grp;
-    total_count = ctl->info.count;
 
-    if ((ctl->info.type == SNDRV_CTL_ELEM_TYPE_BYTES) &&
-        (mixer_ctl_is_access_tlv_rw(ctl))) {
-            /* Additional two words is for the TLV header */
-            total_count += TLV_HEADER_SIZE;
-    }
-
-    if (count > total_count)
+    if (count > ctl->info.count)
         return -EINVAL;
 
     memset(&ev, 0, sizeof(ev));
@@ -974,9 +966,11 @@ int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
 
             if (count > SIZE_MAX - sizeof(*tlv))
                 return -EINVAL;
+
             tlv = calloc(1, sizeof(*tlv) + count);
             if (!tlv)
                 return -ENOMEM;
+
             tlv->numid = ctl->info.id.numid;
             tlv->length = count;
             ret = grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_TLV_READ, tlv);
@@ -1076,21 +1070,13 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
     struct snd_ctl_elem_value ev;
     size_t size;
     void *dest;
-    size_t total_count;
 
     if ((!ctl) || !count || !array)
         return -EINVAL;
 
     grp = ctl->grp;
-    total_count = ctl->info.count;
 
-    if ((ctl->info.type == SNDRV_CTL_ELEM_TYPE_BYTES) &&
-        (mixer_ctl_is_access_tlv_rw(ctl))) {
-            /* Additional TLV header */
-            total_count += TLV_HEADER_SIZE;
-    }
-
-    if (count > total_count)
+    if (count > ctl->info.count)
         return -EINVAL;
 
     memset(&ev, 0, sizeof(ev));
@@ -1108,11 +1094,14 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
         if (mixer_ctl_is_access_tlv_rw(ctl)) {
             struct snd_ctl_tlv *tlv;
             int ret = 0;
+
             if (count > SIZE_MAX - sizeof(*tlv))
                 return -EINVAL;
+
             tlv = calloc(1, sizeof(*tlv) + count);
             if (!tlv)
                 return -ENOMEM;
+
             tlv->numid = ctl->info.id.numid;
             tlv->length = count;
             memcpy(tlv->tlv, array, count);
