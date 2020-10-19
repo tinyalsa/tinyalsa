@@ -22,6 +22,9 @@ cc_library {
     },
 
     system_shared_libs: ["libc", "libdl"],
+    vndk: {
+        enabled: true,
+    },
 }
 
 cc_binary {
