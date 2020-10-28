@@ -343,6 +343,8 @@ int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
 
 int pcm_mmap_avail(struct pcm *pcm);
 
+int pcm_mmap_get_hw_ptr(struct pcm* pcm, unsigned int *hw_ptr, struct timespec *tstamp);
+
 int pcm_get_poll_fd(struct pcm *pcm);
 
 int pcm_link(struct pcm *pcm1, struct pcm *pcm2);
