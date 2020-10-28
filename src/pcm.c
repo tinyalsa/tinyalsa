@@ -1344,6 +1344,11 @@ static int pcm_mmap_transfer_areas(struct pcm *pcm, char *buf,
     return count;
 }
 
+int pcm_get_poll_fd(struct pcm *pcm)
+{
+    return pcm->fd;
+}
+
 int pcm_avail_update(struct pcm *pcm)
 {
     pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_APPL|SNDRV_PCM_SYNC_PTR_AVAIL_MIN);
