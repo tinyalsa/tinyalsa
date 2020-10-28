@@ -438,6 +438,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
         pcm->config.start_threshold = config->period_count * config->period_size;
         pcm->config.stop_threshold = config->period_count * config->period_size;
         pcm->config.silence_threshold = 0;
+        pcm->config.silence_size = 0;
     } else
         pcm->config = *config;
 
@@ -519,7 +520,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
         sparams.stop_threshold = config->stop_threshold;
 
     sparams.xfer_align = config->period_size / 2; /* needed for old kernels */
-    sparams.silence_size = 0;
+    sparams.silence_size = config->silence_size;
     sparams.silence_threshold = config->silence_threshold;
     pcm->boundary = sparams.boundary = pcm->buffer_size;
 

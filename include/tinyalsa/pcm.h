@@ -202,13 +202,15 @@ struct pcm_config {
     unsigned int period_count;
     /** The sample format of a PCM */
     enum pcm_format format;
-    /* Values to use for the ALSA start, stop and silence thresholds.  Setting
-     * any one of these values to 0 will cause the default tinyalsa values to be
-     * used instead.  Tinyalsa defaults are as follows.
+    /* Values to use for the ALSA start, stop and silence thresholds, and
+     * silence size.  Setting any one of these values to 0 will cause the
+     * default tinyalsa values to be used instead.
+     * Tinyalsa defaults are as follows.
      *
      * start_threshold   : period_count * period_size
      * stop_threshold    : period_count * period_size
      * silence_threshold : 0
+     * silence_size      : 0
      */
     /** The minimum number of frames required to start the PCM */
     unsigned int start_threshold;
@@ -216,6 +218,9 @@ struct pcm_config {
     unsigned int stop_threshold;
     /** The minimum number of frames to silence the PCM */
     unsigned int silence_threshold;
+    /** The number of frames to overwrite the playback buffer when the playback underrun is greater
+     * than the silence threshold */
+    unsigned int silence_size;
 };
 
 /** Enumeration of a PCM's hardware parameters.
