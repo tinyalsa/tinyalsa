@@ -59,6 +59,7 @@ void cmd_init(struct cmd *cmd)
     cmd->config.rate = 48000;
     cmd->config.format = PCM_FORMAT_S16_LE;
     cmd->config.silence_threshold = 1024 * 2;
+    cmd->config.silence_size = 0;
     cmd->config.stop_threshold = 1024 * 2;
     cmd->config.start_threshold = 1024;
     cmd->bits = 16;
