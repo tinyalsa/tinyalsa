@@ -264,6 +264,21 @@ unsigned int pcm_params_get_min(const struct pcm_params *pcm_params, enum pcm_pa
 
 unsigned int pcm_params_get_max(const struct pcm_params *pcm_params, enum pcm_param param);
 
+/* Converts the pcm parameters to a human readable string.
+ * The string parameter is a caller allocated buffer of size bytes,
+ * which is then filled up to size - 1 and null terminated,
+ * if size is greater than zero.
+ * The return value is the number of bytes copied to string
+ * (not including null termination) if less than size; otherwise,
+ * the number of bytes required for the buffer.
+ */
+int pcm_params_to_string(struct pcm_params *params, char *string, unsigned int size);
+
+/* Returns 1 if the pcm_format is present (format bit set) in
+ * the pcm_params structure; 0 otherwise, or upon unrecognized format.
+ */
+int pcm_params_format_test(struct pcm_params *params, enum pcm_format format);
+
 struct pcm;
 
 struct pcm *pcm_open(unsigned int card,
