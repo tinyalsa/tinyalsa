@@ -389,13 +389,14 @@ int sample_is_playable(const struct cmd *cmd)
 int play_sample(struct ctx *ctx)
 {
     char *buffer;
-    int size;
-    int num_read;
+    size_t buffer_size = pcm_frames_to_bytes(ctx->pcm, pcm_get_buffer_size(ctx->pcm));
+    size_t num_read = 0;
+    size_t remaining_data_size = ctx->chunk_header.sz;
+    size_t read_size = 0;
 
-    size = pcm_frames_to_bytes(ctx->pcm, pcm_get_buffer_size(ctx->pcm));
-    buffer = malloc(size);
+    buffer = malloc(buffer_size);
     if (!buffer) {
-        fprintf(stderr, "unable to allocate %d bytes\n", size);
+        fprintf(stderr, "unable to allocate %zu bytes\n", buffer_size);
         return -1;
     }
 
@@ -403,15 +404,17 @@ int play_sample(struct ctx *ctx)
     signal(SIGINT, stream_close);
 
     do {
-        num_read = fread(buffer, 1, size, ctx->file);
+        read_size = remaining_data_size > buffer_size ? buffer_size : remaining_data_size;
+        num_read = fread(buffer, 1, read_size, ctx->file);
         if (num_read > 0) {
             if (pcm_writei(ctx->pcm, buffer,
                 pcm_bytes_to_frames(ctx->pcm, num_read)) < 0) {
                 fprintf(stderr, "error playing sample\n");
                 break;
             }
+            remaining_data_size -= num_read;
         }
-    } while (!close && num_read > 0);
+    } while (!close && num_read > 0 && remaining_data_size > 0);
 
     pcm_wait(ctx->pcm, -1);
 
