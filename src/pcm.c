@@ -332,7 +332,7 @@ static int oops(struct pcm *pcm, int e, const char *fmt, ...)
     va_end(ap);
     sz = strlen(pcm->error);
 
-    if (errno)
+    if (e)
         snprintf(pcm->error + sz, PCM_ERROR_MAX - sz,
                  ": %s", strerror(e));
     return -1;
@@ -455,7 +455,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
     if (pcm->flags & PCM_NOIRQ) {
 
         if (!(pcm->flags & PCM_MMAP)) {
-            oops(pcm, -EINVAL, "noirq only currently supported with mmap().");
+            oops(pcm, EINVAL, "noirq only currently supported with mmap().");
             return -EINVAL;
         }
 
@@ -1082,7 +1082,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 
     rc = pcm_hw_mmap_status(pcm);
     if (rc < 0) {
-        oops(pcm, rc, "mmap status failed");
+        oops(pcm, errno, "mmap status failed");
         goto fail;
     }
 
@@ -1091,7 +1091,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
         int arg = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC;
         rc = pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_TTSTAMP, &arg);
         if (rc < 0) {
-            oops(pcm, rc, "cannot set timestamp type");
+            oops(pcm, errno, "cannot set timestamp type");
             goto fail;
         }
     }
