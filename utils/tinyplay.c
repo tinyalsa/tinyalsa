@@ -376,8 +376,10 @@ int sample_is_playable(const struct cmd *cmd)
     can_play = check_param(params, PCM_PARAM_RATE, cmd->config.rate, "sample rate", "hz");
     can_play &= check_param(params, PCM_PARAM_CHANNELS, cmd->config.channels, "sample", " channels");
     can_play &= check_param(params, PCM_PARAM_SAMPLE_BITS, cmd->bits, "bits", " bits");
-    can_play &= check_param(params, PCM_PARAM_PERIOD_SIZE, cmd->config.period_size, "period size", "");
-    can_play &= check_param(params, PCM_PARAM_PERIODS, cmd->config.period_count, "period count", "");
+    can_play &= check_param(params, PCM_PARAM_PERIOD_SIZE, cmd->config.period_size, "period size",
+                            " frames");
+    can_play &= check_param(params, PCM_PARAM_PERIODS, cmd->config.period_count, "period count",
+                            " frames");
 
     pcm_params_free(params);
 
