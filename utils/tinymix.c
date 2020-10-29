@@ -146,6 +146,16 @@ int main(int argc, char **argv)
     return EXIT_SUCCESS;
 }
 
+static int isnumber(const char *str) {
+    char *end;
+
+    if (str == NULL || strlen(str) == 0)
+        return 0;
+
+    strtol(str, &end, 0);
+    return strlen(end) == 0;
+}
+
 static void tinymix_list_controls(struct mixer *mixer, int print_all)
 {
     struct mixer_ctl *ctl;
@@ -201,7 +211,7 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control)
     int ret;
     char *buf = NULL;
 
-    if (isdigit(control[0]))
+    if (isnumber(control))
         ctl = mixer_get_ctl(mixer, atoi(control));
     else
         ctl = mixer_get_ctl_by_name(mixer, control);
@@ -469,7 +479,7 @@ static int tinymix_set_value(struct mixer *mixer, const char *control,
     struct mixer_ctl *ctl;
     enum mixer_ctl_type type;
 
-    if (isdigit(control[0]))
+    if (isnumber(control))
         ctl = mixer_get_ctl(mixer, atoi(control));
     else
         ctl = mixer_get_ctl_by_name(mixer, control);
