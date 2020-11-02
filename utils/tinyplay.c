@@ -58,10 +58,10 @@ void cmd_init(struct cmd *cmd)
     cmd->config.channels = 2;
     cmd->config.rate = 48000;
     cmd->config.format = PCM_FORMAT_S16_LE;
-    cmd->config.silence_threshold = 1024 * 2;
+    cmd->config.silence_threshold = cmd->config.period_size * cmd->config.period_count;
     cmd->config.silence_size = 0;
-    cmd->config.stop_threshold = 1024 * 2;
-    cmd->config.start_threshold = 1024;
+    cmd->config.stop_threshold = cmd->config.period_size * cmd->config.period_count;
+    cmd->config.start_threshold = cmd->config.period_size;
     cmd->bits = 16;
 }
 
@@ -317,6 +317,10 @@ int main(int argc, char **argv)
         (cmd.filetype = strrchr(cmd.filename, '.')) != NULL) {
         cmd.filetype++;
     }
+
+    cmd.config.silence_threshold = cmd.config.period_size * cmd.config.period_count;
+    cmd.config.stop_threshold = cmd.config.period_size * cmd.config.period_count;
+    cmd.config.start_threshold = cmd.config.period_size;
 
     if (ctx_init(&ctx, &cmd) < 0) {
         return EXIT_FAILURE;
