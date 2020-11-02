@@ -389,11 +389,18 @@ int sample_is_playable(const struct cmd *cmd)
 int play_sample(struct ctx *ctx)
 {
     char *buffer;
-    size_t buffer_size = pcm_frames_to_bytes(ctx->pcm, pcm_get_buffer_size(ctx->pcm));
+    size_t buffer_size = 0;
     size_t num_read = 0;
     size_t remaining_data_size = ctx->chunk_header.sz;
     size_t read_size = 0;
+    const struct pcm_config *config = pcm_get_config(ctx->pcm);
 
+    if (config == NULL) {
+        fprintf(stderr, "unable to get pcm config\n");
+        return -1;
+    }
+
+    buffer_size = pcm_frames_to_bytes(ctx->pcm, config->period_size);
     buffer = malloc(buffer_size);
     if (!buffer) {
         fprintf(stderr, "unable to allocate %zu bytes\n", buffer_size);
