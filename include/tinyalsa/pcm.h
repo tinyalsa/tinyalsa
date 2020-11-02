@@ -202,13 +202,15 @@ struct pcm_config {
     unsigned int period_count;
     /** The sample format of a PCM */
     enum pcm_format format;
-    /* Values to use for the ALSA start, stop and silence thresholds.  Setting
-     * any one of these values to 0 will cause the default tinyalsa values to be
-     * used instead.  Tinyalsa defaults are as follows.
+    /* Values to use for the ALSA start, stop and silence thresholds, and
+     * silence size.  Setting any one of these values to 0 will cause the
+     * default tinyalsa values to be used instead.
+     * Tinyalsa defaults are as follows.
      *
      * start_threshold   : period_count * period_size
      * stop_threshold    : period_count * period_size
      * silence_threshold : 0
+     * silence_size      : 0
      */
     /** The minimum number of frames required to start the PCM */
     unsigned int start_threshold;
@@ -216,6 +218,9 @@ struct pcm_config {
     unsigned int stop_threshold;
     /** The minimum number of frames to silence the PCM */
     unsigned int silence_threshold;
+    /** The number of frames to overwrite the playback buffer when the playback underrun is greater
+     * than the silence threshold */
+    unsigned int silence_size;
 };
 
 /** Enumeration of a PCM's hardware parameters.
@@ -263,6 +268,21 @@ const struct pcm_mask *pcm_params_get_mask(const struct pcm_params *pcm_params, 
 unsigned int pcm_params_get_min(const struct pcm_params *pcm_params, enum pcm_param param);
 
 unsigned int pcm_params_get_max(const struct pcm_params *pcm_params, enum pcm_param param);
+
+/* Converts the pcm parameters to a human readable string.
+ * The string parameter is a caller allocated buffer of size bytes,
+ * which is then filled up to size - 1 and null terminated,
+ * if size is greater than zero.
+ * The return value is the number of bytes copied to string
+ * (not including null termination) if less than size; otherwise,
+ * the number of bytes required for the buffer.
+ */
+int pcm_params_to_string(struct pcm_params *params, char *string, unsigned int size);
+
+/* Returns 1 if the pcm_format is present (format bit set) in
+ * the pcm_params structure; 0 otherwise, or upon unrecognized format.
+ */
+int pcm_params_format_test(struct pcm_params *params, enum pcm_format format);
 
 struct pcm;
 
@@ -320,6 +340,12 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count);
 int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset, unsigned int *frames);
 
 int pcm_mmap_commit(struct pcm *pcm, unsigned int offset, unsigned int frames);
+
+int pcm_mmap_avail(struct pcm *pcm);
+
+int pcm_mmap_get_hw_ptr(struct pcm* pcm, unsigned int *hw_ptr, struct timespec *tstamp);
+
+int pcm_get_poll_fd(struct pcm *pcm);
 
 int pcm_link(struct pcm *pcm1, struct pcm *pcm2);
 

@@ -70,6 +70,83 @@
 #define SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP (1<<2)
 #endif /* SNDRV_PCM_HW_PARAMS_NO_PERIOD_WAKEUP */
 
+/* Logs information into a string; follows snprintf() in that
+ * offset may be greater than size, and though no characters are copied
+ * into string, characters are still counted into offset. */
+#define STRLOG(string, offset, size, ...) \
+    do { int temp, clipoffset = offset > size ? size : offset; \
+         temp = snprintf(string + clipoffset, size - clipoffset, __VA_ARGS__); \
+         if (temp > 0) offset += temp; } while (0)
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#endif
+
+/* refer to SNDRV_PCM_ACCESS_##index in sound/asound.h. */
+static const char * const access_lookup[] = {
+        "MMAP_INTERLEAVED",
+        "MMAP_NONINTERLEAVED",
+        "MMAP_COMPLEX",
+        "RW_INTERLEAVED",
+        "RW_NONINTERLEAVED",
+};
+
+/* refer to SNDRV_PCM_FORMAT_##index in sound/asound.h. */
+static const char * const format_lookup[] = {
+        /*[0] =*/ "S8",
+        "U8",
+        "S16_LE",
+        "S16_BE",
+        "U16_LE",
+        "U16_BE",
+        "S24_LE",
+        "S24_BE",
+        "U24_LE",
+        "U24_BE",
+        "S32_LE",
+        "S32_BE",
+        "U32_LE",
+        "U32_BE",
+        "FLOAT_LE",
+        "FLOAT_BE",
+        "FLOAT64_LE",
+        "FLOAT64_BE",
+        "IEC958_SUBFRAME_LE",
+        "IEC958_SUBFRAME_BE",
+        "MU_LAW",
+        "A_LAW",
+        "IMA_ADPCM",
+        "MPEG",
+        /*[24] =*/ "GSM",
+        /* gap */
+        [31] = "SPECIAL",
+        "S24_3LE",
+        "S24_3BE",
+        "U24_3LE",
+        "U24_3BE",
+        "S20_3LE",
+        "S20_3BE",
+        "U20_3LE",
+        "U20_3BE",
+        "S18_3LE",
+        "S18_3BE",
+        "U18_3LE",
+        /*[43] =*/ "U18_3BE",
+#if 0
+        /* recent additions, may not be present on local asound.h */
+        "G723_24",
+        "G723_24_1B",
+        "G723_40",
+        "G723_40_1B",
+        "DSD_U8",
+        "DSD_U16_LE",
+#endif
+};
+
+/* refer to SNDRV_PCM_SUBFORMAT_##index in sound/asound.h. */
+static const char * const subformat_lookup[] = {
+        "STD",
+};
 
 static inline int param_is_mask(int p)
 {
@@ -255,7 +332,7 @@ static int oops(struct pcm *pcm, int e, const char *fmt, ...)
     va_end(ap);
     sz = strlen(pcm->error);
 
-    if (errno)
+    if (e)
         snprintf(pcm->error + sz, PCM_ERROR_MAX - sz,
                  ": %s", strerror(e));
     return -1;
@@ -361,6 +438,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
         pcm->config.start_threshold = config->period_count * config->period_size;
         pcm->config.stop_threshold = config->period_count * config->period_size;
         pcm->config.silence_threshold = 0;
+        pcm->config.silence_size = 0;
     } else
         pcm->config = *config;
 
@@ -377,7 +455,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
     if (pcm->flags & PCM_NOIRQ) {
 
         if (!(pcm->flags & PCM_MMAP)) {
-            oops(pcm, -EINVAL, "noirq only currently supported with mmap().");
+            oops(pcm, EINVAL, "noirq only currently supported with mmap().");
             return -EINVAL;
         }
 
@@ -442,7 +520,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
         sparams.stop_threshold = config->stop_threshold;
 
     sparams.xfer_align = config->period_size / 2; /* needed for old kernels */
-    sparams.silence_size = 0;
+    sparams.silence_size = config->silence_size;
     sparams.silence_threshold = config->silence_threshold;
     pcm->boundary = sparams.boundary = pcm->buffer_size;
 
@@ -798,6 +876,87 @@ unsigned int pcm_params_get_max(const struct pcm_params *pcm_params,
     return param_get_max(params, p);
 }
 
+static int pcm_mask_test(const struct pcm_mask *m, unsigned int index)
+{
+    const unsigned int bitshift = 5; /* for 32 bit integer */
+    const unsigned int bitmask = (1 << bitshift) - 1;
+    unsigned int element;
+
+    element = index >> bitshift;
+    if (element >= ARRAY_SIZE(m->bits))
+        return 0; /* for safety, but should never occur */
+    return (m->bits[element] >> (index & bitmask)) & 1;
+}
+
+static int pcm_mask_to_string(const struct pcm_mask *m, char *string, unsigned int size,
+                              char *mask_name,
+                              const char * const *bit_array_name, size_t bit_array_size)
+{
+    unsigned int i;
+    unsigned int offset = 0;
+
+    if (m == NULL)
+        return 0;
+    if (bit_array_size < 32) {
+        STRLOG(string, offset, size, "%12s:\t%#08x\n", mask_name, m->bits[0]);
+    } else { /* spans two or more bitfields, print with an array index */
+        for (i = 0; i < (bit_array_size + 31) >> 5; ++i) {
+            STRLOG(string, offset, size, "%9s[%d]:\t%#08x\n",
+                   mask_name, i, m->bits[i]);
+        }
+    }
+    for (i = 0; i < bit_array_size; ++i) {
+        if (pcm_mask_test(m, i)) {
+            STRLOG(string, offset, size, "%12s \t%s\n", "", bit_array_name[i]);
+        }
+    }
+    return offset;
+}
+
+int pcm_params_to_string(struct pcm_params *params, char *string, unsigned int size)
+{
+    const struct pcm_mask *m;
+    unsigned int min, max;
+    unsigned int clipoffset, offset;
+
+    m = pcm_params_get_mask(params, PCM_PARAM_ACCESS);
+    offset = pcm_mask_to_string(m, string, size,
+                                 "Access", access_lookup, ARRAY_SIZE(access_lookup));
+    m = pcm_params_get_mask(params, PCM_PARAM_FORMAT);
+    clipoffset = offset > size ? size : offset;
+    offset += pcm_mask_to_string(m, string + clipoffset, size - clipoffset,
+                                 "Format", format_lookup, ARRAY_SIZE(format_lookup));
+    m = pcm_params_get_mask(params, PCM_PARAM_SUBFORMAT);
+    clipoffset = offset > size ? size : offset;
+    offset += pcm_mask_to_string(m, string + clipoffset, size - clipoffset,
+                                 "Subformat", subformat_lookup, ARRAY_SIZE(subformat_lookup));
+    min = pcm_params_get_min(params, PCM_PARAM_RATE);
+    max = pcm_params_get_max(params, PCM_PARAM_RATE);
+    STRLOG(string, offset, size, "        Rate:\tmin=%uHz\tmax=%uHz\n", min, max);
+    min = pcm_params_get_min(params, PCM_PARAM_CHANNELS);
+    max = pcm_params_get_max(params, PCM_PARAM_CHANNELS);
+    STRLOG(string, offset, size, "    Channels:\tmin=%u\t\tmax=%u\n", min, max);
+    min = pcm_params_get_min(params, PCM_PARAM_SAMPLE_BITS);
+    max = pcm_params_get_max(params, PCM_PARAM_SAMPLE_BITS);
+    STRLOG(string, offset, size, " Sample bits:\tmin=%u\t\tmax=%u\n", min, max);
+    min = pcm_params_get_min(params, PCM_PARAM_PERIOD_SIZE);
+    max = pcm_params_get_max(params, PCM_PARAM_PERIOD_SIZE);
+    STRLOG(string, offset, size, " Period size:\tmin=%u\t\tmax=%u\n", min, max);
+    min = pcm_params_get_min(params, PCM_PARAM_PERIODS);
+    max = pcm_params_get_max(params, PCM_PARAM_PERIODS);
+    STRLOG(string, offset, size, "Period count:\tmin=%u\t\tmax=%u\n", min, max);
+    return offset;
+}
+
+int pcm_params_format_test(struct pcm_params *params, enum pcm_format format)
+{
+    unsigned int alsa_format = pcm_format_to_alsa(format);
+
+    if (alsa_format == SNDRV_PCM_FORMAT_S16_LE && format != PCM_FORMAT_S16_LE)
+        return 0; /* caution: format not recognized is equivalent to S16_LE */
+    return pcm_mask_test(pcm_params_get_mask(params, PCM_PARAM_FORMAT), alsa_format);
+}
+
 /** Closes a PCM returned by @ref pcm_open.
  * @param pcm A PCM returned by @ref pcm_open.
  *  May not be NULL.
@@ -923,7 +1082,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 
     rc = pcm_hw_mmap_status(pcm);
     if (rc < 0) {
-        oops(pcm, rc, "mmap status failed");
+        oops(pcm, errno, "mmap status failed");
         goto fail;
     }
 
@@ -932,7 +1091,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
         int arg = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC;
         rc = pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_TTSTAMP, &arg);
         if (rc < 0) {
-            oops(pcm, rc, "cannot set timestamp type");
+            oops(pcm, errno, "cannot set timestamp type");
             goto fail;
         }
     }
@@ -1077,7 +1236,7 @@ static inline int pcm_mmap_capture_avail(struct pcm *pcm)
     return avail;
 }
 
-static inline int pcm_mmap_avail(struct pcm *pcm)
+int pcm_mmap_avail(struct pcm *pcm)
 {
     if (pcm->flags & PCM_IN)
         return pcm_mmap_capture_avail(pcm);
@@ -1183,6 +1342,11 @@ static int pcm_mmap_transfer_areas(struct pcm *pcm, char *buf,
         size -= commit;
     }
     return count;
+}
+
+int pcm_get_poll_fd(struct pcm *pcm)
+{
+    return pcm->fd;
 }
 
 int pcm_avail_update(struct pcm *pcm)
@@ -1394,6 +1558,37 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
         return -ENOSYS;
 
     return pcm_mmap_transfer(pcm, data, pcm_bytes_to_frames(pcm, count));
+}
+
+/* Returns current read/write position in the mmap buffer with associated time stamp. */
+int pcm_mmap_get_hw_ptr(struct pcm* pcm, unsigned int *hw_ptr, struct timespec *tstamp)
+{
+    int rc;
+
+    if (pcm == NULL || hw_ptr == NULL || tstamp == NULL)
+        return oops(pcm, EINVAL, "pcm %p, hw_ptr %p, tstamp %p", pcm, hw_ptr, tstamp);
+
+    if (!pcm_is_ready(pcm))
+        return oops(pcm, errno, "pcm_is_ready failed");
+
+    rc = pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_HWSYNC);
+    if (rc < 0)
+        return oops(pcm, errno, "pcm_sync_ptr failed");
+
+    if (pcm->mmap_status == NULL)
+        return oops(pcm, EINVAL, "pcm %p, mmap_status is NULL", pcm);
+
+    if ((pcm->mmap_status->state != PCM_STATE_RUNNING) &&
+            (pcm->mmap_status->state != PCM_STATE_DRAINING))
+        return oops(pcm, ENOSYS, "invalid stream state %d", pcm->mmap_status->state);
+
+    *tstamp = pcm->mmap_status->tstamp;
+    if (tstamp->tv_sec == 0 && tstamp->tv_nsec == 0)
+        return oops(pcm, errno, "invalid time stamp");
+
+    *hw_ptr = pcm->mmap_status->hw_ptr;
+
+    return 0;
 }
 
 static int pcm_rw_transfer(struct pcm *pcm, void *data, unsigned int frames)

@@ -59,6 +59,7 @@ void cmd_init(struct cmd *cmd)
     cmd->config.rate = 48000;
     cmd->config.format = PCM_FORMAT_S16_LE;
     cmd->config.silence_threshold = 1024 * 2;
+    cmd->config.silence_size = 0;
     cmd->config.stop_threshold = 1024 * 2;
     cmd->config.start_threshold = 1024;
     cmd->bits = 16;
@@ -375,8 +376,10 @@ int sample_is_playable(const struct cmd *cmd)
     can_play = check_param(params, PCM_PARAM_RATE, cmd->config.rate, "sample rate", "hz");
     can_play &= check_param(params, PCM_PARAM_CHANNELS, cmd->config.channels, "sample", " channels");
     can_play &= check_param(params, PCM_PARAM_SAMPLE_BITS, cmd->bits, "bits", " bits");
-    can_play &= check_param(params, PCM_PARAM_PERIOD_SIZE, cmd->config.period_size, "period size", "");
-    can_play &= check_param(params, PCM_PARAM_PERIODS, cmd->config.period_count, "period count", "");
+    can_play &= check_param(params, PCM_PARAM_PERIOD_SIZE, cmd->config.period_size, "period size",
+                            " frames");
+    can_play &= check_param(params, PCM_PARAM_PERIODS, cmd->config.period_count, "period count",
+                            " frames");
 
     pcm_params_free(params);
 
@@ -386,13 +389,14 @@ int sample_is_playable(const struct cmd *cmd)
 int play_sample(struct ctx *ctx)
 {
     char *buffer;
-    int size;
-    int num_read;
+    size_t buffer_size = pcm_frames_to_bytes(ctx->pcm, pcm_get_buffer_size(ctx->pcm));
+    size_t num_read = 0;
+    size_t remaining_data_size = ctx->chunk_header.sz;
+    size_t read_size = 0;
 
-    size = pcm_frames_to_bytes(ctx->pcm, pcm_get_buffer_size(ctx->pcm));
-    buffer = malloc(size);
+    buffer = malloc(buffer_size);
     if (!buffer) {
-        fprintf(stderr, "unable to allocate %d bytes\n", size);
+        fprintf(stderr, "unable to allocate %zu bytes\n", buffer_size);
         return -1;
     }
 
@@ -400,15 +404,17 @@ int play_sample(struct ctx *ctx)
     signal(SIGINT, stream_close);
 
     do {
-        num_read = fread(buffer, 1, size, ctx->file);
+        read_size = remaining_data_size > buffer_size ? buffer_size : remaining_data_size;
+        num_read = fread(buffer, 1, read_size, ctx->file);
         if (num_read > 0) {
             if (pcm_writei(ctx->pcm, buffer,
                 pcm_bytes_to_frames(ctx->pcm, num_read)) < 0) {
                 fprintf(stderr, "error playing sample\n");
                 break;
             }
+            remaining_data_size -= num_read;
         }
-    } while (!close && num_read > 0);
+    } while (!close && num_read > 0 && remaining_data_size > 0);
 
     pcm_wait(ctx->pcm, -1);
 
