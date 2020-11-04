@@ -1706,7 +1706,13 @@ int pcm_readi(struct pcm *pcm, void *data, unsigned int frame_count)
  */
 int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
 {
-    return pcm_writei(pcm, data, pcm_bytes_to_frames(pcm, count));
+    unsigned int requested_frames = pcm_bytes_to_frames(pcm, count);
+    int ret = pcm_writei(pcm, data, requested_frames);
+
+    if (ret < 0)
+        return ret;
+
+    return ((unsigned int )ret == requested_frames) ? 0 : -EIO;
 }
 
 /** Reads audio samples from PCM.
@@ -1722,7 +1728,13 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count)
  */
 int pcm_read(struct pcm *pcm, void *data, unsigned int count)
 {
-    return pcm_readi(pcm, data, pcm_bytes_to_frames(pcm, count));
+    unsigned int requested_frames = pcm_bytes_to_frames(pcm, count);
+    int ret = pcm_readi(pcm, data, requested_frames);
+
+    if (ret < 0)
+        return ret;
+
+    return ((unsigned int )ret == requested_frames) ? 0 : -EIO;
 }
 
 /** Gets the delay of the PCM, in terms of frames.
@@ -1738,4 +1750,3 @@ long pcm_get_delay(struct pcm *pcm)
 
     return pcm->pcm_delay;
 }
-
