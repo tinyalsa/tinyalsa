@@ -58,10 +58,10 @@ void cmd_init(struct cmd *cmd)
     cmd->config.channels = 2;
     cmd->config.rate = 48000;
     cmd->config.format = PCM_FORMAT_S16_LE;
-    cmd->config.silence_threshold = 1024 * 2;
+    cmd->config.silence_threshold = cmd->config.period_size * cmd->config.period_count;
     cmd->config.silence_size = 0;
-    cmd->config.stop_threshold = 1024 * 2;
-    cmd->config.start_threshold = 1024;
+    cmd->config.stop_threshold = cmd->config.period_size * cmd->config.period_count;
+    cmd->config.start_threshold = cmd->config.period_size;
     cmd->bits = 16;
 }
 
@@ -318,6 +318,10 @@ int main(int argc, char **argv)
         cmd.filetype++;
     }
 
+    cmd.config.silence_threshold = cmd.config.period_size * cmd.config.period_count;
+    cmd.config.stop_threshold = cmd.config.period_size * cmd.config.period_count;
+    cmd.config.start_threshold = cmd.config.period_size;
+
     if (ctx_init(&ctx, &cmd) < 0) {
         return EXIT_FAILURE;
     }
@@ -389,11 +393,18 @@ int sample_is_playable(const struct cmd *cmd)
 int play_sample(struct ctx *ctx)
 {
     char *buffer;
-    size_t buffer_size = pcm_frames_to_bytes(ctx->pcm, pcm_get_buffer_size(ctx->pcm));
+    size_t buffer_size = 0;
     size_t num_read = 0;
     size_t remaining_data_size = ctx->chunk_header.sz;
     size_t read_size = 0;
+    const struct pcm_config *config = pcm_get_config(ctx->pcm);
 
+    if (config == NULL) {
+        fprintf(stderr, "unable to get pcm config\n");
+        return -1;
+    }
+
+    buffer_size = pcm_frames_to_bytes(ctx->pcm, config->period_size);
     buffer = malloc(buffer_size);
     if (!buffer) {
         fprintf(stderr, "unable to allocate %zu bytes\n", buffer_size);
