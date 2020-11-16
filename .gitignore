@@ -20,3 +20,4 @@
 /utils/tinymix
 /utils/tinypcminfo
 
+/bazel*
