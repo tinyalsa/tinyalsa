@@ -27,7 +27,9 @@
 */
 #include "pcm_test_device.h"
 
+#include <string_view>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -38,6 +40,17 @@
 
 namespace tinyalsa {
 namespace testing {
+
+#ifndef MAX_CARD_INDEX
+#define MAX_CARD_INDEX 2
+#endif
+
+static constexpr unsigned int kMaxCardIndex = MAX_CARD_INDEX;
+
+TEST(MixerTest, OpenAndClose) {
+    ASSERT_EQ(mixer_open(1000), nullptr);
+    mixer_close(nullptr);
+}
 
 class MixerTest : public ::testing::TestWithParam<unsigned int> {
   protected:
@@ -244,12 +257,44 @@ TEST_P(MixerControlsTest, SetPercent) {
     }
 }
 
+TEST_P(MixerControlsTest, Event) {
+    ASSERT_EQ(mixer_subscribe_events(mixer_object, 1), 0);
+    const mixer_ctl *control = nullptr;
+    for (unsigned int i = 0; i < number_of_controls; ++i) {
+        std::string_view name{mixer_ctl_get_name(controls[i])};
+
+        if (name.find("Volume") != std::string_view::npos) {
+            control = controls[i];
+        }
+    }
+
+    if (control == nullptr) {
+        GTEST_SKIP() << "No volume control was found in the controls list.";
+    }
+
+    auto *local_mixer_object = mixer_object;
+    int percent = mixer_ctl_get_percent(control, 0);
+    std::thread thread([local_mixer_object, control, percent] () {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        mixer_ctl_set_percent(const_cast<mixer_ctl *>(control), 0, percent == 100 ? 0 : 100);
+    });
+
+    EXPECT_EQ(mixer_wait_event(mixer_object, 1000), 1);
+
+    EXPECT_EQ(mixer_consume_event(mixer_object), 0);
+
+    thread.join();
+    ASSERT_EQ(mixer_subscribe_events(mixer_object, 0), 0);
+
+    mixer_ctl_set_percent(const_cast<mixer_ctl *>(control), 0, percent);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     MixerTest,
     MixerTest,
     ::testing::Range<unsigned int>(
         0,
-        kLoopbackCard + 1
+        kMaxCardIndex + 1
     ));
 
 INSTANTIATE_TEST_SUITE_P(
@@ -257,7 +302,7 @@ INSTANTIATE_TEST_SUITE_P(
     MixerControlsTest,
     ::testing::Range<unsigned int>(
         0,
-        kLoopbackCard + 1
+        kMaxCardIndex + 1
     ));
 
 } // namespace testing
