@@ -36,8 +36,8 @@ namespace testing {
 #define TEST_LOOPBACK_CARD 2
 #endif
 
-#ifndef TEST_LOOPBACK_PALYBACK_DEVICE
-#define TEST_LOOPBACK_PALYBACK_DEVICE 0
+#ifndef TEST_LOOPBACK_PLAYBACK_DEVICE
+#define TEST_LOOPBACK_PLAYBACK_DEVICE 0
 #endif
 
 #ifndef TEST_LOOPBACK_CAPTURE_DEVICE
@@ -45,7 +45,7 @@ namespace testing {
 #endif
 
 constexpr unsigned int kLoopbackCard = TEST_LOOPBACK_CARD;
-constexpr unsigned int kLoopbackPlaybackDevice = TEST_LOOPBACK_PALYBACK_DEVICE;
+constexpr unsigned int kLoopbackPlaybackDevice = TEST_LOOPBACK_PLAYBACK_DEVICE;
 constexpr unsigned int kLoopbackCaptureDevice = TEST_LOOPBACK_CAPTURE_DEVICE;
 
 } // namespace testing
