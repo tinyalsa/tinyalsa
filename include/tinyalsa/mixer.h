@@ -37,18 +37,33 @@
 
 #include <sys/time.h>
 #include <stddef.h>
-#include <sound/asound.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-/* TLV header size*/
-#define TLV_HEADER_SIZE sizeof(struct snd_ctl_tlv)
-
 struct mixer;
 
 struct mixer_ctl;
+
+// mixer_ctl_event is a mirroring structure of snd_ctl_event
+struct mixer_ctl_event {
+    int type;
+    union {
+        struct {
+            unsigned int mask;
+            struct {
+                unsigned int numid;
+                int iface;
+                unsigned int device;
+                unsigned int subdevice;
+                unsigned char name[44];
+                unsigned int index;
+            } id;
+        } element;
+        unsigned char data[60];
+    } data;
+};
 
 /** Mixer control type.
  * @ingroup libtinyalsa-mixer
@@ -138,7 +153,7 @@ int mixer_ctl_get_range_min(const struct mixer_ctl *ctl);
 
 int mixer_ctl_get_range_max(const struct mixer_ctl *ctl);
 
-int mixer_read_event(struct mixer *mixer, struct snd_ctl_event *ev);
+int mixer_read_event(struct mixer *mixer, struct mixer_ctl_event *event);
 
 int mixer_consume_event(struct mixer *mixer);
 #if defined(__cplusplus)

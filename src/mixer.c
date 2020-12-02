@@ -553,39 +553,61 @@ exit:
  * further events can be alerted.
  *
  * @param mixer A mixer handle.
- * @returns 0 on success.  -errno on failure.
+ * @returns 1 on success. 0, if no pending event. -errno on failure.
  * @ingroup libtinyalsa-mixer
  */
 int mixer_consume_event(struct mixer *mixer)
 {
-    struct snd_ctl_event ev;
+    struct mixer_ctl_event ev;
 
     return mixer_read_event(mixer, &ev);
 }
 
-int mixer_read_event(struct mixer *mixer, struct snd_ctl_event *ev)
+/** Read a mixer control event.
+ * Try to read an control event from mixer.
+ *
+ * @param mixer A mixer handle.
+ * @param event Output parameter. If there is an event read form the mixer, this function will fill
+ * the event data into it.
+ * @returns 1 on success. 0, if no pending event. -errno on failure.
+ * @ingroup libtinyalsa-mixer
+ */
+int mixer_read_event(struct mixer *mixer, struct mixer_ctl_event *event)
 {
-    struct mixer_ctl_group *grp;
-    ssize_t count = 0;
+    struct mixer_ctl_group *grp = NULL;
+    struct snd_ctl_event ev;
+    ssize_t bytes = 0;
+
+    if (!mixer || !event) {
+        return -EINVAL;
+    }
 
     if (mixer->h_grp) {
-        grp = mixer->h_grp;
-        if (grp->event_cnt) {
-            grp->event_cnt--;
-            count = grp->ops->read_event(grp->data, ev, sizeof(*ev));
-            return (count >= 0) ? 0 : -errno;
+        if (mixer->h_grp->event_cnt > 0) {
+            grp = mixer->h_grp;
         }
     }
 #ifdef TINYALSA_USES_PLUGINS
     if (mixer->v_grp) {
-        grp = mixer->v_grp;
-        if (grp->event_cnt) {
-            grp->event_cnt--;
-            count = grp->ops->read_event(grp->data, ev, sizeof(*ev));
-            return (count >= 0) ? 0 : -errno;
+        if (mixer->v_grp->event_cnt > 0) {
+            grp = mixer->v_grp;
         }
     }
 #endif
+    if (grp) {
+        grp->event_cnt--;
+        bytes = grp->ops->read_event(grp->data, &ev, sizeof(ev));
+
+        if (bytes < 0) {
+            return -errno;
+        }
+
+        if (bytes == sizeof(*event)) {
+            memcpy(event, &ev, sizeof(*event));
+            return 1;
+        }
+    }
+
     return 0;
 }
 

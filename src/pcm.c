@@ -1750,3 +1750,21 @@ long pcm_get_delay(struct pcm *pcm)
 
     return pcm->pcm_delay;
 }
+
+// TODO: Currently in Android, there are some libraries using this function to control the driver.
+//   We should remove this function as soon as possible.
+int pcm_ioctl(struct pcm *pcm, int request, ...)
+{
+    va_list ap;
+    void * arg;
+
+    if (!pcm_is_ready(pcm))
+        return -1;
+
+    va_start(ap, request);
+    arg = va_arg(ap, void *);
+    va_end(ap);
+
+    // FIXME Does not handle plugins
+    return ioctl(pcm->fd, request, arg);
+}
