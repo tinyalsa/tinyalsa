@@ -213,4 +213,4 @@ TEST_F(PcmOutMmapTest, Write) {
 }
 
 } // namespace testing
-} // namespace tinyalse
+} // namespace tinyalsa

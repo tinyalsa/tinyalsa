@@ -40,8 +40,9 @@ namespace tinyalsa {
 namespace testing {
 
 static inline unsigned int OrAllBits(const pcm_mask *mask) {
+    static constexpr size_t kTotalMaskBytes = 32;
     unsigned int res = 0;
-    for (uint32_t i = 0; i < 32 / sizeof(unsigned int); ++i) {
+    for (uint32_t i = 0; i < kTotalMaskBytes / sizeof(pcm_mask::bits[0]); ++i) {
         res |= mask->bits[i];
     }
     return res;
@@ -218,4 +219,4 @@ TEST(PcmParamsTest, GetPlaybackDeviceParams) {
 }
 
 } // namespace testing
-} // namespace tinyalse
+} // namespace tinyalsa

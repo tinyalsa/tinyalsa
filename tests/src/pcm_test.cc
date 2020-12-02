@@ -100,4 +100,4 @@ TEST(PcmTest, OpenAndCloseOutPcm) {
 }
 
 } // namespace testing
-} // namespace tinyalse
+} // namespace tinyalsa

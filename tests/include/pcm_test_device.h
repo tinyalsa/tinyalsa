@@ -49,6 +49,6 @@ constexpr unsigned int kLoopbackPlaybackDevice = TEST_LOOPBACK_PLAYBACK_DEVICE;
 constexpr unsigned int kLoopbackCaptureDevice = TEST_LOOPBACK_CAPTURE_DEVICE;
 
 } // namespace testing
-} // namespace tinyalse
+} // namespace tinyalsa
 
 #endif

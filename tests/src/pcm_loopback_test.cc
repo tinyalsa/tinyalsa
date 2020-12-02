@@ -144,6 +144,9 @@ TEST(PcmLoopbackTest, LoopbackS16le) {
     static constexpr unsigned int kDefaultSamplingRate = 48000;
     static constexpr unsigned int kDefaultPeriodSize = 1024;
     static constexpr unsigned int kDefaultPeriodCount = 3;
+    static constexpr unsigned int kDefaultPeriodTimeInMs =
+            kDefaultPeriodSize * 1000 / kDefaultSamplingRate;
+
     static constexpr pcm_config kInConfig = {
         .channels = kDefaultChannels,
         .rate = kDefaultSamplingRate,
@@ -183,12 +186,20 @@ TEST(PcmLoopbackTest, LoopbackS16le) {
         auto buffer = std::make_unique<unsigned char[]>(buffer_size);
         int32_t counter = 0;
         while (!stopping) {
-            EXPECT_EQ(pcm_readi(pcm_in, buffer.get(), frames), frames);
-            counter++;
+            int res = pcm_readi(pcm_in, buffer.get(), frames);
+            if (res == -1) {
+                std::cout << pcm_get_error(pcm_in) << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds(kDefaultPeriodTimeInMs));
+                continue;
+            }
+            EXPECT_EQ(pcm_readi(pcm_in, buffer.get(), frames), frames) << counter;
+            // Test the energy of the buffer after the sine tone samples fill in the buffer.
+            // Therefore, check the buffer 5 times later.
             if (counter >= 5) {
                 double e = Energy(buffer.get(), frames * kInConfig.channels);
-                EXPECT_GT(e, 0.0);
+                EXPECT_GT(e, 0.0) << counter;
             }
+            counter++;
         }
     });
 
@@ -196,11 +207,11 @@ TEST(PcmLoopbackTest, LoopbackS16le) {
         SineToneGenerator<2, 48000, 1000, 0, PCM_FORMAT_S16_LE> generator;
         size_t buffer_size = pcm_frames_to_bytes(pcm_out, kDefaultPeriodSize);
         unsigned int frames = pcm_bytes_to_frames(pcm_out, buffer_size);
-        int32_t counter = 0;
         auto buffer = std::make_unique<unsigned char[]>(buffer_size);
+        int32_t counter = 0;
         while (!stopping) {
             generator.Read(buffer.get(), buffer_size);
-            EXPECT_EQ(pcm_writei(pcm_out, buffer.get(), frames), frames);
+            EXPECT_EQ(pcm_writei(pcm_out, buffer.get(), frames), frames) << counter;
             counter++;
         }
     });
@@ -216,4 +227,4 @@ TEST(PcmLoopbackTest, LoopbackS16le) {
 }
 
 } // namespace testing
-} // namespace tinyalse
+} // namespace tinyalsa

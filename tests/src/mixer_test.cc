@@ -47,6 +47,9 @@ namespace testing {
 
 static constexpr unsigned int kMaxCardIndex = MAX_CARD_INDEX;
 
+static constexpr int k100Percent = 100;
+static constexpr int k0Percent = 0;
+
 TEST(MixerTest, OpenAndClose) {
     ASSERT_EQ(mixer_open(1000), nullptr);
     mixer_close(nullptr);
@@ -214,10 +217,10 @@ TEST_P(MixerControlsTest, GetPercent) {
                 int max = mixer_ctl_get_range_max(control);
                 int min = mixer_ctl_get_range_min(control);
                 int percent = mixer_ctl_get_percent(control, value_id);
-                ASSERT_GE(percent, 0);
-                ASSERT_LE(percent, 100);
+                ASSERT_GE(percent, k0Percent);
+                ASSERT_LE(percent, k100Percent);
                 int range = max - min;
-                ASSERT_EQ(percent, (values[value_id] - min) * 100 / range);
+                ASSERT_EQ(percent, (values[value_id] - min) * k100Percent / range);
             }
         } else {
             ASSERT_EQ(mixer_ctl_get_percent(control, 0), -EINVAL);
@@ -237,14 +240,16 @@ TEST_P(MixerControlsTest, SetPercent) {
                 int min = mixer_ctl_get_range_min(control);
                 int value = values[value_id];
                 int percent = mixer_ctl_get_percent(control, value_id);
-                if (mixer_ctl_set_percent(const_cast<mixer_ctl *>(control), value_id, 100) == 0) {
+                if (mixer_ctl_set_percent(
+                        const_cast<mixer_ctl *>(control), value_id, k100Percent) == 0) {
                     // note: some controls are able to be written, but their values might not be
                     //   changed.
                     mixer_ctl_get_array(control, values.get(), number_of_values);
                     int new_value = values[value_id];
                     ASSERT_TRUE(new_value == value || new_value == max);
                 }
-                if (mixer_ctl_set_percent(const_cast<mixer_ctl *>(control), value_id, 0) == 0) {
+                if (mixer_ctl_set_percent(
+                        const_cast<mixer_ctl *>(control), value_id, k0Percent) == 0) {
                     mixer_ctl_get_array(control, values.get(), number_of_values);
                     int new_value = values[value_id];
                     ASSERT_TRUE(new_value == value || new_value == min);
@@ -276,7 +281,9 @@ TEST_P(MixerControlsTest, Event) {
     int percent = mixer_ctl_get_percent(control, 0);
     std::thread thread([local_mixer_object, control, percent] () {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        mixer_ctl_set_percent(const_cast<mixer_ctl *>(control), 0, percent == 100 ? 0 : 100);
+        mixer_ctl_set_percent(
+                const_cast<mixer_ctl *>(control), 0,
+                percent == k100Percent ? k0Percent : k100Percent);
     });
 
     EXPECT_EQ(mixer_wait_event(mixer_object, 1000), 1);
@@ -306,4 +313,4 @@ INSTANTIATE_TEST_SUITE_P(
     ));
 
 } // namespace testing
-} // namespace tinyalse
+} // namespace tinyalsa

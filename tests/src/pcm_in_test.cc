@@ -72,7 +72,7 @@ class PcmInTest : public ::testing::Test {
     pcm* pcm_object;
 };
 
-TEST_F(PcmInTest, GetDealy) {
+TEST_F(PcmInTest, GetDelay) {
     long delay = pcm_get_delay(pcm_object);
     std::cout << delay << std::endl;
     ASSERT_GE(delay, 0);
@@ -111,4 +111,4 @@ TEST_F(PcmInTest, Writei) {
 }
 
 } // namespace testing
-} // namespace tinyalse
+} // namespace tinyalsa
