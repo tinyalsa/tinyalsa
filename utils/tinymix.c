@@ -39,7 +39,8 @@
 
 static void tinymix_list_controls(struct mixer *mixer, int print_all);
 
-static void tinymix_detail_control(struct mixer *mixer, const char *control);
+static void tinymix_detail_control(struct mixer_ctl *control);
+static void tinymix_detail_control_by_name_or_id(struct mixer *mixer, const char *name_or_id);
 
 static int tinymix_set_value(struct mixer *mixer, const char *control,
                              char **values, unsigned int num_values);
@@ -114,7 +115,7 @@ int main(int argc, char **argv)
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-        tinymix_detail_control(mixer, argv[opts.optind + 1]);
+        tinymix_detail_control_by_name_or_id(mixer, argv[opts.optind + 1]);
         printf("\n");
     } else if (strcmp(cmd, "set") == 0) {
         if ((opts.optind + 1) >= argc) {
@@ -180,7 +181,7 @@ static void tinymix_list_controls(struct mixer *mixer, int print_all)
         num_values = mixer_ctl_get_num_values(ctl);
         printf("%u\t%s\t%u\t%-40s", i, type, num_values, name);
         if (print_all)
-            tinymix_detail_control(mixer, name);
+            tinymix_detail_control(ctl);
         printf("\n");
     }
 }
@@ -201,9 +202,25 @@ static void tinymix_print_enum(struct mixer_ctl *ctl)
     }
 }
 
-static void tinymix_detail_control(struct mixer *mixer, const char *control)
+static void tinymix_detail_control_by_name_or_id(struct mixer *mixer, const char *name_or_id)
 {
     struct mixer_ctl *ctl;
+
+    if (isnumber(name_or_id))
+        ctl = mixer_get_ctl(mixer, atoi(name_or_id));
+    else
+        ctl = mixer_get_ctl_by_name(mixer, name_or_id);
+
+    if (!ctl) {
+        fprintf(stderr, "Invalid mixer control\n");
+        return;
+    }
+
+    tinymix_detail_control(ctl);
+}
+
+static void tinymix_detail_control(struct mixer_ctl *control)
+{
     enum mixer_ctl_type type;
     unsigned int num_values;
     unsigned int i;
@@ -211,18 +228,8 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control)
     int ret;
     char *buf = NULL;
 
-    if (isnumber(control))
-        ctl = mixer_get_ctl(mixer, atoi(control));
-    else
-        ctl = mixer_get_ctl_by_name(mixer, control);
-
-    if (!ctl) {
-        fprintf(stderr, "Invalid mixer control\n");
-        return;
-    }
-
-    type = mixer_ctl_get_type(ctl);
-    num_values = mixer_ctl_get_num_values(ctl);
+    type = mixer_ctl_get_type(control);
+    num_values = mixer_ctl_get_num_values(control);
 
     if ((type == MIXER_CTL_TYPE_BYTE) && (num_values > 0)) {
         buf = calloc(1, num_values);
@@ -231,7 +238,7 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control)
             return;
         }
 
-        ret = mixer_ctl_get_array(ctl, buf, num_values);
+        ret = mixer_ctl_get_array(control, buf, num_values);
         if (ret < 0) {
             fprintf(stderr, "Failed to mixer_ctl_get_array\n");
             free(buf);
@@ -243,16 +250,16 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control)
         switch (type)
         {
         case MIXER_CTL_TYPE_INT:
-            printf("%d", mixer_ctl_get_value(ctl, i));
+            printf("%d", mixer_ctl_get_value(control, i));
             break;
         case MIXER_CTL_TYPE_BOOL:
-            printf("%s", mixer_ctl_get_value(ctl, i) ? "On" : "Off");
+            printf("%s", mixer_ctl_get_value(control, i) ? "On" : "Off");
             break;
         case MIXER_CTL_TYPE_ENUM:
-            tinymix_print_enum(ctl);
+            tinymix_print_enum(control);
             break;
         case MIXER_CTL_TYPE_BYTE:
-            printf(" %02x", buf[i]);
+            printf("%02hhx", buf[i]);
             break;
         default:
             printf("unknown");
@@ -264,8 +271,8 @@ static void tinymix_detail_control(struct mixer *mixer, const char *control)
     }
 
     if (type == MIXER_CTL_TYPE_INT) {
-        min = mixer_ctl_get_range_min(ctl);
-        max = mixer_ctl_get_range_max(ctl);
+        min = mixer_ctl_get_range_min(control);
+        max = mixer_ctl_get_range_max(control);
         printf(" (range %d->%d)", min, max);
     }
 
