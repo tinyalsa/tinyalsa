@@ -63,3 +63,41 @@ man libtinyalsa-pcm
 man libtinyalsa-mixer
 ```
 
+### Test
+
+To test libtinyalsa, please follow the instructions,
+
+#### Setup Bazel build environment
+
+Visit [here](https://docs.bazel.build/versions/3.7.0/install.html) to get more info to setup Bazel environment.
+
+#### Insert loopback devices
+
+The test program does pcm_* operations on loopback devices. You have to insert loopback devices after your system boots up.
+
+```
+sudo modprobe snd-aloop
+sudo chmod 777 /dev/snd/*
+```
+
+#### Run test program
+
+```
+bazel test //:tinyalsa_tests --test_output=all
+```
+
+The default playback device is hw:2,0 and the default capture device is hw:2,1. If your loopback devices are not hw:2,0 and hw:2,1, you can specify the loopback device.
+
+```
+bazel test //:tinyalsa_tests --test_output=all \
+    --copt=-DTEST_LOOPBACK_CARD=[loopback card] \
+    --copt=-DTEST_LOOPBACK_PLAYBACK_DEVICE=[loopback playback device] \
+    --copt=-DTEST_LOOPBACK_CAPTURE_DEVICE=[loopback capture device]
+```
+
+#### Generate coverage report
+
+```
+bazel coverage //:tinyalsa_tests --combined_report=lcov --test_output=all
+genhtml bazel-out/_coverage/_coverage_report.dat -o tinyalsa_tests_coverage
+```
