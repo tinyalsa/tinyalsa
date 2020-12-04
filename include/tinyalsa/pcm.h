@@ -221,6 +221,8 @@ struct pcm_config {
     /** The number of frames to overwrite the playback buffer when the playback underrun is greater
      * than the silence threshold */
     unsigned int silence_size;
+
+    unsigned int avail_min;
 };
 
 /** Enumeration of a PCM's hardware parameters.
@@ -360,6 +362,8 @@ int pcm_stop(struct pcm *pcm);
 int pcm_wait(struct pcm *pcm, int timeout);
 
 long pcm_get_delay(struct pcm *pcm);
+
+int pcm_ioctl(struct pcm *pcm, int code, ...) TINYALSA_DEPRECATED;
 
 #if defined(__cplusplus)
 }  /* extern "C" */
