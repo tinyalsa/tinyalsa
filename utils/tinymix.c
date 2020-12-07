@@ -51,14 +51,19 @@ void usage(void)
 {
     printf("usage: tinymix [options] <command>\n");
     printf("options:\n");
-    printf("\t-h, --help        : prints this help message and exits\n");
-    printf("\t-v, --version     : prints this version of tinymix and exits\n");
-    printf("\t-D, --card NUMBER : specifies the card number of the mixer\n");
+    printf("\t-h, --help               : prints this help message and exits\n");
+    printf("\t-v, --version            : prints this version of tinymix and exits\n");
+    printf("\t-D, --card NUMBER        : specifies the card number of the mixer\n");
+    printf("\n");
     printf("commands:\n");
-    printf("\tget NAME|ID       : prints the values of a control\n");
-    printf("\tset NAME|ID VALUE : sets the value of a control\n");
-    printf("\tcontrols          : lists controls of the mixer\n");
-    printf("\tcontents          : lists controls of the mixer and their contents\n");
+    printf("\tget NAME|ID              : prints the values of a control\n");
+    printf("\tset NAME|ID VALUE(S) ... : sets the value of a control\n");
+    printf("\t\tVALUE(S): integers, percents, and relative values\n");
+    printf("\t\t\tIntegers: 0, 100, -100 ...\n");
+    printf("\t\t\tPercents: 0%%, 100%% ...\n");
+    printf("\t\t\tRelative values: 1+, 1-, 1%%+, 2%%+ ...\n");
+    printf("\tcontrols                 : lists controls of the mixer\n");
+    printf("\tcontents                 : lists controls of the mixer and their contents\n");
 }
 
 void version(void)
