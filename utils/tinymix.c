@@ -66,10 +66,28 @@ void version(void)
     printf("tinymix version 2.0 (tinyalsa version %s)\n", TINYALSA_VERSION_STRING);
 }
 
+static int is_command(char *arg) {
+    return strcmp(arg, "get") == 0 || strcmp(arg, "set") == 0 ||
+            strcmp(arg, "controls") == 0 || strcmp(arg, "contents") == 0;
+}
+
+static int find_command_position(int argc, char **argv)
+{
+    int i;
+    for (i = 0; i < argc; ++i) {
+        if (is_command(argv[i])) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int main(int argc, char **argv)
 {
     struct mixer *mixer;
     int card = 0, c;
+    int command_position = -1;
+    int i;
     char *cmd;
     struct optparse opts;
     static struct optparse_long long_options[] = {
@@ -79,7 +97,18 @@ int main(int argc, char **argv)
         { 0, 0, 0 }
     };
 
-    optparse_init(&opts, argv);
+    // optparse_long may change the order of the argv list. Duplicate one for parsing the options.
+    char **argv_options_list = (char **) calloc(argc + 1, sizeof(char *));
+    if (!argv_options_list) {
+        fprintf(stderr, "Failed to allocate options list\n");
+        return EXIT_FAILURE;
+    }
+
+    for (i = 0; i < argc; ++i) {
+        argv_options_list[i] = argv[i];
+    }
+
+    optparse_init(&opts, argv_options_list);
     /* Detect the end of the options. */
     while ((c = optparse_long(&opts, long_options, NULL)) != -1) {
         switch (c) {
@@ -88,15 +117,18 @@ int main(int argc, char **argv)
             break;
         case 'h':
             usage();
+            free(argv_options_list);
             return EXIT_SUCCESS;
         case 'v':
             version();
+            free(argv_options_list);
             return EXIT_SUCCESS;
         case '?':
-            fprintf(stderr, "%s\n", opts.errmsg);
-            return EXIT_FAILURE;
+        default:
+            break;
         }
     }
+    free(argv_options_list);
 
     mixer = mixer_open(card);
     if (!mixer) {
@@ -104,31 +136,38 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    cmd = argv[opts.optind];
-    if (cmd == NULL) {
-        fprintf(stderr, "no command specified (see --help)\n");
+    command_position = find_command_position(argc, argv);
+
+    if (command_position < 0) {
+        usage();
         mixer_close(mixer);
         return EXIT_FAILURE;
-    } else if (strcmp(cmd, "get") == 0) {
-        if ((opts.optind + 1) >= argc) {
+    }
+
+    cmd = argv[command_position];
+    if (strcmp(cmd, "get") == 0) {
+        if (command_position + 1 >= argc) {
             fprintf(stderr, "no control specified\n");
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-        tinymix_detail_control_by_name_or_id(mixer, argv[opts.optind + 1]);
+        tinymix_detail_control_by_name_or_id(mixer, argv[command_position + 1]);
         printf("\n");
     } else if (strcmp(cmd, "set") == 0) {
-        if ((opts.optind + 1) >= argc) {
+        if (command_position + 1 >= argc) {
             fprintf(stderr, "no control specified\n");
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-        if ((opts.optind + 2) >= argc) {
+        if (command_position + 2 >= argc) {
             fprintf(stderr, "no value(s) specified\n");
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-        int res = tinymix_set_value(mixer, argv[opts.optind + 1], &argv[opts.optind + 2], argc - opts.optind - 2);
+        int res = tinymix_set_value(mixer,
+                                    argv[command_position + 1],
+                                    &argv[command_position + 2],
+                                    argc - command_position - 2);
         if (res != 0) {
             mixer_close(mixer);
             return EXIT_FAILURE;
@@ -138,7 +177,8 @@ int main(int argc, char **argv)
     } else if (strcmp(cmd, "contents") == 0) {
         tinymix_list_controls(mixer, 1);
     } else {
-        fprintf(stderr, "unknown command '%s' (see --help)\n", cmd);
+        fprintf(stderr, "unknown command '%s'\n", cmd);
+        usage();
         mixer_close(mixer);
         return EXIT_FAILURE;
     }
