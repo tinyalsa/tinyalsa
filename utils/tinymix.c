@@ -394,14 +394,20 @@ static struct parsed_int parse_int(const char* str)
         0 /* value */,
         0 /* length */,
         0 /* remaining length */,
-        "" /* remaining characters */
+        NULL /* remaining characters */
     };
 
-    unsigned int max = strlen(str);
+    size_t length = strlen(str);
+    size_t i = 0;
+    int negative = 0;
 
-    for (unsigned int i = 0; i < max; i++) {
+    if (i < length && str[i] == '-') {
+        negative = 1;
+        i++;
+    }
 
-        char c = str[i];
+    while (i < length) {
+        char c = str[i++];
 
         if (c < '0' || c > '9') {
             break;
@@ -413,8 +419,12 @@ static struct parsed_int parse_int(const char* str)
         out.length++;
     }
 
+    if (negative) {
+        out.value *= -1;
+    }
+
     out.valid = out.length > 0;
-    out.remaining_length = max - out.length;
+    out.remaining_length = length - out.length;
     out.remaining = str + out.length;
 
     return out;
@@ -491,7 +501,8 @@ static int set_control_values(struct mixer_ctl* ctl,
         for (unsigned int i = 0; i < num_values; i++) {
             int res = set_control_value(ctl, i, &value);
             if (res != 0) {
-                fprintf(stderr, "Error: invalid value\n");
+                fprintf(stderr, "Error: invalid value (%d%s%s)\n", value.value,
+                        value.is_relative ? "r" : "", value.is_percent ? "%" : "");
                 return -1;
             }
         }
@@ -512,7 +523,8 @@ static int set_control_values(struct mixer_ctl* ctl,
 
             int res = set_control_value(ctl, i, &v);
             if (res != 0) {
-                fprintf(stderr, "Error: invalid value for index %u\n", i);
+                fprintf(stderr, "Error: invalid value (%d%s%s) for index %u\n", v.value,
+                        v.is_relative ? "r" : "", v.is_percent ? "%" : "", i);
                 return -1;
             }
         }
