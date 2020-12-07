@@ -37,15 +37,15 @@
 #define OPTPARSE_IMPLEMENTATION
 #include "optparse.h"
 
-static void tinymix_list_controls(struct mixer *mixer, int print_all);
+static void list_controls(struct mixer *mixer, int print_all);
 
-static void tinymix_detail_control(struct mixer_ctl *control);
-static void tinymix_detail_control_by_name_or_id(struct mixer *mixer, const char *name_or_id);
+static void print_control_values(struct mixer_ctl *control);
+static void print_control_values_by_name_or_id(struct mixer *mixer, const char *name_or_id);
 
-static int tinymix_set_value(struct mixer *mixer, const char *control,
+static int set_values(struct mixer *mixer, const char *control,
                              char **values, unsigned int num_values);
 
-static void tinymix_print_enum(struct mixer_ctl *ctl);
+static void print_enum(struct mixer_ctl *ctl);
 
 void usage(void)
 {
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-        tinymix_detail_control_by_name_or_id(mixer, argv[command_position + 1]);
+        print_control_values_by_name_or_id(mixer, argv[command_position + 1]);
         printf("\n");
     } else if (strcmp(cmd, "set") == 0) {
         if (command_position + 1 >= argc) {
@@ -164,18 +164,18 @@ int main(int argc, char **argv)
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
-        int res = tinymix_set_value(mixer,
-                                    argv[command_position + 1],
-                                    &argv[command_position + 2],
-                                    argc - command_position - 2);
+        int res = set_values(mixer,
+                             argv[command_position + 1],
+                             &argv[command_position + 2],
+                             argc - command_position - 2);
         if (res != 0) {
             mixer_close(mixer);
             return EXIT_FAILURE;
         }
     } else if (strcmp(cmd, "controls") == 0) {
-        tinymix_list_controls(mixer, 0);
+        list_controls(mixer, 0);
     } else if (strcmp(cmd, "contents") == 0) {
-        tinymix_list_controls(mixer, 1);
+        list_controls(mixer, 1);
     } else {
         fprintf(stderr, "unknown command '%s'\n", cmd);
         usage();
@@ -197,7 +197,7 @@ static int isnumber(const char *str) {
     return strlen(end) == 0;
 }
 
-static void tinymix_list_controls(struct mixer *mixer, int print_all)
+static void list_controls(struct mixer *mixer, int print_all)
 {
     struct mixer_ctl *ctl;
     const char *name, *type;
@@ -221,12 +221,12 @@ static void tinymix_list_controls(struct mixer *mixer, int print_all)
         num_values = mixer_ctl_get_num_values(ctl);
         printf("%u\t%s\t%u\t%-40s", i, type, num_values, name);
         if (print_all)
-            tinymix_detail_control(ctl);
+            print_control_values(ctl);
         printf("\n");
     }
 }
 
-static void tinymix_print_enum(struct mixer_ctl *ctl)
+static void print_enum(struct mixer_ctl *ctl)
 {
     unsigned int num_enums;
     unsigned int i;
@@ -242,7 +242,7 @@ static void tinymix_print_enum(struct mixer_ctl *ctl)
     }
 }
 
-static void tinymix_detail_control_by_name_or_id(struct mixer *mixer, const char *name_or_id)
+static void print_control_values_by_name_or_id(struct mixer *mixer, const char *name_or_id)
 {
     struct mixer_ctl *ctl;
 
@@ -256,10 +256,10 @@ static void tinymix_detail_control_by_name_or_id(struct mixer *mixer, const char
         return;
     }
 
-    tinymix_detail_control(ctl);
+    print_control_values(ctl);
 }
 
-static void tinymix_detail_control(struct mixer_ctl *control)
+static void print_control_values(struct mixer_ctl *control)
 {
     enum mixer_ctl_type type;
     unsigned int num_values;
@@ -296,7 +296,7 @@ static void tinymix_detail_control(struct mixer_ctl *control)
             printf("%s", mixer_ctl_get_value(control, i) ? "On" : "Off");
             break;
         case MIXER_CTL_TYPE_ENUM:
-            tinymix_print_enum(control);
+            print_enum(control);
             break;
         case MIXER_CTL_TYPE_BYTE:
             printf("%02hhx", buf[i]);
@@ -370,54 +370,54 @@ fail:
 
 static int is_int(const char *value)
 {
-    return (value[0] >= '0') || (value[0] <= '9');
+    return value[0] >= '0' || value[0] <= '9';
 }
 
 struct parsed_int
 {
-  /** Wether or not the integer was valid. */
-  int valid;
-  /** The value of the parsed integer. */
-  int value;
-  /** The number of characters that were parsed. */
-  unsigned int length;
-  /** The number of characters remaining in the string. */
-  unsigned int remaining_length;
-  /** The remaining characters (or suffix) of the integer. */
-  const char* remaining;
+    /** Wether or not the integer was valid. */
+    int valid;
+    /** The value of the parsed integer. */
+    int value;
+    /** The number of characters that were parsed. */
+    unsigned int length;
+    /** The number of characters remaining in the string. */
+    unsigned int remaining_length;
+    /** The remaining characters (or suffix) of the integer. */
+    const char* remaining;
 };
 
 static struct parsed_int parse_int(const char* str)
 {
-  struct parsed_int out = {
-    0 /* valid */,
-    0 /* value */,
-    0 /* length */,
-    0 /* remaining length */,
-    "" /* remaining characters */
-  };
+    struct parsed_int out = {
+        0 /* valid */,
+        0 /* value */,
+        0 /* length */,
+        0 /* remaining length */,
+        "" /* remaining characters */
+    };
 
-  unsigned int max = strlen(str);
+    unsigned int max = strlen(str);
 
-  for (unsigned int i = 0; i < max; i++) {
+    for (unsigned int i = 0; i < max; i++) {
 
-    char c = str[i];
+        char c = str[i];
 
-    if ((c < '0') || (c > '9')) {
-      break;
+        if (c < '0' || c > '9') {
+            break;
+        }
+
+        out.value *= 10;
+        out.value += c - '0';
+
+        out.length++;
     }
 
-    out.value *= 10;
-    out.value += c - '0';
+    out.valid = out.length > 0;
+    out.remaining_length = max - out.length;
+    out.remaining = str + out.length;
 
-    out.length++;
-  }
-
-  out.valid = out.length > 0;
-  out.remaining_length = max - out.length;
-  out.remaining = str + out.length;
-
-  return out;
+    return out;
 }
 
 struct control_value
@@ -442,21 +442,22 @@ static struct control_value to_control_value(const char* value_string)
     unsigned int i = 0;
 
     if (parsed_int.remaining[i] == '%') {
-      out.is_percent = 1;
-      i++;
+        out.is_percent = 1;
+        i++;
     }
 
     if (parsed_int.remaining[i] == '+') {
-      out.is_relative = 1;
+        out.is_relative = 1;
     } else if (parsed_int.remaining[i] == '-') {
-      out.is_relative = 1;
-      out.value *= -1;
+        out.is_relative = 1;
+        out.value *= -1;
     }
 
     return out;
 }
 
-static int set_control_value(struct mixer_ctl* ctl, unsigned int i, const struct control_value* value)
+static int set_control_value(struct mixer_ctl* ctl, unsigned int i,
+                             const struct control_value* value)
 {
     int next_value = value->value;
 
@@ -520,7 +521,7 @@ static int set_control_values(struct mixer_ctl* ctl,
     return 0;
 }
 
-static int tinymix_set_value(struct mixer *mixer, const char *control,
+static int set_values(struct mixer *mixer, const char *control,
                              char **values, unsigned int num_values)
 {
     struct mixer_ctl *ctl;
