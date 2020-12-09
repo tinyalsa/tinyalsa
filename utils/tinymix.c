@@ -78,8 +78,7 @@ static int is_command(char *arg) {
 
 static int find_command_position(int argc, char **argv)
 {
-    int i;
-    for (i = 0; i < argc; ++i) {
+    for (int i = 0; i < argc; ++i) {
         if (is_command(argv[i])) {
             return i;
         }
@@ -89,11 +88,7 @@ static int find_command_position(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-    struct mixer *mixer;
-    int card = 0, c;
-    int command_position = -1;
-    int i;
-    char *cmd;
+    int card = 0;
     struct optparse opts;
     static struct optparse_long long_options[] = {
         { "card",    'D', OPTPARSE_REQUIRED },
@@ -109,12 +104,13 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    for (i = 0; i < argc; ++i) {
+    for (int i = 0; i < argc; ++i) {
         argv_options_list[i] = argv[i];
     }
 
     optparse_init(&opts, argv_options_list);
     /* Detect the end of the options. */
+    int c;
     while ((c = optparse_long(&opts, long_options, NULL)) != -1) {
         switch (c) {
         case 'D':
@@ -135,21 +131,20 @@ int main(int argc, char **argv)
     }
     free(argv_options_list);
 
-    mixer = mixer_open(card);
+    struct mixer *mixer = mixer_open(card);
     if (!mixer) {
         fprintf(stderr, "Failed to open mixer\n");
         return EXIT_FAILURE;
     }
 
-    command_position = find_command_position(argc, argv);
-
+    int command_position = find_command_position(argc, argv);
     if (command_position < 0) {
         usage();
         mixer_close(mixer);
         return EXIT_FAILURE;
     }
 
-    cmd = argv[command_position];
+    char *cmd = argv[command_position];
     if (strcmp(cmd, "get") == 0) {
         if (command_position + 1 >= argc) {
             fprintf(stderr, "no control specified\n");
@@ -415,6 +410,7 @@ static struct parsed_int parse_int(const char* str)
         char c = str[i++];
 
         if (c < '0' || c > '9') {
+            --i;
             break;
         }
 
