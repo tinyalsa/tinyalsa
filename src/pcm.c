@@ -1242,6 +1242,7 @@ static inline int pcm_mmap_capture_avail(struct pcm *pcm)
 
 int pcm_mmap_avail(struct pcm *pcm)
 {
+    pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_HWSYNC);
     if (pcm->flags & PCM_IN)
         return pcm_mmap_capture_avail(pcm);
     else
@@ -1552,8 +1553,14 @@ int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count)
     if ((~pcm->flags) & (PCM_OUT | PCM_MMAP))
         return -ENOSYS;
 
-    return pcm_mmap_transfer(pcm, (void *)data,
-                             pcm_bytes_to_frames(pcm, count));
+    unsigned int frames = pcm_bytes_to_frames(pcm, count);
+    int res = pcm_mmap_transfer(pcm, (void *) data, frames);
+
+    if (res < 0) {
+        return res;
+    }
+
+    return (unsigned int) res == frames ? 0 : -EIO;
 }
 
 int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
@@ -1561,7 +1568,14 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
     if ((~pcm->flags) & (PCM_IN | PCM_MMAP))
         return -ENOSYS;
 
-    return pcm_mmap_transfer(pcm, data, pcm_bytes_to_frames(pcm, count));
+    unsigned int frames = pcm_bytes_to_frames(pcm, count);
+    int res = pcm_mmap_transfer(pcm, data, frames);
+
+    if (res < 0) {
+        return res;
+    }
+
+    return (unsigned int) res == frames ? 0 : -EIO;
 }
 
 /* Returns current read/write position in the mmap buffer with associated time stamp. */
