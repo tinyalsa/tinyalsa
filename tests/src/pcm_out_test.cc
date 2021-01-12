@@ -47,6 +47,7 @@ class PcmOutTest : public ::testing::Test {
         pcm_object = pcm_open(kLoopbackCard, kLoopbackPlaybackDevice, PCM_OUT, &kDefaultConfig);
         ASSERT_NE(pcm_object, nullptr);
         ASSERT_TRUE(pcm_is_ready(pcm_object));
+        pcm_prepare(pcm_object);
     }
 
     virtual void TearDown() override {
@@ -176,6 +177,7 @@ class PcmOutMmapTest : public PcmOutTest {
                 &kDefaultConfig);
         ASSERT_NE(pcm_object, nullptr);
         ASSERT_TRUE(pcm_is_ready(pcm_object));
+        pcm_prepare(pcm_object);
     }
 
     virtual void TearDown() override {

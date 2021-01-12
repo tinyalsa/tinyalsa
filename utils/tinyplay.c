@@ -192,6 +192,7 @@ int ctx_init(struct ctx* ctx, const struct cmd *cmd)
         pcm_close(ctx->pcm);
         return -1;
     }
+    pcm_prepare(ctx->pcm);
 
     return 0;
 }

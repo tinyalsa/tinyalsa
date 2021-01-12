@@ -160,6 +160,7 @@ TEST(PcmLoopbackTest, LoopbackS16le) {
     };
     pcm *pcm_in = pcm_open(kLoopbackCard, kLoopbackCaptureDevice, PCM_IN, &kInConfig);
     ASSERT_TRUE(pcm_is_ready(pcm_in));
+    pcm_prepare(pcm_in);
 
     static constexpr pcm_config kOutConfig = {
         .channels = kDefaultChannels,
@@ -174,6 +175,7 @@ TEST(PcmLoopbackTest, LoopbackS16le) {
     };
     pcm *pcm_out = pcm_open(kLoopbackCard, kLoopbackPlaybackDevice, PCM_OUT, &kOutConfig);
     ASSERT_TRUE(pcm_is_ready(pcm_out));
+    pcm_prepare(pcm_out);
 
     ASSERT_EQ(pcm_link(pcm_in, pcm_out), 0);
 

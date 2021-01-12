@@ -70,6 +70,7 @@ static int write_frames(const void * frames, size_t byte_count){
         fprintf(stderr, "failed to open PCM\n");
         return -1;
     }
+    pcm_prepare(pcm);
 
     unsigned int frame_count = pcm_bytes_to_frames(pcm, byte_count);
 
