@@ -1,0 +1,15 @@
+cc_library {
+    name: "libtinyalsav2_example_plugin_pcm",
+    vendor: true,
+    srcs: ["sample_pcm_plugin.c"],
+    cflags: ["-Werror", "-Wno-unused-parameter"],
+    header_libs: ["libtinyalsav2_headers"],
+}
+
+cc_library {
+    name: "libtinyalsav2_example_plugin_mixer",
+    vendor: true,
+    srcs: ["sample_mixer_plugin.c"],
+    cflags: ["-Werror", "-Wno-unused-parameter"],
+    header_libs: ["libtinyalsav2_headers"],
+}

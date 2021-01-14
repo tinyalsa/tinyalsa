@@ -1,0 +1,7 @@
+cc_library {
+    name: "libsndcardparser_example",
+    vendor: true,
+    srcs: ["sample_sndcardparser.c"],
+    cflags: ["-Werror"],
+}
+
