@@ -1,5 +1,5 @@
 cc_library {
-    name: "libtinyalsa",
+    name: "libtinyalsav2",
     host_supported: true,
     vendor_available: true,
     srcs: [
@@ -22,16 +22,22 @@ cc_library {
     },
 
     system_shared_libs: ["libc", "libdl"],
-    vndk: {
-        enabled: true,
+
+    sanitize: {
+        integer_overflow: true,
+        misc_undefined: ["bounds"],
+        diag: {
+            integer_overflow: true,
+            misc_undefined: ["bounds"],
+        },
     },
 }
 
 cc_binary {
-    name: "tinyplay",
+    name: "tinyplay2",
     host_supported: true,
     srcs: ["utils/tinyplay.c"],
-    shared_libs: ["libtinyalsa"],
+    shared_libs: ["libtinyalsav2"],
     cflags: ["-Werror"],
     target: {
         darwin: {
@@ -41,22 +47,22 @@ cc_binary {
 }
 
 cc_binary {
-    name: "tinycap",
+    name: "tinycap2",
     srcs: ["utils/tinycap.c"],
-    shared_libs: ["libtinyalsa"],
+    shared_libs: ["libtinyalsav2"],
     cflags: ["-Werror"],
 }
 
 cc_binary {
-    name: "tinymix",
+    name: "tinymix2",
     srcs: ["utils/tinymix.c"],
-    shared_libs: ["libtinyalsa"],
+    shared_libs: ["libtinyalsav2"],
     cflags: ["-Werror", "-Wall"],
 }
 
 cc_binary {
-    name: "tinypcminfo",
+    name: "tinypcminfo2",
     srcs: ["utils/tinypcminfo.c"],
-    shared_libs: ["libtinyalsa"],
+    shared_libs: ["libtinyalsav2"],
     cflags: ["-Werror"],
 }
