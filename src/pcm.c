@@ -1547,10 +1547,10 @@ int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
 int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count)
 {
     if ((~pcm->flags) & (PCM_OUT | PCM_MMAP))
-        return -ENOSYS;
+        return -EINVAL;
 
     unsigned int frames = pcm_bytes_to_frames(pcm, count);
-    int res = pcm_mmap_transfer(pcm, (void *) data, frames);
+    int res = pcm_writei(pcm, (void *) data, frames);
 
     if (res < 0) {
         return res;
@@ -1562,10 +1562,10 @@ int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count)
 int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
 {
     if ((~pcm->flags) & (PCM_IN | PCM_MMAP))
-        return -ENOSYS;
+        return -EINVAL;
 
     unsigned int frames = pcm_bytes_to_frames(pcm, count);
-    int res = pcm_mmap_transfer(pcm, data, frames);
+    int res = pcm_readi(pcm, data, frames);
 
     if (res < 0) {
         return res;

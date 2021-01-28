@@ -303,6 +303,9 @@ int main(int argc, char **argv)
         case 'i':
             cmd.filetype = opts.optarg;
             break;
+        case 'M':
+            cmd.flags |= PCM_MMAP;
+            break;
         case 'h':
             print_usage(argv[0]);
             return EXIT_SUCCESS;

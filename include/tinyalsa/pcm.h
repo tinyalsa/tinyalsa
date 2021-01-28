@@ -335,9 +335,9 @@ int pcm_write(struct pcm *pcm, const void *data, unsigned int count) TINYALSA_DE
 
 int pcm_read(struct pcm *pcm, void *data, unsigned int count) TINYALSA_DEPRECATED;
 
-int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count);
+int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count) TINYALSA_DEPRECATED;
 
-int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count);
+int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count) TINYALSA_DEPRECATED;
 
 int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset, unsigned int *frames);
 
