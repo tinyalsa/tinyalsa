@@ -29,7 +29,6 @@ static size_t read_frames(void **frames)
         fprintf(stderr, "failed to open PCM\n");
         return 0;
     }
-    pcm_prepare(pcm);
 
     unsigned int frame_size = pcm_frames_to_bytes(pcm, 1);
     unsigned int frames_per_sec = pcm_get_rate(pcm);

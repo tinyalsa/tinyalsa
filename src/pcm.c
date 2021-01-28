@@ -1637,6 +1637,10 @@ static int pcm_generic_transfer(struct pcm *pcm, void *data,
     if (frames > INT_MAX)
         return -EINVAL;
 
+    if (pcm_state(pcm) == PCM_STATE_SETUP && pcm_prepare(pcm) != 0) {
+        return -1;
+    }
+
 again:
 
     if (pcm->flags & PCM_MMAP)

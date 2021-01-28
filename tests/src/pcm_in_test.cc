@@ -47,7 +47,6 @@ class PcmInTest : public ::testing::Test {
         pcm_object = pcm_open(kLoopbackCard, kLoopbackCaptureDevice, PCM_IN, &kDefaultConfig);
         ASSERT_NE(pcm_object, nullptr);
         ASSERT_TRUE(pcm_is_ready(pcm_object));
-        pcm_prepare(pcm_object);
     }
 
     virtual void TearDown() override {
@@ -74,6 +73,7 @@ class PcmInTest : public ::testing::Test {
 };
 
 TEST_F(PcmInTest, GetDelay) {
+    pcm_prepare(pcm_object);
     long delay = pcm_get_delay(pcm_object);
     std::cout << delay << std::endl;
     ASSERT_GE(delay, 0);

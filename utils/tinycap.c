@@ -231,7 +231,6 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
                 pcm_get_error(pcm));
         return 0;
     }
-    pcm_prepare(pcm);
 
     size = pcm_frames_to_bytes(pcm, pcm_get_buffer_size(pcm));
     buffer = malloc(size);
