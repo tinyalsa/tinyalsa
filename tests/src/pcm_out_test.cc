@@ -192,13 +192,13 @@ TEST_F(PcmOutMmapTest, Write) {
         buffer[i] = static_cast<char>(i);
     }
 
-    int written_frames = 0;
+    int res = 0;
     unsigned int frames = pcm_bytes_to_frames(pcm_object, buffer_size);
     pcm_start(pcm_object);
     auto start = std::chrono::steady_clock::now();
     for (uint32_t i = 0; i < write_count; ++i) {
-        written_frames = pcm_mmap_write(pcm_object, buffer.get(), buffer_size);
-        ASSERT_EQ(written_frames, frames);
+        res = pcm_mmap_write(pcm_object, buffer.get(), buffer_size);
+        ASSERT_EQ(res, 0);
     }
     pcm_stop(pcm_object);
 

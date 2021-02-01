@@ -370,7 +370,7 @@ fail:
 
 static int is_int(const char *value)
 {
-    return value[0] >= '0' || value[0] <= '9';
+    return value[0] >= '0' && value[0] <= '9';
 }
 
 struct parsed_int

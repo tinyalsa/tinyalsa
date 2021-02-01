@@ -73,6 +73,7 @@ class PcmInTest : public ::testing::Test {
 };
 
 TEST_F(PcmInTest, GetDelay) {
+    pcm_prepare(pcm_object);
     long delay = pcm_get_delay(pcm_object);
     std::cout << delay << std::endl;
     ASSERT_GE(delay, 0);

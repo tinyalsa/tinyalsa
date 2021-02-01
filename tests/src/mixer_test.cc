@@ -288,7 +288,7 @@ TEST_P(MixerControlsTest, Event) {
 
     EXPECT_EQ(mixer_wait_event(mixer_object, 1000), 1);
 
-    EXPECT_EQ(mixer_consume_event(mixer_object), 0);
+    EXPECT_EQ(mixer_consume_event(mixer_object), 1);
 
     thread.join();
     ASSERT_EQ(mixer_subscribe_events(mixer_object, 0), 0);

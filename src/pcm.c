@@ -995,24 +995,25 @@ int pcm_close(struct pcm *pcm)
  *   - @ref PCM_MONOTONIC
  * @param config The hardware and software parameters to open the PCM with.
  * @returns A PCM structure.
- *  If an error occurs allocating memory for the PCM, NULL is returned.
- *  Otherwise, client code should check that the PCM opened properly by calling @ref pcm_is_ready.
- *  If @ref pcm_is_ready, check @ref pcm_get_error for more information.
+ *  If an error occurs, the pointer of bad_pcm is returned.
+ *  Otherwise, it returns the pointer of PCM object.
+ *  Client code should check that the PCM opened properly by calling @ref pcm_is_ready.
+ *  If @ref pcm_is_ready returns false, check @ref pcm_get_error for more information.
  * @ingroup libtinyalsa-pcm
  */
 struct pcm *pcm_open_by_name(const char *name,
                              unsigned int flags,
                              const struct pcm_config *config)
 {
-  unsigned int card, device;
-  if ((name[0] != 'h')
-   || (name[1] != 'w')
-   || (name[2] != ':')) {
-    return NULL;
-  } else if (sscanf(&name[3], "%u,%u", &card, &device) != 2) {
-    return NULL;
-  }
-  return pcm_open(card, device, flags, config);
+    unsigned int card, device;
+    if (name[0] != 'h' || name[1] != 'w' || name[2] != ':') {
+        oops(&bad_pcm, 0, "name format is not matched");
+        return &bad_pcm;
+    } else if (sscanf(&name[3], "%u,%u", &card, &device) != 2) {
+        oops(&bad_pcm, 0, "name format is not matched");
+        return &bad_pcm;
+    }
+    return pcm_open(card, device, flags, config);
 }
 
 /** Opens a PCM.
@@ -1029,9 +1030,10 @@ struct pcm *pcm_open_by_name(const char *name,
  *   - @ref PCM_MONOTONIC
  * @param config The hardware and software parameters to open the PCM with.
  * @returns A PCM structure.
- *  If an error occurs allocating memory for the PCM, NULL is returned.
- *  Otherwise, client code should check that the PCM opened properly by calling @ref pcm_is_ready.
- *  If @ref pcm_is_ready, check @ref pcm_get_error for more information.
+ *  If an error occurs, the pointer of bad_pcm is returned.
+ *  Otherwise, it returns the pointer of PCM object.
+ *  Client code should check that the PCM opened properly by calling @ref pcm_is_ready.
+ *  If @ref pcm_is_ready returns false, check @ref pcm_get_error for more information.
  * @ingroup libtinyalsa-pcm
  */
 struct pcm *pcm_open(unsigned int card, unsigned int device,
@@ -1042,8 +1044,10 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     int rc;
 
     pcm = calloc(1, sizeof(struct pcm));
-    if (!pcm)
+    if (!pcm) {
+        oops(&bad_pcm, ENOMEM, "can't allocate PCM object");
         return &bad_pcm;
+    }
 
     /* Default to hw_ops, attemp plugin open only if hw (/dev/snd/pcm*) open fails */
     pcm->ops = &hw_ops;
@@ -1055,7 +1059,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
         pcm->snd_node = snd_utils_open_pcm(card, device);
         pcm_type = snd_utils_get_node_type(pcm->snd_node);
         if (!pcm->snd_node || pcm_type != SND_NODE_TYPE_PLUGIN) {
-            oops(pcm, -ENODEV, "no device (hw/plugin) for card(%u), device(%u)",
+            oops(&bad_pcm, ENODEV, "no device (hw/plugin) for card(%u), device(%u)",
                  card, device);
             goto fail_close_dev_node;
         }
@@ -1064,7 +1068,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     }
 #endif
     if (pcm->fd < 0) {
-        oops(pcm, errno, "cannot open device (%u) for card (%u)",
+        oops(&bad_pcm, errno, "cannot open device (%u) for card (%u)",
              device, card);
         goto fail_close_dev_node;
     }
@@ -1072,7 +1076,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     pcm->flags = flags;
 
     if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_INFO, &info)) {
-        oops(pcm, errno, "cannot get info");
+        oops(&bad_pcm, errno, "cannot get info");
         goto fail_close;
     }
     pcm->subdevice = info.subdevice;
@@ -1082,7 +1086,7 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
 
     rc = pcm_hw_mmap_status(pcm);
     if (rc < 0) {
-        oops(pcm, errno, "mmap status failed");
+        oops(&bad_pcm, errno, "mmap status failed");
         goto fail;
     }
 
@@ -1091,15 +1095,11 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
         int arg = SNDRV_PCM_TSTAMP_TYPE_MONOTONIC;
         rc = pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_TTSTAMP, &arg);
         if (rc < 0) {
-            oops(pcm, errno, "cannot set timestamp type");
+            oops(&bad_pcm, errno, "cannot set timestamp type");
             goto fail;
         }
     }
 #endif
-
-    /* prepare here so the user does not need to do this later */
-    if (pcm_prepare(pcm))
-        goto fail;
 
     pcm->xruns = 0;
     return pcm;
@@ -1238,6 +1238,7 @@ static inline int pcm_mmap_capture_avail(struct pcm *pcm)
 
 int pcm_mmap_avail(struct pcm *pcm)
 {
+    pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_HWSYNC);
     if (pcm->flags & PCM_IN)
         return pcm_mmap_capture_avail(pcm);
     else
@@ -1546,18 +1547,31 @@ int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
 int pcm_mmap_write(struct pcm *pcm, const void *data, unsigned int count)
 {
     if ((~pcm->flags) & (PCM_OUT | PCM_MMAP))
-        return -ENOSYS;
+        return -EINVAL;
 
-    return pcm_mmap_transfer(pcm, (void *)data,
-                             pcm_bytes_to_frames(pcm, count));
+    unsigned int frames = pcm_bytes_to_frames(pcm, count);
+    int res = pcm_writei(pcm, (void *) data, frames);
+
+    if (res < 0) {
+        return res;
+    }
+
+    return (unsigned int) res == frames ? 0 : -EIO;
 }
 
 int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
 {
     if ((~pcm->flags) & (PCM_IN | PCM_MMAP))
-        return -ENOSYS;
+        return -EINVAL;
 
-    return pcm_mmap_transfer(pcm, data, pcm_bytes_to_frames(pcm, count));
+    unsigned int frames = pcm_bytes_to_frames(pcm, count);
+    int res = pcm_readi(pcm, data, frames);
+
+    if (res < 0) {
+        return res;
+    }
+
+    return (unsigned int) res == frames ? 0 : -EIO;
 }
 
 /* Returns current read/write position in the mmap buffer with associated time stamp. */
@@ -1622,6 +1636,10 @@ static int pcm_generic_transfer(struct pcm *pcm, void *data,
 #endif
     if (frames > INT_MAX)
         return -EINVAL;
+
+    if (pcm_state(pcm) == PCM_STATE_SETUP && pcm_prepare(pcm) != 0) {
+        return -1;
+    }
 
 again:
 
