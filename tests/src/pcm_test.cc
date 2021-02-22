@@ -49,6 +49,8 @@ TEST(PcmTest, FormatToBits) {
     ASSERT_EQ(pcm_format_to_bits(PCM_FORMAT_S24_BE), 32);
     ASSERT_EQ(pcm_format_to_bits(PCM_FORMAT_S24_3BE), 24);
     ASSERT_EQ(pcm_format_to_bits(PCM_FORMAT_S32_BE), 32);
+    ASSERT_EQ(pcm_format_to_bits(PCM_FORMAT_FLOAT_LE), 32);
+    ASSERT_EQ(pcm_format_to_bits(PCM_FORMAT_FLOAT_BE), 32);
 }
 
 TEST(PcmTest, OpenAndCloseOutPcm) {

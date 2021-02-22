@@ -70,6 +70,9 @@ void cmd_init(struct cmd *cmd)
 #define ID_FMT  0x20746d66
 #define ID_DATA 0x61746164
 
+#define WAVE_FORMAT_PCM 0x0001
+#define WAVE_FORMAT_IEEE_FLOAT 0x0003
+
 struct riff_wave_header {
     uint32_t riff_id;
     uint32_t riff_sz;
@@ -164,16 +167,24 @@ int ctx_init(struct ctx* ctx, const struct cmd *cmd)
         bits = ctx->chunk_fmt.bits_per_sample;
     }
 
-    if (bits == 8) {
-        config.format = PCM_FORMAT_S8;
-    } else if (bits == 16) {
-        config.format = PCM_FORMAT_S16_LE;
-    } else if (bits == 24) {
-        config.format = PCM_FORMAT_S24_3LE;
-    } else if (bits == 32) {
-        config.format = PCM_FORMAT_S32_LE;
+    if (ctx->chunk_fmt.audio_format == WAVE_FORMAT_PCM) {
+        if (bits == 8) {
+            config.format = PCM_FORMAT_S8;
+        } else if (bits == 16) {
+            config.format = PCM_FORMAT_S16_LE;
+        } else if (bits == 24) {
+            config.format = PCM_FORMAT_S24_3LE;
+        } else if (bits == 32) {
+            config.format = PCM_FORMAT_S32_LE;
+        } else {
+            fprintf(stderr, "bit count '%u' not supported\n", bits);
+            fclose(ctx->file);
+            return -1;
+        }
+    } else if (ctx->chunk_fmt.audio_format == WAVE_FORMAT_IEEE_FLOAT) {
+        config.format = PCM_FORMAT_FLOAT_LE;
     } else {
-        fprintf(stderr, "bit count '%u' not supported\n", bits);
+        fprintf(stderr, "format '%hu' not supported\n", ctx->chunk_fmt.audio_format);
         fclose(ctx->file);
         return -1;
     }

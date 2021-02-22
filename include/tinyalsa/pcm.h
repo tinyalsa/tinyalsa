@@ -178,6 +178,10 @@ enum pcm_format {
     PCM_FORMAT_S24_3BE,
     /** Signed, 32-bit, big endian */
     PCM_FORMAT_S32_BE,
+    /** 32-bit float, little endian */
+    PCM_FORMAT_FLOAT_LE,
+    /** 32-bit float, big endian */
+    PCM_FORMAT_FLOAT_BE,
     /** Max of the enumeration list, not an actual format. */
     PCM_FORMAT_MAX
 };
