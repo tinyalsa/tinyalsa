@@ -67,7 +67,7 @@ cc_binary {
     name: "tinyplay2",
     host_supported: true,
     srcs: ["utils/tinyplay.c"],
-    shared_libs: ["libtinyalsav2"],
+    static_libs: ["libtinyalsav2"],
     cflags: ["-Werror"],
     target: {
         darwin: {
@@ -79,20 +79,20 @@ cc_binary {
 cc_binary {
     name: "tinycap2",
     srcs: ["utils/tinycap.c"],
-    shared_libs: ["libtinyalsav2"],
+    static_libs: ["libtinyalsav2"],
     cflags: ["-Werror"],
 }
 
 cc_binary {
     name: "tinymix2",
     srcs: ["utils/tinymix.c"],
-    shared_libs: ["libtinyalsav2"],
+    static_libs: ["libtinyalsav2"],
     cflags: ["-Werror", "-Wall"],
 }
 
 cc_binary {
     name: "tinypcminfo2",
     srcs: ["utils/tinypcminfo.c"],
-    shared_libs: ["libtinyalsav2"],
+    static_libs: ["libtinyalsav2"],
     cflags: ["-Werror"],
 }

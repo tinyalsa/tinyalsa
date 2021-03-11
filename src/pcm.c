@@ -1411,7 +1411,8 @@ again:
 
 int pcm_state(struct pcm *pcm)
 {
-    int err = pcm_sync_ptr(pcm, 0);
+    // Update the state only. Do not sync HW sync.
+    int err = pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_APPL | SNDRV_PCM_SYNC_PTR_AVAIL_MIN);
     if (err < 0)
         return err;
 
