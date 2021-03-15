@@ -282,6 +282,11 @@ static unsigned int pcm_format_to_alsa(enum pcm_format format)
         return SNDRV_PCM_FORMAT_S32_LE;
     case PCM_FORMAT_S32_BE:
         return SNDRV_PCM_FORMAT_S32_BE;
+
+    case PCM_FORMAT_FLOAT_LE:
+        return SNDRV_PCM_FORMAT_FLOAT_LE;
+    case PCM_FORMAT_FLOAT_BE:
+        return SNDRV_PCM_FORMAT_FLOAT_BE;
     };
 }
 
@@ -556,6 +561,8 @@ unsigned int pcm_format_to_bits(enum pcm_format format)
     case PCM_FORMAT_S32_BE:
     case PCM_FORMAT_S24_LE:
     case PCM_FORMAT_S24_BE:
+    case PCM_FORMAT_FLOAT_LE:
+    case PCM_FORMAT_FLOAT_BE:
         return 32;
     case PCM_FORMAT_S24_3LE:
     case PCM_FORMAT_S24_3BE:
@@ -1404,7 +1411,8 @@ again:
 
 int pcm_state(struct pcm *pcm)
 {
-    int err = pcm_sync_ptr(pcm, 0);
+    // Update the state only. Do not sync HW sync.
+    int err = pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_APPL | SNDRV_PCM_SYNC_PTR_AVAIL_MIN);
     if (err < 0)
         return err;
 
