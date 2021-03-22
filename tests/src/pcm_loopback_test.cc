@@ -199,7 +199,7 @@ class PcmLoopbackTest : public ::testing::Test {
     static constexpr unsigned int kDefaultPeriodCount = 3;
     static constexpr unsigned int kDefaultPeriodTimeInMs =
             kDefaultPeriodSize * 1000 / kDefaultSamplingRate;
-    static constexpr pcm_format kPcmForamt = F::Format;
+    static constexpr pcm_format kPcmForamt = F::kFormat;
     pcm *pcm_in;
     pcm *pcm_out;
 };
