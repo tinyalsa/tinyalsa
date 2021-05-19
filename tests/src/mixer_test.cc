@@ -27,6 +27,7 @@
 */
 #include "pcm_test_device.h"
 
+#include <limits>
 #include <string_view>
 #include <string>
 #include <thread>
@@ -51,8 +52,60 @@ static constexpr int k100Percent = 100;
 static constexpr int k0Percent = 0;
 
 TEST(MixerTest, OpenAndClose) {
-    ASSERT_EQ(mixer_open(1000), nullptr);
+    // assume card 0 is always probed.
+    mixer *mixer_object = mixer_open(0);
+    EXPECT_NE(mixer_object, nullptr);
+    mixer_close(mixer_object);
+}
+
+TEST(MixerTest, NullParametersCheck) {
+    EXPECT_EQ(mixer_open(1000), nullptr);
     mixer_close(nullptr);
+    EXPECT_EQ(mixer_add_new_ctls(nullptr), 0);
+    EXPECT_EQ(mixer_get_name(nullptr), nullptr);
+    EXPECT_EQ(mixer_get_num_ctls(nullptr), 0);
+    EXPECT_EQ(mixer_get_num_ctls_by_name(nullptr, ""), 0);
+    EXPECT_EQ(mixer_get_num_ctls_by_name(reinterpret_cast<const mixer *>(1), nullptr), 0);
+    EXPECT_EQ(mixer_get_ctl_const(nullptr, 0), nullptr);
+    EXPECT_EQ(mixer_get_ctl(nullptr, 0), nullptr);
+    EXPECT_EQ(mixer_get_ctl_by_name(nullptr, ""), nullptr);
+    EXPECT_EQ(mixer_get_ctl_by_name(reinterpret_cast<mixer *>(1), nullptr), nullptr);
+    EXPECT_EQ(mixer_get_ctl_by_name_and_index(nullptr, "", 0), nullptr);
+    EXPECT_EQ(
+            mixer_get_ctl_by_name_and_index(reinterpret_cast<mixer *>(1), nullptr, 0),
+            nullptr);
+    EXPECT_NE(mixer_subscribe_events(nullptr, 0), 0);
+    EXPECT_LT(mixer_wait_event(nullptr, 0), 0);
+    EXPECT_EQ(mixer_ctl_get_id(nullptr), std::numeric_limits<unsigned int>::max());
+    EXPECT_EQ(mixer_ctl_get_name(nullptr), nullptr);
+    EXPECT_EQ(mixer_ctl_get_type(nullptr), MIXER_CTL_TYPE_UNKNOWN);
+    EXPECT_STREQ(mixer_ctl_get_type_string(nullptr), "");
+    EXPECT_EQ(mixer_ctl_get_num_values(nullptr), 0);
+    EXPECT_EQ(mixer_ctl_get_num_enums(nullptr), 0);
+    EXPECT_EQ(mixer_ctl_get_enum_string(nullptr, 0), nullptr);
+    mixer_ctl_update(nullptr);
+    EXPECT_EQ(mixer_ctl_is_access_tlv_rw(nullptr), 0);
+    EXPECT_EQ(mixer_ctl_get_percent(nullptr, 0), -EINVAL);
+    EXPECT_EQ(mixer_ctl_set_percent(nullptr, 0, 0), -EINVAL);
+    EXPECT_EQ(mixer_ctl_get_value(nullptr, 0), -EINVAL);
+    EXPECT_EQ(mixer_ctl_get_array(nullptr, reinterpret_cast<void *>(1), 1), -EINVAL);
+    EXPECT_EQ(mixer_ctl_get_array(reinterpret_cast<mixer_ctl *>(1), nullptr, 1), -EINVAL);
+    EXPECT_EQ(
+            mixer_ctl_get_array(
+                reinterpret_cast<mixer_ctl *>(1), reinterpret_cast<void *>(1), 0), -EINVAL);
+    EXPECT_EQ(mixer_ctl_set_value(nullptr, 0, 0), -EINVAL);
+    EXPECT_EQ(mixer_ctl_set_array(nullptr, reinterpret_cast<const void *>(1), 1), -EINVAL);
+    EXPECT_EQ(mixer_ctl_set_array(reinterpret_cast<mixer_ctl *>(1), nullptr, 1), -EINVAL);
+    EXPECT_EQ(
+            mixer_ctl_set_array(
+                reinterpret_cast<mixer_ctl *>(1), reinterpret_cast<const void *>(1), 0), -EINVAL);
+    EXPECT_EQ(mixer_ctl_set_enum_by_string(nullptr, reinterpret_cast<const char *>(1)), -EINVAL);
+    EXPECT_EQ(mixer_ctl_set_enum_by_string(reinterpret_cast<mixer_ctl *>(1), nullptr), -EINVAL);
+    EXPECT_EQ(mixer_ctl_get_range_min(nullptr), -EINVAL);
+    EXPECT_EQ(mixer_ctl_get_range_max(nullptr), -EINVAL);
+    EXPECT_EQ(mixer_read_event(nullptr, reinterpret_cast<mixer_ctl_event *>(1)), -EINVAL);
+    EXPECT_EQ(mixer_read_event(reinterpret_cast<mixer *>(1), nullptr), -EINVAL);
+    EXPECT_EQ(mixer_consume_event(nullptr), -EINVAL);
 }
 
 class MixerTest : public ::testing::TestWithParam<unsigned int> {
@@ -105,9 +158,9 @@ class MixerControlsTest : public MixerTest {
 
         for (unsigned int i = 0; i < number_of_controls; i++) {
             controls[i] = mixer_get_ctl_const(mixer_object, i);
-            ASSERT_EQ(mixer_ctl_get_id(controls[i]), i);
-            ASSERT_STRNE(mixer_ctl_get_name(controls[i]), "");
-            ASSERT_NE(controls[i], nullptr);
+            EXPECT_EQ(mixer_ctl_get_id(controls[i]), i);
+            EXPECT_STRNE(mixer_ctl_get_name(controls[i]), "");
+            EXPECT_NE(controls[i], nullptr);
         }
     }
 
