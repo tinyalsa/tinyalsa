@@ -384,6 +384,10 @@ int mixer_add_new_ctls(struct mixer *mixer)
  */
 const char *mixer_get_name(const struct mixer *mixer)
 {
+    if (!mixer) {
+        return NULL;
+    }
+
     return (const char *)mixer->card_info.name;
 }
 
@@ -413,8 +417,9 @@ unsigned int mixer_get_num_ctls_by_name(const struct mixer *mixer, const char *n
     unsigned int count = 0;
     struct mixer_ctl *ctl;
 
-    if (!mixer)
+    if (!mixer || !name) {
         return 0;
+    }
 
     if (mixer->h_grp) {
         grp = mixer->h_grp;
@@ -449,6 +454,10 @@ int mixer_subscribe_events(struct mixer *mixer, int subscribe)
 {
     struct mixer_ctl_group *grp;
 
+    if (!mixer) {
+        return -EINVAL;
+    }
+
     if (mixer->h_grp) {
         grp = mixer->h_grp;
         if (grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS, &subscribe) < 0)
@@ -478,6 +487,10 @@ int mixer_wait_event(struct mixer *mixer, int timeout)
     struct pollfd *pfd;
     struct mixer_ctl_group *grp;
     int count = 0, num_fds = 0, i, ret = 0;
+
+    if (!mixer) {
+        return -EINVAL;
+    }
 
     if (mixer->fd >= 0)
         num_fds++;
@@ -559,6 +572,9 @@ exit:
 int mixer_consume_event(struct mixer *mixer)
 {
     struct mixer_ctl_event ev;
+    if (!mixer) {
+        return -EINVAL;
+    }
 
     return mixer_read_event(mixer, &ev);
 }
@@ -684,6 +700,10 @@ struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id)
  */
 struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name)
 {
+    if (!mixer || !name) {
+        return NULL;
+    }
+
     return mixer_get_ctl_by_name_and_index(mixer, name, 0);
 }
 
@@ -703,8 +723,9 @@ struct mixer_ctl *mixer_get_ctl_by_name_and_index(struct mixer *mixer,
     unsigned int n;
     struct mixer_ctl *ctl;
 
-    if (!mixer)
+    if (!mixer || !name) {
         return NULL;
+    }
 
     if (mixer->h_grp) {
         grp = mixer->h_grp;
@@ -754,6 +775,10 @@ void mixer_ctl_update(struct mixer_ctl *ctl)
  */
 int mixer_ctl_is_access_tlv_rw(const struct mixer_ctl *ctl)
 {
+    if (!ctl) {
+        return 0;
+    }
+
     return (ctl->info.access & SNDRV_CTL_ELEM_ACCESS_TLV_READWRITE);
 }
 
@@ -959,8 +984,9 @@ int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
     size_t size;
     void *source;
 
-    if (!ctl || !count || !array)
+    if (!ctl || !array || count == 0) {
         return -EINVAL;
+    }
 
     grp = ctl->grp;
 
@@ -1042,8 +1068,9 @@ int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
     struct snd_ctl_elem_value ev;
     int ret;
 
-    if (!ctl || (id >= ctl->info.count))
+    if (!ctl || id >= ctl->info.count) {
         return -EINVAL;
+    }
 
     grp = ctl->grp;
     memset(&ev, 0, sizeof(ev));
@@ -1058,11 +1085,6 @@ int mixer_ctl_set_value(struct mixer_ctl *ctl, unsigned int id, int value)
         break;
 
     case SNDRV_CTL_ELEM_TYPE_INTEGER:
-        if ((value < mixer_ctl_get_range_min(ctl)) ||
-            (value > mixer_ctl_get_range_max(ctl))) {
-            return -EINVAL;
-        }
-
         ev.value.integer.value[id] = value;
         break;
 
@@ -1098,8 +1120,9 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
     size_t size;
     void *dest;
 
-    if ((!ctl) || !count || !array)
+    if (!ctl || !array || count == 0) {
         return -EINVAL;
+    }
 
     grp = ctl->grp;
 
@@ -1167,8 +1190,9 @@ int mixer_ctl_set_array(struct mixer_ctl *ctl, const void *array, size_t count)
  */
 int mixer_ctl_get_range_min(const struct mixer_ctl *ctl)
 {
-    if (!ctl || (ctl->info.type != SNDRV_CTL_ELEM_TYPE_INTEGER))
+    if (!ctl || ctl->info.type != SNDRV_CTL_ELEM_TYPE_INTEGER) {
         return -EINVAL;
+    }
 
     return ctl->info.value.integer.min;
 }
@@ -1183,8 +1207,9 @@ int mixer_ctl_get_range_min(const struct mixer_ctl *ctl)
  */
 int mixer_ctl_get_range_max(const struct mixer_ctl *ctl)
 {
-    if (!ctl || (ctl->info.type != SNDRV_CTL_ELEM_TYPE_INTEGER))
+    if (!ctl || ctl->info.type != SNDRV_CTL_ELEM_TYPE_INTEGER) {
         return -EINVAL;
+    }
 
     return ctl->info.value.integer.max;
 }
@@ -1196,13 +1221,14 @@ int mixer_ctl_get_range_max(const struct mixer_ctl *ctl)
  */
 unsigned int mixer_ctl_get_num_enums(const struct mixer_ctl *ctl)
 {
-    if (!ctl)
+    if (!ctl) {
         return 0;
+    }
 
     return ctl->info.value.enumerated.items;
 }
 
-int mixer_ctl_fill_enum_string(struct mixer_ctl *ctl)
+static int mixer_ctl_fill_enum_string(struct mixer_ctl *ctl)
 {
     struct mixer_ctl_group *grp = ctl->grp;
     struct snd_ctl_elem_info tmp;
@@ -1250,10 +1276,14 @@ fail:
 const char *mixer_ctl_get_enum_string(struct mixer_ctl *ctl,
                                       unsigned int enum_id)
 {
-    if (!ctl || (ctl->info.type != SNDRV_CTL_ELEM_TYPE_ENUMERATED) ||
-        (enum_id >= ctl->info.value.enumerated.items) ||
-        mixer_ctl_fill_enum_string(ctl) != 0)
+    if (!ctl || ctl->info.type != SNDRV_CTL_ELEM_TYPE_ENUMERATED ||
+            enum_id >= ctl->info.value.enumerated.items) {
         return NULL;
+    }
+
+    if (mixer_ctl_fill_enum_string(ctl) < 0) {
+        return NULL;
+    }
 
     return (const char *)ctl->ename[enum_id];
 }
@@ -1272,9 +1302,13 @@ int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string)
     struct snd_ctl_elem_value ev;
     int ret;
 
-    if (!ctl || (ctl->info.type != SNDRV_CTL_ELEM_TYPE_ENUMERATED) ||
-        mixer_ctl_fill_enum_string(ctl) != 0)
+    if (!ctl || !string || ctl->info.type != SNDRV_CTL_ELEM_TYPE_ENUMERATED) {
         return -EINVAL;
+    }
+
+    if (mixer_ctl_fill_enum_string(ctl) < 0) {
+        return -EINVAL;
+    }
 
     grp = ctl->grp;
     num_enums = ctl->info.value.enumerated.items;
