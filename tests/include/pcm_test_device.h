@@ -29,6 +29,8 @@
 #ifndef TINYALSA_TESTS_PCM_TEST_H_
 #define TINYALSA_TESTS_PCM_TEST_H_
 
+#include "tinyalsa/pcm.h"
+
 namespace tinyalsa {
 namespace testing {
 
@@ -44,9 +46,25 @@ namespace testing {
 #define TEST_LOOPBACK_CAPTURE_DEVICE 1
 #endif
 
-constexpr unsigned int kLoopbackCard = TEST_LOOPBACK_CARD;
-constexpr unsigned int kLoopbackPlaybackDevice = TEST_LOOPBACK_PLAYBACK_DEVICE;
-constexpr unsigned int kLoopbackCaptureDevice = TEST_LOOPBACK_CAPTURE_DEVICE;
+static constexpr unsigned int kLoopbackCard = TEST_LOOPBACK_CARD;
+static constexpr unsigned int kLoopbackPlaybackDevice = TEST_LOOPBACK_PLAYBACK_DEVICE;
+static constexpr unsigned int kLoopbackCaptureDevice = TEST_LOOPBACK_CAPTURE_DEVICE;
+
+static constexpr unsigned int kDefaultChannels = 2;
+static constexpr unsigned int kDefaultSamplingRate = 48000;
+static constexpr unsigned int kDefaultPeriodSize = 1024;
+static constexpr unsigned int kDefaultPeriodCount = 3;
+static constexpr pcm_config kDefaultConfig = {
+    .channels = kDefaultChannels,
+    .rate = kDefaultSamplingRate,
+    .period_size = kDefaultPeriodSize,
+    .period_count = kDefaultPeriodCount,
+    .format = PCM_FORMAT_S16_LE,
+    .start_threshold = kDefaultPeriodSize,
+    .stop_threshold = kDefaultPeriodSize * kDefaultPeriodCount,
+    .silence_threshold = 0,
+    .silence_size = 0,
+};
 
 } // namespace testing
 } // namespace tinyalsa

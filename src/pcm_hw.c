@@ -111,14 +111,23 @@ static int pcm_hw_open(unsigned int card, unsigned int device,
 
     snprintf(fn, sizeof(fn), "/dev/snd/pcmC%uD%u%c", card, device,
              flags & PCM_IN ? 'c' : 'p');
-    if (flags & PCM_NONBLOCK)
-        fd = open(fn, O_RDWR|O_NONBLOCK);
-    else
-        fd = open(fn, O_RDWR);
+    // Open the device with non-blocking flag to avoid to be blocked in kernel when all of the
+    //   substreams of this PCM device are opened by others.
+    fd = open(fn, O_RDWR | O_NONBLOCK);
 
     if (fd < 0) {
         free(hw_data);
         return fd;
+    }
+
+    if ((flags & PCM_NONBLOCK) == 0) {
+        // Set the file descriptor to blocking mode.
+        if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK) < 0) {
+            fprintf(stderr, "failed to set to blocking mode on %s", fn);
+            close(fd);
+            free(hw_data);
+            return -ENODEV;
+        }
     }
 
     hw_data->card = card;

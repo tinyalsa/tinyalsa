@@ -193,10 +193,6 @@ class PcmLoopbackTest : public ::testing::Test {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    static constexpr unsigned int kDefaultChannels = 2;
-    static constexpr unsigned int kDefaultSamplingRate = 48000;
-    static constexpr unsigned int kDefaultPeriodSize = 1024;
-    static constexpr unsigned int kDefaultPeriodCount = 3;
     static constexpr unsigned int kDefaultPeriodTimeInMs =
             kDefaultPeriodSize * 1000 / kDefaultSamplingRate;
     static constexpr pcm_format kPcmForamt = F::kFormat;
@@ -212,10 +208,6 @@ using Formats = ::testing::Types<S16bitlePcmFormat, FloatPcmFormat>;
 TYPED_TEST_SUITE(PcmLoopbackTest, Formats);
 
 TYPED_TEST(PcmLoopbackTest, Loopback) {
-    static constexpr unsigned int kDefaultChannels = this->kDefaultChannels;
-    static constexpr unsigned int kDefaultSamplingRate = this->kDefaultSamplingRate;
-    static constexpr unsigned int kDefaultPeriodSize = this->kDefaultPeriodSize;
-    // static constexpr unsigned int kDefaultPeriodCount = this->kDefaultPeriodCount;
     static constexpr unsigned int kDefaultPeriodTimeInMs = this->kDefaultPeriodTimeInMs;
     static constexpr pcm_format kPcmForamt = this->kPcmForamt;
     pcm *pcm_in = this->pcm_in;
