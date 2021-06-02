@@ -26,12 +26,19 @@
 ** DAMAGE.
 */
 
-#include <string>
+#include <cstdio>
+#include <fstream>
 #include <iostream>
+#include <memory>
+#include <string_view>
+#include <string>
+#include <thread>
 
 #include <gtest/gtest.h>
 
 #include "tinyalsa/pcm.h"
+
+#include "pcm_test_device.h"
 
 namespace tinyalsa {
 namespace testing {
@@ -54,22 +61,6 @@ TEST(PcmTest, FormatToBits) {
 }
 
 TEST(PcmTest, OpenAndCloseOutPcm) {
-    static constexpr unsigned int kDefaultChannels = 2;
-    static constexpr unsigned int kDefaultSamplingRate = 48000;
-    static constexpr unsigned int kDefaultPeriodSize = 1024;
-    static constexpr unsigned int kDefaultPeriodCount = 3;
-    static constexpr pcm_config kDefaultConfig = {
-        .channels = kDefaultChannels,
-        .rate = kDefaultSamplingRate,
-        .period_size = kDefaultPeriodSize,
-        .period_count = kDefaultPeriodCount,
-        .format = PCM_FORMAT_S16_LE,
-        .start_threshold = kDefaultPeriodSize,
-        .stop_threshold = kDefaultPeriodSize * kDefaultPeriodCount,
-        .silence_threshold = 0,
-        .silence_size = 0,
-    };
-
     pcm *pcm_object = pcm_open(1000, 1000, PCM_OUT, &kDefaultConfig);
     ASSERT_FALSE(pcm_is_ready(pcm_object));
     ASSERT_EQ(pcm_close(pcm_object), 0);
@@ -99,6 +90,73 @@ TEST(PcmTest, OpenAndCloseOutPcm) {
     pcm_object = pcm_open_by_name(name.c_str(), PCM_OUT, &kDefaultConfig);
     ASSERT_TRUE(pcm_is_ready(pcm_object));
     ASSERT_EQ(pcm_close(pcm_object), 0);
+}
+
+TEST(PcmTest, OpenWithoutBlocking) {
+    char loopback_device_info_path[120] = {};
+    snprintf(loopback_device_info_path, sizeof(loopback_device_info_path),
+            "/proc/asound/card%d/pcm%dp/info", kLoopbackCard, kLoopbackPlaybackDevice);
+
+    std::ifstream info_file_stream{loopback_device_info_path};
+    if (!info_file_stream.is_open()) {
+        GTEST_SKIP();
+    }
+
+    char buffer[256] = {};
+    int32_t subdevice_count = 0;
+    while (info_file_stream.good()) {
+        info_file_stream.getline(buffer, sizeof(buffer));
+        std::cout << buffer << std::endl;
+        std::string_view line{buffer};
+        if (line.find("subdevices_count") != std::string_view::npos) {
+            auto subdevice_count_string = line.substr(line.find(":") + 1);
+            std::cout << subdevice_count_string << std::endl;
+            subdevice_count = std::stoi(std::string{subdevice_count_string});
+        }
+    }
+
+    ASSERT_GT(subdevice_count, 0);
+
+    auto pcm_array = std::make_unique<pcm *[]>(subdevice_count);
+    std::thread *open_thread = new std::thread{[&pcm_array, subdevice_count] {
+        // Occupy all substreams
+        for (int32_t i = 0; i < subdevice_count; i++) {
+            pcm_array[i] = pcm_open(kLoopbackCard, kLoopbackPlaybackDevice, PCM_OUT,
+                    &kDefaultConfig);
+            EXPECT_TRUE(pcm_is_ready(pcm_array[i]));
+        }
+
+        // Expect that pcm_open is not blocked in the kernel and return a bad_object pointer.
+        pcm *pcm_object = pcm_open(kLoopbackCard, kLoopbackPlaybackDevice, PCM_OUT,
+                    &kDefaultConfig);
+        if (pcm_is_ready(pcm_object)) {
+            // open_thread is blocked in kernel because of the substream is all occupied. pcm_open
+            // returns because the main thread has released all pcm structures in pcm_array. We just
+            // need to close the pcm_object here.
+            pcm_close(pcm_object);
+            return;
+        }
+
+        // Release all substreams
+        for (int32_t i = 0; i < subdevice_count; i++) {
+            pcm_close(pcm_array[i]);
+            pcm_array[i] = nullptr;
+        }
+    }};
+
+    static constexpr int64_t kTimeoutMs = 500;
+    std::this_thread::sleep_for(std::chrono::milliseconds(kTimeoutMs));
+    if (pcm_array[0] == nullptr) {
+        open_thread->join();
+    } else {
+        for (int32_t i = 0; i < subdevice_count; i++) {
+            pcm_close(pcm_array[i]);
+            pcm_array[i] = nullptr;
+        }
+        open_thread->join();
+        FAIL() << "The open_thread is blocked in kernel or the kTimeoutMs(" << kTimeoutMs <<
+                ") is too short to complete";
+    }
 }
 
 } // namespace testing
