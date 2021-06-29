@@ -127,6 +127,48 @@ static bool signed_pcm_bits_to_format(int bits)
     }
 }
 
+static int parse_wave_file(struct ctx *ctx, const char *filename)
+{
+    if (fread(&ctx->wave_header, sizeof(ctx->wave_header), 1, ctx->file) != 1){
+        fprintf(stderr, "error: '%s' does not contain a riff/wave header\n", filename);
+        return -1;
+    }
+
+    if (ctx->wave_header.riff_id != ID_RIFF || ctx->wave_header.wave_id != ID_WAVE) {
+        fprintf(stderr, "error: '%s' is not a riff/wave file\n", filename);
+        return -1;
+    }
+
+    bool more_chunks = true;
+    do {
+        if (fread(&ctx->chunk_header, sizeof(ctx->chunk_header), 1, ctx->file) != 1) {
+            fprintf(stderr, "error: '%s' does not contain a data chunk\n", filename);
+            return -1;
+        }
+        switch (ctx->chunk_header.id) {
+        case ID_FMT:
+            if (fread(&ctx->chunk_fmt, sizeof(ctx->chunk_fmt), 1, ctx->file) != 1) {
+                fprintf(stderr, "error: '%s' has incomplete format chunk\n", filename);
+                return -1;
+            }
+            /* If the format header is larger, skip the rest */
+            if (ctx->chunk_header.sz > sizeof(ctx->chunk_fmt)) {
+                fseek(ctx->file, ctx->chunk_header.sz - sizeof(ctx->chunk_fmt), SEEK_CUR);
+            }
+            break;
+        case ID_DATA:
+            /* Stop looking for chunks */
+            more_chunks = false;
+            break;
+        default:
+            /* Unknown chunk, skip bytes */
+            fseek(ctx->file, ctx->chunk_header.sz, SEEK_CUR);
+        }
+    } while (more_chunks);
+
+    return 0;
+}
+
 static int ctx_init(struct ctx* ctx, struct cmd *cmd)
 {
     unsigned int bits = cmd->bits;
@@ -149,44 +191,10 @@ static int ctx_init(struct ctx* ctx, struct cmd *cmd)
     }
 
     if (is_wave_file(cmd->filetype)) {
-        if (fread(&ctx->wave_header, sizeof(ctx->wave_header), 1, ctx->file) != 1){
-            fprintf(stderr, "error: '%s' does not contain a riff/wave header\n", cmd->filename);
+        if (parse_wave_file(ctx, cmd->filename) != 0) {
             fclose(ctx->file);
             return -1;
         }
-        if ((ctx->wave_header.riff_id != ID_RIFF) ||
-            (ctx->wave_header.wave_id != ID_WAVE)) {
-            fprintf(stderr, "error: '%s' is not a riff/wave file\n", cmd->filename);
-            fclose(ctx->file);
-            return -1;
-        }
-        unsigned int more_chunks = 1;
-        do {
-            if (fread(&ctx->chunk_header, sizeof(ctx->chunk_header), 1, ctx->file) != 1){
-                fprintf(stderr, "error: '%s' does not contain a data chunk\n", cmd->filename);
-                fclose(ctx->file);
-                return -1;
-            }
-            switch (ctx->chunk_header.id) {
-            case ID_FMT:
-                if (fread(&ctx->chunk_fmt, sizeof(ctx->chunk_fmt), 1, ctx->file) != 1){
-                    fprintf(stderr, "error: '%s' has incomplete format chunk\n", cmd->filename);
-                    fclose(ctx->file);
-                    return -1;
-                }
-                /* If the format header is larger, skip the rest */
-                if (ctx->chunk_header.sz > sizeof(ctx->chunk_fmt))
-                    fseek(ctx->file, ctx->chunk_header.sz - sizeof(ctx->chunk_fmt), SEEK_CUR);
-                break;
-            case ID_DATA:
-                /* Stop looking for chunks */
-                more_chunks = 0;
-                break;
-            default:
-                /* Unknown chunk, skip bytes */
-                fseek(ctx->file, ctx->chunk_header.sz, SEEK_CUR);
-            }
-        } while (more_chunks);
         config->channels = ctx->chunk_fmt.num_channels;
         config->rate = ctx->chunk_fmt.sample_rate;
         bits = ctx->chunk_fmt.bits_per_sample;
