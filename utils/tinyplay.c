@@ -104,6 +104,7 @@ struct ctx {
     struct chunk_fmt chunk_fmt;
 
     FILE *file;
+    size_t file_size;
 };
 
 static bool is_wave_file(const char *filetype)
@@ -127,6 +128,48 @@ static bool signed_pcm_bits_to_format(int bits)
     }
 }
 
+static int parse_wave_file(struct ctx *ctx, const char *filename)
+{
+    if (fread(&ctx->wave_header, sizeof(ctx->wave_header), 1, ctx->file) != 1){
+        fprintf(stderr, "error: '%s' does not contain a riff/wave header\n", filename);
+        return -1;
+    }
+
+    if (ctx->wave_header.riff_id != ID_RIFF || ctx->wave_header.wave_id != ID_WAVE) {
+        fprintf(stderr, "error: '%s' is not a riff/wave file\n", filename);
+        return -1;
+    }
+
+    bool more_chunks = true;
+    do {
+        if (fread(&ctx->chunk_header, sizeof(ctx->chunk_header), 1, ctx->file) != 1) {
+            fprintf(stderr, "error: '%s' does not contain a data chunk\n", filename);
+            return -1;
+        }
+        switch (ctx->chunk_header.id) {
+        case ID_FMT:
+            if (fread(&ctx->chunk_fmt, sizeof(ctx->chunk_fmt), 1, ctx->file) != 1) {
+                fprintf(stderr, "error: '%s' has incomplete format chunk\n", filename);
+                return -1;
+            }
+            /* If the format header is larger, skip the rest */
+            if (ctx->chunk_header.sz > sizeof(ctx->chunk_fmt)) {
+                fseek(ctx->file, ctx->chunk_header.sz - sizeof(ctx->chunk_fmt), SEEK_CUR);
+            }
+            break;
+        case ID_DATA:
+            /* Stop looking for chunks */
+            more_chunks = false;
+            break;
+        default:
+            /* Unknown chunk, skip bytes */
+            fseek(ctx->file, ctx->chunk_header.sz, SEEK_CUR);
+        }
+    } while (more_chunks);
+
+    return 0;
+}
+
 static int ctx_init(struct ctx* ctx, struct cmd *cmd)
 {
     unsigned int bits = cmd->bits;
@@ -141,6 +184,9 @@ static int ctx_init(struct ctx* ctx, struct cmd *cmd)
         ctx->file = stdin;
     } else {
         ctx->file = fopen(cmd->filename, "rb");
+        fseek(ctx->file, 0L, SEEK_END);
+        ctx->file_size = ftell(ctx->file);
+        fseek(ctx->file, 0L, SEEK_SET);
     }
 
     if (ctx->file == NULL) {
@@ -149,48 +195,15 @@ static int ctx_init(struct ctx* ctx, struct cmd *cmd)
     }
 
     if (is_wave_file(cmd->filetype)) {
-        if (fread(&ctx->wave_header, sizeof(ctx->wave_header), 1, ctx->file) != 1){
-            fprintf(stderr, "error: '%s' does not contain a riff/wave header\n", cmd->filename);
+        if (parse_wave_file(ctx, cmd->filename) != 0) {
             fclose(ctx->file);
             return -1;
         }
-        if ((ctx->wave_header.riff_id != ID_RIFF) ||
-            (ctx->wave_header.wave_id != ID_WAVE)) {
-            fprintf(stderr, "error: '%s' is not a riff/wave file\n", cmd->filename);
-            fclose(ctx->file);
-            return -1;
-        }
-        unsigned int more_chunks = 1;
-        do {
-            if (fread(&ctx->chunk_header, sizeof(ctx->chunk_header), 1, ctx->file) != 1){
-                fprintf(stderr, "error: '%s' does not contain a data chunk\n", cmd->filename);
-                fclose(ctx->file);
-                return -1;
-            }
-            switch (ctx->chunk_header.id) {
-            case ID_FMT:
-                if (fread(&ctx->chunk_fmt, sizeof(ctx->chunk_fmt), 1, ctx->file) != 1){
-                    fprintf(stderr, "error: '%s' has incomplete format chunk\n", cmd->filename);
-                    fclose(ctx->file);
-                    return -1;
-                }
-                /* If the format header is larger, skip the rest */
-                if (ctx->chunk_header.sz > sizeof(ctx->chunk_fmt))
-                    fseek(ctx->file, ctx->chunk_header.sz - sizeof(ctx->chunk_fmt), SEEK_CUR);
-                break;
-            case ID_DATA:
-                /* Stop looking for chunks */
-                more_chunks = 0;
-                break;
-            default:
-                /* Unknown chunk, skip bytes */
-                fseek(ctx->file, ctx->chunk_header.sz, SEEK_CUR);
-            }
-        } while (more_chunks);
         config->channels = ctx->chunk_fmt.num_channels;
         config->rate = ctx->chunk_fmt.sample_rate;
         bits = ctx->chunk_fmt.bits_per_sample;
         is_float = ctx->chunk_fmt.audio_format == WAVE_FORMAT_IEEE_FLOAT;
+        ctx->file_size = (size_t) ctx->chunk_header.sz;
     }
 
     if (is_float) {
@@ -386,20 +399,20 @@ int check_param(struct pcm_params *params, unsigned int param, unsigned int valu
 {
     unsigned int min;
     unsigned int max;
-    int is_within_bounds = 1;
+    bool is_within_bounds = true;
 
     min = pcm_params_get_min(params, param);
     if (value < min) {
         fprintf(stderr, "%s is %u%s, device only supports >= %u%s\n", param_name, value,
                 param_unit, min, param_unit);
-        is_within_bounds = 0;
+        is_within_bounds = false;
     }
 
     max = pcm_params_get_max(params, param);
     if (value > max) {
         fprintf(stderr, "%s is %u%s, device only supports <= %u%s\n", param_name, value,
                 param_unit, max, param_unit);
-        is_within_bounds = 0;
+        is_within_bounds = false;
     }
 
     return is_within_bounds;
@@ -417,12 +430,13 @@ int sample_is_playable(const struct cmd *cmd)
     }
 
     can_play = check_param(params, PCM_PARAM_RATE, cmd->config.rate, "sample rate", "hz");
-    can_play &= check_param(params, PCM_PARAM_CHANNELS, cmd->config.channels, "sample", " channels");
+    can_play &= check_param(params, PCM_PARAM_CHANNELS, cmd->config.channels, "sample",
+            " channels");
     can_play &= check_param(params, PCM_PARAM_SAMPLE_BITS, cmd->bits, "bits", " bits");
     can_play &= check_param(params, PCM_PARAM_PERIOD_SIZE, cmd->config.period_size, "period size",
-                            " frames");
+            " frames");
     can_play &= check_param(params, PCM_PARAM_PERIODS, cmd->config.period_count, "period count",
-                            " frames");
+            "");
 
     pcm_params_free(params);
 
@@ -432,9 +446,10 @@ int sample_is_playable(const struct cmd *cmd)
 int play_sample(struct ctx *ctx)
 {
     char *buffer;
+    bool is_stdin_source = ctx->file == stdin;
     size_t buffer_size = 0;
     size_t num_read = 0;
-    size_t remaining_data_size = ctx->chunk_header.sz;
+    size_t remaining_data_size = is_stdin_source ? SIZE_MAX : ctx->file_size;
     size_t played_data_size = 0;
     size_t read_size = 0;
     const struct pcm_config *config = pcm_get_config(ctx->pcm);
@@ -464,12 +479,21 @@ int play_sample(struct ctx *ctx)
                 fprintf(stderr, "error playing sample. %s\n", pcm_get_error(ctx->pcm));
                 break;
             }
-            remaining_data_size -= num_read;
+
+            if (!is_stdin_source) {
+                remaining_data_size -= num_read;
+            }
             played_data_size += pcm_frames_to_bytes(ctx->pcm, written_frames);
         }
     } while (!close && num_read > 0 && remaining_data_size > 0);
 
-    printf("Played %zu bytes. Remains %zu bytes.\n", played_data_size, remaining_data_size);
+    printf("Played %zu bytes. ", played_data_size);
+    if (is_stdin_source) {
+        printf("\n");
+    } else {
+        printf("Remains %zu bytes.\n", remaining_data_size);
+    }
+
     pcm_wait(ctx->pcm, -1);
 
     free(buffer);
