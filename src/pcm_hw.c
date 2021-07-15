@@ -1,5 +1,7 @@
 /* pcm_hw.c
+**
 ** Copyright (c) 2019, The Linux Foundation.
+** Copyright 2021, The Android Open Source Project
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are
