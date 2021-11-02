@@ -732,9 +732,13 @@ struct mixer_ctl *mixer_get_ctl_by_name_and_index(struct mixer *mixer,
         ctl = grp->ctl;
 
         for (n = 0; n < grp->count; n++)
-            if (!strcmp(name, (char*) ctl[n].info.id.name))
-                if (index-- == 0)
+            if (!strcmp(name, (char*) ctl[n].info.id.name)) {
+                if (index == 0) {
                     return ctl + n;
+                } else {
+                    index--;
+                }
+            }
     }
 
 #ifdef TINYALSA_USES_PLUGINS
@@ -743,9 +747,13 @@ struct mixer_ctl *mixer_get_ctl_by_name_and_index(struct mixer *mixer,
         ctl = grp->ctl;
 
         for (n = 0; n < grp->count; n++)
-            if (!strcmp(name, (char*) ctl[n].info.id.name))
-                if (index-- == 0)
+            if (!strcmp(name, (char*) ctl[n].info.id.name)) {
+                if (index == 0) {
                     return ctl + n;
+                } else {
+                    index--;
+                }
+            }
     }
 #endif
     return NULL;
