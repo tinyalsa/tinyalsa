@@ -154,8 +154,11 @@ static int pcm_plug_info(struct pcm_plug_data *plug_data,
     }
 
     strncpy((char *)info->id, name, sizeof(info->id) - 1);
+    ((char *)info->id)[sizeof(info->id) - 1] = '\0';
     strncpy((char *)info->name, name, sizeof(info->name) - 1);
+    ((char *)info->name)[sizeof(info->name) - 1] = '\0';
     strncpy((char *)info->subname, name, sizeof(info->subname) - 1);
+    ((char *)info->subname)[sizeof(info->subname) - 1] = '\0';
 
     info->subdevices_count = 1;
 
