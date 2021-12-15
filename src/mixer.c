@@ -1047,6 +1047,9 @@ int mixer_ctl_get_array(const struct mixer_ctl *ctl, void *array, size_t count)
         }
 
     case SNDRV_CTL_ELEM_TYPE_IEC958:
+        ret = grp->ops->ioctl(grp->data, SNDRV_CTL_IOCTL_ELEM_READ, &ev);
+        if (ret < 0)
+            return ret;
         size = sizeof(ev.value.iec958);
         source = &ev.value.iec958;
         break;
