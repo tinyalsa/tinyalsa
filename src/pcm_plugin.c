@@ -40,6 +40,7 @@
 
 #include <sys/ioctl.h>
 #include <linux/ioctl.h>
+#include <time.h>
 #include <sound/asound.h>
 #include <tinyalsa/asoundlib.h>
 #include <tinyalsa/plugin.h>

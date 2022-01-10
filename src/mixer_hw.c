@@ -42,6 +42,7 @@
 #include <sys/ioctl.h>
 
 #include <linux/ioctl.h>
+#include <time.h>
 #include <sound/asound.h>
 
 #include "mixer_io.h"
