@@ -41,6 +41,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <linux/ioctl.h>
+#include <time.h>
 #include <sound/asound.h>
 #include <tinyalsa/asoundlib.h>
 

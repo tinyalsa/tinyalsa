@@ -55,6 +55,7 @@
 #define __user
 #endif
 
+#include <time.h>
 #include <sound/asound.h>
 
 #include <tinyalsa/mixer.h>
