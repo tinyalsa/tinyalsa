@@ -185,7 +185,7 @@ void analyse_sample(FILE *file, unsigned int channels, unsigned int bits,
         if (num_read > 0) {
             if (2 == bytes_per_sample) {
                 short *buffer_ptr = (short *)buffer;
-                for (i = 0; i < num_read; i += channels) {
+                for (i = 0; i < num_read / bytes_per_sample; i += channels) {
                     for (ch = 0; ch < channels; ch++) {
                         int temp = *buffer_ptr++;
                         /* Signal Normalization */
@@ -196,7 +196,7 @@ void analyse_sample(FILE *file, unsigned int channels, unsigned int bits,
             }
             if (4 == bytes_per_sample) {
                 int *buffer_ptr = (int *)buffer;
-                for (i = 0; i < num_read; i += channels) {
+                for (i = 0; i < num_read / bytes_per_sample; i += channels) {
                     for (ch = 0; ch < channels; ch++) {
                         int temp = *buffer_ptr++;
                         /* Signal Normalization */
