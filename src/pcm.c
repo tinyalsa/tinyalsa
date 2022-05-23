@@ -305,7 +305,7 @@ struct pcm {
     /** Size of the buffer */
     unsigned int buffer_size;
     /** The boundary for ring buffer pointers */
-    unsigned int boundary;
+    unsigned long boundary;
     /** Description of the last error that occured */
     char error[PCM_ERROR_MAX];
     /** Configuration that was passed to @ref pcm_open */
@@ -529,7 +529,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
     sparams.silence_threshold = config->silence_threshold;
     pcm->boundary = sparams.boundary = pcm->buffer_size;
 
-    while (pcm->boundary * 2 <= INT_MAX - pcm->buffer_size)
+    while (pcm->boundary * 2 <= LONG_MAX - (unsigned long)pcm->buffer_size)
         pcm->boundary *= 2;
 
     if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
