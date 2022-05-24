@@ -305,7 +305,7 @@ struct pcm {
     /** Size of the buffer */
     unsigned int buffer_size;
     /** The boundary for ring buffer pointers */
-    unsigned int boundary;
+    unsigned long boundary;
     /** Description of the last error that occured */
     char error[PCM_ERROR_MAX];
     /** Configuration that was passed to @ref pcm_open */
@@ -527,10 +527,6 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
     sparams.xfer_align = config->period_size / 2; /* needed for old kernels */
     sparams.silence_size = config->silence_size;
     sparams.silence_threshold = config->silence_threshold;
-    pcm->boundary = sparams.boundary = pcm->buffer_size;
-
-    while (pcm->boundary * 2 <= INT_MAX - pcm->buffer_size)
-        pcm->boundary *= 2;
 
     if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_SW_PARAMS, &sparams)) {
         int errno_copy = errno;
@@ -538,6 +534,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
         return -errno_copy;
     }
 
+    pcm->boundary = sparams.boundary;
     return 0;
 }
 
@@ -603,20 +600,17 @@ unsigned int pcm_frames_to_bytes(const struct pcm *pcm, unsigned int frames)
 static int pcm_sync_ptr(struct pcm *pcm, int flags)
 {
     if (pcm->sync_ptr == NULL) {
-        /* status and control are mmaped */
-
+        /* status and control are mmapped */
         if (flags & SNDRV_PCM_SYNC_PTR_HWSYNC) {
-            if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_HWSYNC) == -1) {
-                oops(pcm, errno, "failed to sync hardware pointer");
-                return -1;
+            if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_HWSYNC) == -1) {
+                return oops(pcm, errno, "failed to sync hardware pointer");
             }
         }
     } else {
         pcm->sync_ptr->flags = flags;
         if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_SYNC_PTR,
                             pcm->sync_ptr) < 0) {
-            oops(pcm, errno, "failed to sync mmap ptr");
-            return -1;
+            return oops(pcm, errno, "failed to sync mmap ptr");
         }
     }
 
@@ -1235,45 +1229,49 @@ int pcm_stop(struct pcm *pcm)
     return 0;
 }
 
-static inline int pcm_mmap_playback_avail(struct pcm *pcm)
+static inline long pcm_mmap_playback_avail(struct pcm *pcm)
 {
-    int avail;
+    long avail = pcm->mmap_status->hw_ptr + (unsigned long) pcm->buffer_size -
+            pcm->mmap_control->appl_ptr;
 
-    avail = pcm->mmap_status->hw_ptr + pcm->buffer_size - pcm->mmap_control->appl_ptr;
-
-    if (avail < 0)
+    if (avail < 0) {
         avail += pcm->boundary;
-    else if (avail >= (int)pcm->boundary)
+    } else if ((unsigned long) avail >= pcm->boundary) {
         avail -= pcm->boundary;
+    }
 
     return avail;
 }
 
-static inline int pcm_mmap_capture_avail(struct pcm *pcm)
+static inline long pcm_mmap_capture_avail(struct pcm *pcm)
 {
-    int avail = pcm->mmap_status->hw_ptr - pcm->mmap_control->appl_ptr;
-    if (avail < 0)
+    long avail = pcm->mmap_status->hw_ptr - pcm->mmap_control->appl_ptr;
+    if (avail < 0) {
         avail += pcm->boundary;
+    }
+
     return avail;
 }
 
 int pcm_mmap_avail(struct pcm *pcm)
 {
     pcm_sync_ptr(pcm, SNDRV_PCM_SYNC_PTR_HWSYNC);
-    if (pcm->flags & PCM_IN)
-        return pcm_mmap_capture_avail(pcm);
-    else
-        return pcm_mmap_playback_avail(pcm);
+    if (pcm->flags & PCM_IN) {
+        return (int) pcm_mmap_capture_avail(pcm);
+    } else {
+        return (int) pcm_mmap_playback_avail(pcm);
+    }
 }
 
 static void pcm_mmap_appl_forward(struct pcm *pcm, int frames)
 {
-    unsigned int appl_ptr = pcm->mmap_control->appl_ptr;
+    unsigned long appl_ptr = pcm->mmap_control->appl_ptr;
     appl_ptr += frames;
 
     /* check for boundary wrap */
-    if (appl_ptr > pcm->boundary)
-         appl_ptr -= pcm->boundary;
+    if (appl_ptr >= pcm->boundary) {
+        appl_ptr -= pcm->boundary;
+    }
     pcm->mmap_control->appl_ptr = appl_ptr;
 }
 
@@ -1293,7 +1291,7 @@ int pcm_mmap_begin(struct pcm *pcm, void **areas, unsigned int *offset,
         avail = pcm->buffer_size;
     continuous = pcm->buffer_size - *offset;
 
-    /* we can only copy frames if the are availabale and continuos */
+    /* we can only copy frames if the are available and continuos */
     copy_frames = *frames;
     if (copy_frames > avail)
         copy_frames = avail;
@@ -1411,7 +1409,7 @@ again:
     *tstamp = pcm->mmap_status->tstamp;
 
     /*
-     * When status is mmaped, get avail again to ensure
+     * When status is mmapped, get avail again to ensure
      * valid timestamp.
      */
     if (!pcm->sync_ptr) {
@@ -1473,22 +1471,22 @@ int pcm_wait(struct pcm *pcm, int timeout)
 }
 
 /*
- * Transfer data to/from mmaped buffer. This imitates the
+ * Transfer data to/from mmapped buffer. This imitates the
  * behavior of read/write system calls.
  *
  * However, this doesn't seems to offer any advantage over
  * the read/write syscalls. Should it be removed?
  */
-int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
+static int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
 {
     int is_playback;
 
     int state;
     unsigned int avail;
-    unsigned int user_offset;
+    unsigned int user_offset = 0;
 
     int err;
-    int tmp;
+    int transferred_frames;
 
     is_playback = !(pcm->flags & PCM_IN);
 
@@ -1508,17 +1506,15 @@ int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
      * Another thread may start capture
      */
     if (!is_playback && state == PCM_STATE_PREPARED &&
-        frames >= pcm->config.start_threshold) {
-            err = pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_START);
-        if (err == -1)
+            frames >= pcm->config.start_threshold) {
+        if (pcm_start(pcm) < 0) {
             return -1;
-        /* state = PCM_STATE_RUNNING */
+        }
     }
 
-    avail = pcm_mmap_avail(pcm);
-    user_offset = 0;
-
     while (frames) {
+        avail = pcm_mmap_avail(pcm);
+
         if (!avail) {
             if (pcm->flags & PCM_NONBLOCK) {
                 errno = EAGAIN;
@@ -1531,25 +1527,22 @@ int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
                 errno = -err;
                 break;
             }
-
-            /* get hardware pointer */
-            avail = pcm_avail_update(pcm);
         }
 
-        tmp = pcm_mmap_transfer_areas(pcm, buffer, user_offset, frames);
-        if (tmp < 0)
+        transferred_frames = pcm_mmap_transfer_areas(pcm, buffer, user_offset, frames);
+        if (transferred_frames < 0) {
             break;
+        }
 
-        user_offset += tmp;
-        frames -= tmp;
-        avail -= tmp;
+        user_offset += transferred_frames;
+        frames -= transferred_frames;
 
         /* start playback if written >= start_threshold */
         if (is_playback && state == PCM_STATE_PREPARED &&
-            pcm->buffer_size - avail >= pcm->config.start_threshold) {
-            err = pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_START);
-            if (err == -1)
+                pcm->buffer_size - avail >= pcm->config.start_threshold) {
+            if (pcm_start(pcm) < 0) {
                 break;
+            }
         }
     }
 
