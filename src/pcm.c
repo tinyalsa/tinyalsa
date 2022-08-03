@@ -1092,8 +1092,10 @@ struct pcm *pcm_open(unsigned int card, unsigned int device,
     }
     pcm->subdevice = info.subdevice;
 
-    if (pcm_set_config(pcm, config) != 0)
+    if (pcm_set_config(pcm, config) != 0) {
+        memcpy(bad_pcm.error, pcm->error, sizeof(pcm->error));
         goto fail_close;
+    }
 
     rc = pcm_hw_mmap_status(pcm);
     if (rc < 0) {
