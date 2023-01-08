@@ -477,7 +477,10 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
 
     if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
         int errno_copy = errno;
-        oops(pcm, errno, "cannot set hw params");
+        if(pcm->config.rate < 32000)
+            oops(pcm, errno, "cannot set hw params, sample rate must be over 32kHz");
+        else
+            oops(pcm, errno, "cannot set hw params");
         return -errno_copy;
     }
 
