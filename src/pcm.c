@@ -477,10 +477,26 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
 
     if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
         int errno_copy = errno;
-        if(pcm->config.rate < 32000)
-            oops(pcm, errno, "cannot set hw params, sample rate must be over 32kHz");
+        struct pcm_params * hwparams;
+        // = pcm_params_get(card, device, pcm->flags & PCM_IN ? PCM_IN : PCM_OUT)
+        hwparams = calloc(1, sizeof(struct snd_pcm_hw_params));
+        if(!hwparams) {
+            oops(pcm, errno_copy, "cannot set hw params");
+            return -errno_copy;
+        }
+        param_init((struct snd_pcm_hw_params *) hwparams);
+        if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_HW_REFINE, hwparams)) {
+            free(hwparams);
+            oops(pcm, errno_copy, "cannot set hw params, troubleshooting failed due to SNDRV_PCM_IOCTL_HW_REFINE error");
+            return -errno_copy;
+        }
+        if(pcm->config.rate < pcm_params_get_min(hwparams, PCM_PARAM_RATE))
+            oops(pcm, errno_copy, "cannot set hw params, sample rate too low");
+        else if(pcm->config.rate > pcm_params_get_max(hwparams, PCM_PARAM_RATE))
+            oops(pcm, errno_copy, "cannot set hw params, sample rate too high");
         else
-            oops(pcm, errno, "cannot set hw params");
+            oops(pcm, errno_copy, "cannot set hw params");
+        free(hwparams);
         return -errno_copy;
     }
 
