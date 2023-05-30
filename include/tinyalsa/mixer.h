@@ -103,6 +103,10 @@ struct mixer_ctl *mixer_get_ctl(struct mixer *mixer, unsigned int id);
 
 struct mixer_ctl *mixer_get_ctl_by_name(struct mixer *mixer, const char *name);
 
+struct mixer_ctl *mixer_get_ctl_by_name_and_device(struct mixer *mixer,
+                                                   const char *name,
+                                                   unsigned int device);
+
 struct mixer_ctl *mixer_get_ctl_by_name_and_index(struct mixer *mixer,
                                                   const char *name,
                                                   unsigned int index);
@@ -152,6 +156,8 @@ int mixer_ctl_set_enum_by_string(struct mixer_ctl *ctl, const char *string);
 int mixer_ctl_get_range_min(const struct mixer_ctl *ctl);
 
 int mixer_ctl_get_range_max(const struct mixer_ctl *ctl);
+
+unsigned int mixer_ctl_get_device(const struct mixer_ctl *ctl);
 
 int mixer_read_event(struct mixer *mixer, struct mixer_ctl_event *event);
 
