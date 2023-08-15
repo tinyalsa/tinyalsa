@@ -1218,6 +1218,22 @@ int pcm_start(struct pcm *pcm)
     return 0;
 }
 
+/** Drains a PCM.
+ * @param pcm A PCM handle.
+ * @return On success, zero; on failure, a negative number.
+ * @ingroup libtinyalsa-pcm
+ */
+int pcm_drain(struct pcm *pcm)
+{
+    if (!pcm_is_ready(pcm))
+        return -1;
+
+    if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_DRAIN) < 0)
+        return oops(pcm, errno, "cannot drain channel");
+
+    return 0;
+}
+
 /** Stops a PCM.
  * @param pcm A PCM handle.
  * @return On success, zero; on failure, a negative number.
