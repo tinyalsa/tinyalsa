@@ -622,6 +622,16 @@ static int pcm_plug_drop(struct pcm_plug_data *plug_data)
     return rc;
 }
 
+static int pcm_plug_drain(struct pcm_plug_data *plug_data)
+{
+    struct pcm_plugin *plugin = plug_data->plugin;
+
+    if (plugin->state != PCM_PLUG_STATE_RUNNING)
+        return -EBADFD;
+
+    return plug_data->ops->drain(plugin);
+}
+
 static int pcm_plug_ioctl(void *data, unsigned int cmd, ...)
 {
     struct pcm_plug_data *plug_data = data;
@@ -658,6 +668,9 @@ static int pcm_plug_ioctl(void *data, unsigned int cmd, ...)
         break;
     case SNDRV_PCM_IOCTL_START:
         ret = pcm_plug_start(plug_data);
+        break;
+    case SNDRV_PCM_IOCTL_DRAIN:
+        ret = pcm_plug_drain(plug_data);
         break;
     case SNDRV_PCM_IOCTL_DROP:
         ret = pcm_plug_drop(plug_data);

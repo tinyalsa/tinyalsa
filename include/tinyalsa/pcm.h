@@ -361,6 +361,8 @@ int pcm_prepare(struct pcm *pcm);
 
 int pcm_start(struct pcm *pcm);
 
+int pcm_drain(struct pcm *pcm);
+
 int pcm_stop(struct pcm *pcm);
 
 int pcm_wait(struct pcm *pcm, int timeout);
