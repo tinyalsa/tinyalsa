@@ -112,7 +112,7 @@ static bool is_wave_file(const char *filetype)
     return filetype != NULL && strcmp(filetype, "wav") == 0;
 }
 
-static bool signed_pcm_bits_to_format(int bits)
+static enum pcm_format signed_pcm_bits_to_format(int bits)
 {
     switch (bits) {
     case 8:
