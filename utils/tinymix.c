@@ -201,7 +201,7 @@ static void list_controls(struct mixer *mixer, int print_all)
 {
     struct mixer_ctl *ctl;
     const char *name, *type;
-    unsigned int num_ctls, num_values;
+    unsigned int num_ctls, num_values, device;
     unsigned int i;
 
     num_ctls = mixer_get_num_ctls(mixer);
@@ -209,9 +209,9 @@ static void list_controls(struct mixer *mixer, int print_all)
     printf("Number of controls: %u\n", num_ctls);
 
     if (print_all)
-        printf("ctl\ttype\tnum\t%-40svalue\n", "name");
+        printf("ctl\ttype\tnum\t%-40s\tdevice\tvalue\n", "name");
     else
-        printf("ctl\ttype\tnum\t%-40s\n", "name");
+        printf("ctl\ttype\tnum\t%-40s\tdevice\n", "name");
 
     for (i = 0; i < num_ctls; i++) {
         ctl = mixer_get_ctl(mixer, i);
@@ -219,7 +219,8 @@ static void list_controls(struct mixer *mixer, int print_all)
         name = mixer_ctl_get_name(ctl);
         type = mixer_ctl_get_type_string(ctl);
         num_values = mixer_ctl_get_num_values(ctl);
-        printf("%u\t%s\t%u\t%-40s", i, type, num_values, name);
+        device = mixer_ctl_get_device(ctl);
+        printf("%u\t%s\t%u\t%-40s\t%u", i, type, num_values, name, device);
         if (print_all)
             print_control_values(ctl);
         printf("\n");
