@@ -139,7 +139,9 @@ static int mixer_plug_info_integer(struct snd_control *ctl,
 
 void mixer_plug_notifier_cb(struct mixer_plugin *plugin)
 {
+    pthread_mutex_lock(&plugin->mutex);
     plugin->event_cnt++;
+    pthread_mutex_unlock(&plugin->mutex);
     eventfd_write(plugin->eventfd, 1);
 }
 
@@ -151,13 +153,19 @@ static ssize_t mixer_plug_read_event(void *data, struct snd_ctl_event *ev, size_
     struct mixer_plugin *plugin = plug_data->plugin;
     eventfd_t evfd;
     ssize_t result = 0;
+    unsigned int i, read_cnt;
 
     result = plug_data->ops->read_event(plugin, ev, size);
 
     if (result > 0) {
-        plugin->event_cnt -=  result / sizeof(struct snd_ctl_event);
-        if (plugin->event_cnt == 0)
+        read_cnt = result / sizeof(struct snd_ctl_event);
+        pthread_mutex_lock(&plugin->mutex);
+        plugin->event_cnt -= read_cnt;
+        pthread_mutex_unlock(&plugin->mutex);
+
+        for (i = 0; i < read_cnt; ++i) {
             eventfd_read(plugin->eventfd, &evfd);
+        }
     }
 
     return result;
@@ -168,6 +176,7 @@ static int mixer_plug_subscribe_events(struct mixer_plug_data *plug_data,
 {
     struct mixer_plugin *plugin = plug_data->plugin;
     eventfd_t evfd;
+    unsigned int i, count;
 
     if (*subscribe < 0 || *subscribe > 1) {
         *subscribe = plugin->subscribed;
@@ -179,10 +188,13 @@ static int mixer_plug_subscribe_events(struct mixer_plug_data *plug_data,
     } else if (plugin->subscribed && !*subscribe) {
         plug_data->ops->subscribe_events(plugin, NULL);
 
-        if (plugin->event_cnt)
-            eventfd_read(plugin->eventfd, &evfd);
-
+        pthread_mutex_lock(&plugin->mutex);
+        count = plugin->event_cnt;
         plugin->event_cnt = 0;
+        pthread_mutex_unlock(&plugin->mutex);
+        for (i = 0; i < count; ++i) {
+            eventfd_read(plugin->eventfd, &evfd);
+        }
     }
 
     plugin->subscribed = *subscribe;
@@ -341,9 +353,16 @@ static void mixer_plug_close(void *data)
     struct mixer_plug_data *plug_data = data;
     struct mixer_plugin *plugin = plug_data->plugin;
     eventfd_t evfd;
+    unsigned int i, count;
 
-    if (plugin->event_cnt)
+    pthread_mutex_lock(&plugin->mutex);
+    count = plugin->event_cnt;
+    pthread_mutex_unlock(&plugin->mutex);
+    pthread_mutex_destroy(&plugin->mutex);
+
+    for (i = 0; i < count; ++i) {
         eventfd_read(plugin->eventfd, &evfd);
+    }
 
     plug_data->ops->close(&plugin);
     dlclose(plug_data->dl_hdl);
@@ -459,7 +478,8 @@ int mixer_plugin_open(unsigned int card, void **data,
     plug_data->plugin = plugin;
     plug_data->card = card;
     plug_data->dl_hdl = dl_hdl;
-    plugin->eventfd = eventfd(0, 0);
+    plugin->eventfd = eventfd(0, EFD_SEMAPHORE);
+    pthread_mutex_init(&plugin->mutex, NULL);
 
     *data = plug_data;
     *ops = &mixer_plug_ops;
