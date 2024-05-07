@@ -218,7 +218,7 @@ struct mixer_plugin {
 
     int eventfd;
     int subscribed;
-    int event_cnt;
+    volatile int event_cnt;
 
     struct snd_control *controls;
     unsigned int num_controls;

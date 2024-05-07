@@ -151,12 +151,17 @@ static ssize_t mixer_plug_read_event(void *data, struct snd_ctl_event *ev, size_
     struct mixer_plugin *plugin = plug_data->plugin;
     eventfd_t evfd;
     ssize_t result = 0;
+    unsigned int i, read_cnt;
 
     result = plug_data->ops->read_event(plugin, ev, size);
 
     if (result > 0) {
-        plugin->event_cnt -=  result / sizeof(struct snd_ctl_event);
-        if (plugin->event_cnt == 0)
+        read_cnt = result / sizeof(struct snd_ctl_event);
+        plugin->event_cnt -=  read_cnt;
+        if (plugin->event_cnt < 0)
+            plugin->event_cnt = 0;
+
+        for (i = 0; i < read_cnt; i++)
             eventfd_read(plugin->eventfd, &evfd);
     }
 
@@ -168,6 +173,7 @@ static int mixer_plug_subscribe_events(struct mixer_plug_data *plug_data,
 {
     struct mixer_plugin *plugin = plug_data->plugin;
     eventfd_t evfd;
+    unsigned int i;
 
     if (*subscribe < 0 || *subscribe > 1) {
         *subscribe = plugin->subscribed;
@@ -179,7 +185,7 @@ static int mixer_plug_subscribe_events(struct mixer_plug_data *plug_data,
     } else if (plugin->subscribed && !*subscribe) {
         plug_data->ops->subscribe_events(plugin, NULL);
 
-        if (plugin->event_cnt)
+        for (i = 0; i < (unsigned int)plugin->event_cnt; i++)
             eventfd_read(plugin->eventfd, &evfd);
 
         plugin->event_cnt = 0;
@@ -341,8 +347,9 @@ static void mixer_plug_close(void *data)
     struct mixer_plug_data *plug_data = data;
     struct mixer_plugin *plugin = plug_data->plugin;
     eventfd_t evfd;
+    unsigned int i;
 
-    if (plugin->event_cnt)
+    for (i = 0; i < (unsigned int)plugin->event_cnt; i++)
         eventfd_read(plugin->eventfd, &evfd);
 
     plug_data->ops->close(&plugin);
@@ -459,7 +466,7 @@ int mixer_plugin_open(unsigned int card, void **data,
     plug_data->plugin = plugin;
     plug_data->card = card;
     plug_data->dl_hdl = dl_hdl;
-    plugin->eventfd = eventfd(0, 0);
+    plugin->eventfd = eventfd(0, EFD_SEMAPHORE);
 
     *data = plug_data;
     *ops = &mixer_plug_ops;
