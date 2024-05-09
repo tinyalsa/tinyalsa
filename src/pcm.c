@@ -1641,6 +1641,17 @@ static int pcm_rw_transfer(struct pcm *pcm, void *data, unsigned int frames)
     transfer.frames = frames;
     transfer.result = 0;
 
+    /*
+     * If frames < start_threshold, wait indefinitely.
+     * Another thread may start capture
+     */
+    if (!is_playback && pcm_state(pcm) == PCM_STATE_PREPARED &&
+            frames >= pcm->config.start_threshold) {
+        if (pcm_start(pcm) < 0) {
+            return -1;
+        }
+    }
+
     res = pcm->ops->ioctl(pcm->data, is_playback
                           ? SNDRV_PCM_IOCTL_WRITEI_FRAMES
                           : SNDRV_PCM_IOCTL_READI_FRAMES, &transfer);
