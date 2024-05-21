@@ -1157,7 +1157,7 @@ int pcm_is_ready(const struct pcm *pcm)
  */
 int pcm_link(struct pcm *pcm1, struct pcm *pcm2)
 {
-    int err = ioctl(pcm1->fd, SNDRV_PCM_IOCTL_LINK, pcm2->fd);
+    int err = pcm1->ops->ioctl(pcm1->data, SNDRV_PCM_IOCTL_LINK, pcm2->fd);
     if (err == -1) {
         return oops(pcm1, errno, "cannot link PCM");
     }
@@ -1172,7 +1172,7 @@ int pcm_link(struct pcm *pcm1, struct pcm *pcm2)
  */
 int pcm_unlink(struct pcm *pcm)
 {
-    int err = ioctl(pcm->fd, SNDRV_PCM_IOCTL_UNLINK);
+    int err = pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_UNLINK);
     if (err == -1) {
         return oops(pcm, errno, "cannot unlink PCM");
     }
@@ -1786,7 +1786,7 @@ int pcm_read(struct pcm *pcm, void *data, unsigned int count)
  */
 long pcm_get_delay(struct pcm *pcm)
 {
-    if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_DELAY, &pcm->pcm_delay) < 0)
+    if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_DELAY, &pcm->pcm_delay) < 0)
         return -1;
 
     return pcm->pcm_delay;
@@ -1806,6 +1806,5 @@ int pcm_ioctl(struct pcm *pcm, int request, ...)
     arg = va_arg(ap, void *);
     va_end(ap);
 
-    // FIXME Does not handle plugins
-    return ioctl(pcm->fd, request, arg);
+    return pcm->ops->ioctl(pcm->data, request, arg);
 }
