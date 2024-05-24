@@ -501,7 +501,10 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
     memset(&sparams, 0, sizeof(sparams));
     sparams.tstamp_mode = SNDRV_PCM_TSTAMP_ENABLE;
     sparams.period_step = 1;
-    sparams.avail_min = config->period_size;
+    if (!pcm->config.avail_min) {
+        pcm->config.avail_min = pcm->config.period_size;
+    }
+    sparams.avail_min = pcm->config.avail_min;
 
     if (!config->start_threshold) {
         if (pcm->flags & PCM_IN)
@@ -650,6 +653,8 @@ static int pcm_hw_mmap_status(struct pcm *pcm)
         goto mmap_error;
     }
 
+    pcm->mmap_control->avail_min = pcm->config.avail_min;
+
     return 0;
 
 mmap_error:
@@ -659,6 +664,7 @@ mmap_error:
         return -ENOMEM;
     pcm->mmap_status = &pcm->sync_ptr->s.status;
     pcm->mmap_control = &pcm->sync_ptr->c.control;
+    pcm->mmap_control->avail_min = pcm->config.avail_min;
 
     return 0;
 }
@@ -1533,18 +1539,25 @@ static int pcm_mmap_transfer(struct pcm *pcm, void *buffer, unsigned int frames)
     while (frames) {
         avail = pcm_mmap_avail(pcm);
 
-        if (!avail) {
+        if (avail < pcm->config.avail_min) {
+            int time = -1;
             if (pcm->flags & PCM_NONBLOCK) {
                 errno = EAGAIN;
                 break;
             }
-
-            /* wait for interrupt */
-            err = pcm_wait(pcm, -1);
+	    if (pcm->flags & PCM_NOIRQ) {
+                time = (pcm->config.avail_min - avail) / pcm->noirq_frames_per_msec;
+	        /* check the wait time and ensure it's at least 1ms */
+	        if (time < 1)
+		    time = 1;
+	    }
+            /* based on the type and available data, wait dynamically */
+            err = pcm_wait(pcm, time);
             if (err < 0) {
                 errno = -err;
                 break;
             }
+	    continue;
         }
 
         transferred_frames = pcm_mmap_transfer_areas(pcm, buffer, user_offset, frames);
