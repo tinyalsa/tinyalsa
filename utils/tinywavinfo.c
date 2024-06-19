@@ -149,7 +149,7 @@ void analyse_sample(FILE *file, unsigned int channels, unsigned int bits,
     void *buffer;
     int size;
     int num_read;
-    int i;
+    unsigned int i;
     unsigned int ch;
     int frame_size = 1024;
     unsigned int bytes_per_sample = 0;
