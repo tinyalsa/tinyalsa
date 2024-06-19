@@ -12,7 +12,7 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 # Options
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
-option(TINYALSA_USES_PLUGINS "Whether or not to build with plugin support" OFF)
+option(TINYALSA_USES_PLUGINS "Whether or not to build with plugin support" ON)
 option(TINYALSA_BUILD_EXAMPLES "Build examples" ON)
 option(TINYALSA_BUILD_UTILS "Build utility tools" ON)
 
