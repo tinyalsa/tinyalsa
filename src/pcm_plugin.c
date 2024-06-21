@@ -563,7 +563,8 @@ static int pcm_plug_readi_frames(struct pcm_plug_data *plug_data,
 {
     struct pcm_plugin *plugin = plug_data->plugin;
 
-    if (plugin->state != PCM_PLUG_STATE_RUNNING)
+    if (plugin->state != PCM_PLUG_STATE_PREPARED &&
+        plugin->state != PCM_PLUG_STATE_RUNNING)
         return -EBADFD;
 
     return plug_data->ops->readi_frames(plugin, x);
