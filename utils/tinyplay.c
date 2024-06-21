@@ -180,7 +180,7 @@ static int ctx_init(struct ctx* ctx, struct cmd *cmd)
         fprintf(stderr, "filename not specified\n");
         return -1;
     }
-    if (strcmp(cmd->filename, "-") == 0) {
+    if (strcmp(cmd->filename, "stdin") == 0) {
         ctx->file = stdin;
     } else {
         ctx->file = fopen(cmd->filename, "rb");
