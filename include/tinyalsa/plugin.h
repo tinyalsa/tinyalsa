@@ -33,6 +33,7 @@
 #include <poll.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include <sys/types.h>
 #include <time.h>
 
@@ -222,6 +223,7 @@ struct mixer_plugin {
 
     struct snd_control *controls;
     unsigned int num_controls;
+    pthread_mutex_t mutex;
 };
 
 struct snd_value_enum {
