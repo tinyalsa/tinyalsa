@@ -1,0 +1,38 @@
+.TH TINYWAVINFO 1 "September 16, 2020" "tinywavinfo" "TinyALSA"
+
+.SH NAME
+tinywavinfo \- show information about a .wav file
+
+.SH SYNOPSIS
+.B tinywavinfo\fR \fIfile\fR
+
+.SH Description
+
+\fBtinywavinfo\fR shows information about the specified .wav file to standard output.
+In particular, it shows the channel count, sample rate in Hz, bits per sample,
+and average power of each channel in the file.
+At least one file must be specified.  If more than one file is given,
+information is only shown for the first file.
+Only signed 16-bit and 32-bit integer PCM formats are supported.
+There are no command line options.
+
+.SH EXAMPLES
+
+.TP
+\fBtinywavinfo output.wav\fR
+Shows information about a file called output.wav.
+
+.SH BUGS
+
+Please report bugs to https://github.com/tinyalsa/tinyalsa/issues.
+
+.SH SEE ALSO
+
+.BR tinycap(1),
+.BR tinyplay(1)
+
+.SH AUTHORS
+Jaydeep Dhole
+.P
+For a complete list of authors, visit the project page at https://github.com/tinyalsa/tinyalsa.
+

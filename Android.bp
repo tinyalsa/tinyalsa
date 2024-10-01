@@ -102,3 +102,9 @@ cc_binary {
     static_libs: ["libtinyalsav2"],
     cflags: ["-Werror"],
 }
+
+cc_binary {
+    name: "tinywavinfo",
+    srcs: ["utils/tinywavinfo.c"],
+    cflags: ["-Werror", "-lm"],
+}

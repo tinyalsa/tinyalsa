@@ -1,4 +1,4 @@
-utils = ['tinyplay', 'tinycap', 'tinymix', 'tinypcminfo']
+utils = ['tinyplay', 'tinycap', 'tinymix', 'tinypcminfo', 'tinywavinfo']
 
 foreach util : utils
   executable(util, '@0@.c'.format(util),
