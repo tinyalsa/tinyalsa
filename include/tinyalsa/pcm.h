@@ -116,8 +116,8 @@
  */
 #define PCM_STATE_RUNNING 0x03
 
-/** For inputs, this means an overrun occured.
- * For outputs, this means an underrun occured.
+/** For inputs, this means an overrun occurred.
+ * For outputs, this means an underrun occurred.
  */
 #define PCM_STATE_XRUN 0x04
 
