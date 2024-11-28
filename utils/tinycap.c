@@ -27,6 +27,7 @@
 */
 
 #include <tinyalsa/asoundlib.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -257,15 +258,21 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
 
     bytes_per_frame = pcm_frames_to_bytes(pcm, 1);
     total_frames_read = 0;
-    frames_read = 0;
     while (capturing) {
-        frames_read = pcm_readi(pcm, buffer, pcm_get_buffer_size(pcm));
+        int ret = pcm_readi(pcm, buffer, pcm_get_buffer_size(pcm));
+        if (ret < 0) {
+            fprintf(stderr,"Error capturing samples - %d (%s)\n", errno,
+                    strerror(errno));
+            break;
+        }
+        frames_read = ret;
         total_frames_read += frames_read;
         if ((total_frames_read / rate) >= capture_time) {
             capturing = 0;
         }
         if (fwrite(buffer, bytes_per_frame, frames_read, file) != frames_read) {
-            fprintf(stderr,"Error capturing sample\n");
+            fprintf(stderr,"Error writing samples - %d (%s)\n", errno,
+                    strerror(errno));
             break;
         }
     }
