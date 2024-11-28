@@ -300,13 +300,13 @@ struct pcm {
     int fd;
     /** Flags that were passed to @ref pcm_open */
     unsigned int flags;
-    /** The number of (under/over)runs that have occured */
+    /** The number of (under/over)runs that have occurred */
     int xruns;
     /** Size of the buffer */
     unsigned int buffer_size;
     /** The boundary for ring buffer pointers */
     unsigned long boundary;
-    /** Description of the last error that occured */
+    /** Description of the last error that occurred */
     char error[PCM_ERROR_MAX];
     /** Configuration that was passed to @ref pcm_open */
     struct pcm_config config;
@@ -409,10 +409,10 @@ int pcm_get_file_descriptor(const struct pcm *pcm)
     return pcm->fd;
 }
 
-/** Gets the error message for the last error that occured.
- * If no error occured and this function is called, the results are undefined.
+/** Gets the error message for the last error that occurred.
+ * If no error occurred and this function is called, the results are undefined.
  * @param pcm A PCM handle.
- * @return The error message of the last error that occured.
+ * @return The error message of the last error that occurred.
  * @ingroup libtinyalsa-pcm
  */
 const char* pcm_get_error(const struct pcm *pcm)
@@ -1449,8 +1449,8 @@ again:
  * @param pcm A PCM handle.
  * @param timeout The maximum amount of time to wait for, in terms of milliseconds.
  * @returns If frames became available, one is returned.
- *  If a timeout occured, zero is returned.
- *  If an error occured, a negative number is returned.
+ *  If a timeout occurred, zero is returned.
+ *  If an error occurred, a negative number is returned.
  * @ingroup libtinyalsa-pcm
  */
 int pcm_wait(struct pcm *pcm, int timeout)

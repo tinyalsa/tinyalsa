@@ -477,7 +477,7 @@ int mixer_subscribe_events(struct mixer *mixer, int subscribe)
 
 /** Wait for mixer events.
  * @param mixer A mixer handle.
- * @param timeout timout value
+ * @param timeout timeout value
  * @returns On success, 1.
  *  On failure, -errno.
  *  On timeout, 0
