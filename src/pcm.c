@@ -477,7 +477,11 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
 
     if (pcm->ops->ioctl(pcm->data, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
         int errno_copy = errno;
-        oops(pcm, errno, "cannot set hw params");
+        if(errno == EINVAL) {
+            oops(pcm, errno, "could not set hw params. check tinypcminfo -D <card> -d <device> for valid device configuration");
+        } else {
+            oops(pcm, errno, "cannot set hw params");
+        }
         return -errno_copy;
     }
 
