@@ -55,15 +55,7 @@ void cmd_init(struct cmd *cmd)
     cmd->card = 0;
     cmd->device = 0;
     cmd->flags = PCM_OUT;
-    cmd->config.period_size = 1024;
-    cmd->config.period_count = 2;
-    cmd->config.channels = 2;
-    cmd->config.rate = 48000;
-    cmd->config.format = PCM_FORMAT_S16_LE;
-    cmd->config.silence_threshold = cmd->config.period_size * cmd->config.period_count;
-    cmd->config.silence_size = 0;
-    cmd->config.stop_threshold = cmd->config.period_size * cmd->config.period_count;
-    cmd->config.start_threshold = cmd->config.period_size;
+    pcm_config_default(&cmd->config);
     cmd->bits = 16;
     cmd->is_float = false;
 }
