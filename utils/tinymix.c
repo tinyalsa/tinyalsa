@@ -500,7 +500,7 @@ static int set_control_values(struct mixer_ctl* ctl,
         /* Set all values the same */
         struct control_value value = to_control_value(values[0]);
 
-        for (unsigned int i = 0; i < num_values; i++) {
+        for (unsigned int i = 0; i < num_ctl_values; i++) {
             int res = set_control_value(ctl, i, &value);
             if (res != 0) {
                 fprintf(stderr, "Error: invalid value (%d%s%s)\n", value.value,
