@@ -55,15 +55,7 @@ void cmd_init(struct cmd *cmd)
     cmd->card = 0;
     cmd->device = 0;
     cmd->flags = PCM_OUT;
-    cmd->config.period_size = 1024;
-    cmd->config.period_count = 2;
-    cmd->config.channels = 2;
-    cmd->config.rate = 48000;
-    cmd->config.format = PCM_FORMAT_S16_LE;
-    cmd->config.silence_threshold = cmd->config.period_size * cmd->config.period_count;
-    cmd->config.silence_size = 0;
-    cmd->config.stop_threshold = cmd->config.period_size * cmd->config.period_count;
-    cmd->config.start_threshold = cmd->config.period_size;
+    pcm_config_default(&cmd->config);
     cmd->bits = 16;
     cmd->is_float = false;
 }
@@ -305,37 +297,37 @@ int main(int argc, char **argv)
         switch (c) {
         case 'D':
             if (sscanf(opts.optarg, "%u", &cmd.card) != 1) {
-                fprintf(stderr, "failed parsing card number '%s'\n", argv[1]);
+                fprintf(stderr, "failed parsing card number '%s'\n", opts.optarg);
                 return EXIT_FAILURE;
             }
             break;
         case 'd':
             if (sscanf(opts.optarg, "%u", &cmd.device) != 1) {
-                fprintf(stderr, "failed parsing device number '%s'\n", argv[1]);
+                fprintf(stderr, "failed parsing device number '%s'\n", opts.optarg);
                 return EXIT_FAILURE;
             }
             break;
         case 'p':
             if (sscanf(opts.optarg, "%u", &cmd.config.period_size) != 1) {
-                fprintf(stderr, "failed parsing period size '%s'\n", argv[1]);
+                fprintf(stderr, "failed parsing period size '%s'\n", opts.optarg);
                 return EXIT_FAILURE;
             }
             break;
         case 'n':
             if (sscanf(opts.optarg, "%u", &cmd.config.period_count) != 1) {
-                fprintf(stderr, "failed parsing period count '%s'\n", argv[1]);
+                fprintf(stderr, "failed parsing period count '%s'\n", opts.optarg);
                 return EXIT_FAILURE;
             }
             break;
         case 'c':
             if (sscanf(opts.optarg, "%u", &cmd.config.channels) != 1) {
-                fprintf(stderr, "failed parsing channel count '%s'\n", argv[1]);
+                fprintf(stderr, "failed parsing channel count '%s'\n", opts.optarg);
                 return EXIT_FAILURE;
             }
             break;
         case 'r':
             if (sscanf(opts.optarg, "%u", &cmd.config.rate) != 1) {
-                fprintf(stderr, "failed parsing rate '%s'\n", argv[1]);
+                fprintf(stderr, "failed parsing rate '%s'\n", opts.optarg);
                 return EXIT_FAILURE;
             }
             break;
@@ -344,7 +336,7 @@ int main(int argc, char **argv)
             break;
         case 'b':
             if (sscanf(opts.optarg, "%u", &cmd.bits) != 1) {
-                fprintf(stderr, "failed parsing bits per one sample '%s'\n", argv[1]);
+                fprintf(stderr, "failed parsing bits per one sample '%s'\n", opts.optarg);
                 return EXIT_FAILURE;
             }
             break;
