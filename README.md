@@ -35,11 +35,11 @@ sudo ldconfig
 TinyALSA is now available as a set of the following [Debian](https://en.wikipedia.org/wiki/Debian)
 packages from [launchpad](https://launchpad.net/~taylorcholberton/+archive/ubuntu/tinyalsa):
 
-| Package Name:   | Description:                                        |
-|-----------------|-----------------------------------------------------|
-| tinyalsa        | Contains tinyplay, tinycap, tinymix and tinypcminfo |
-| libtinyalsa     | Contains the shared library                         |
-| libtinyalsa-dev | Contains the static library and header files        |
+| Package Name:   | Description:                                                      |
+|-----------------|-------------------------------------------------------------------|
+| tinyalsa        | Contains tinyplay, tinycap, tinymix, tinypcminfo, and tinywavinfo |
+| libtinyalsa     | Contains the shared library                                       |
+| libtinyalsa-dev | Contains the static library and header files                      |
 
 To install these packages, run the commands:
 
@@ -59,6 +59,7 @@ man tinyplay
 man tinycap
 man tinymix
 man tinypcminfo
+man tinywavinfo
 man libtinyalsa-pcm
 man libtinyalsa-mixer
 ```
