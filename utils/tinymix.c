@@ -220,7 +220,7 @@ static void list_controls(struct mixer *mixer, int print_all)
         type = mixer_ctl_get_type_string(ctl);
         num_values = mixer_ctl_get_num_values(ctl);
         device = mixer_ctl_get_device(ctl);
-        printf("%u\t%s\t%u\t%-40s\t%u", i, type, num_values, name, device);
+        printf("%u\t%s\t%u\t%-40s\t%u\t", i, type, num_values, name, device);
         if (print_all)
             print_control_values(ctl);
         printf("\n");

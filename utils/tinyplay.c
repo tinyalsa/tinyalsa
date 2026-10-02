@@ -184,14 +184,14 @@ static int ctx_init(struct ctx* ctx, struct cmd *cmd)
         ctx->file = stdin;
     } else {
         ctx->file = fopen(cmd->filename, "rb");
+        if (ctx->file == NULL) {
+            fprintf(stderr, "failed to open '%s'\n", cmd->filename);
+            return -1;
+        }
+
         fseek(ctx->file, 0L, SEEK_END);
         ctx->file_size = ftell(ctx->file);
         fseek(ctx->file, 0L, SEEK_SET);
-    }
-
-    if (ctx->file == NULL) {
-        fprintf(stderr, "failed to open '%s'\n", cmd->filename);
-        return -1;
     }
 
     if (is_wave_file(cmd->filetype)) {
