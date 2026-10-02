@@ -4,3 +4,5 @@ option('examples', type: 'feature', value: 'auto', yield: true,
   description : 'Build examples')
 option('utils', type: 'feature', value: 'auto', yield: true,
   description : 'Build utility tools')
+option('tinyalsa_uses_plugins', type: 'boolean', value: true,
+  description : 'Enable plugin support')
