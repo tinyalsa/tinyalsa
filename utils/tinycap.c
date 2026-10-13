@@ -165,7 +165,7 @@ int main(int argc, char **argv)
         format = PCM_FORMAT_S32_LE;
         break;
     case 24:
-        format = PCM_FORMAT_S24_LE;
+        format = PCM_FORMAT_S24_3LE;
         break;
     case 16:
         format = PCM_FORMAT_S16_LE;
