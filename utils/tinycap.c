@@ -170,6 +170,9 @@ int main(int argc, char **argv)
     case 16:
         format = PCM_FORMAT_S16_LE;
         break;
+    case 8:
+        format = PCM_FORMAT_S8;
+        break;
     default:
         fprintf(stderr, "%u bits is not supported.\n", bits);
         fclose(file);
