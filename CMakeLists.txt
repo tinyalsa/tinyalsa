@@ -60,7 +60,7 @@ endforeach()
 
 # Utilities
 if(TINYALSA_BUILD_UTILS)
-    set(TINYALSA_UTILS tinyplay tinycap tinypcminfo tinymix tinywavinfo)
+    set(TINYALSA_UTILS tinyplay tinycap tinypcminfo tinymix tinywavinfo tinyhostless)
 else()
     set(TINYALSA_UTILS)
 endif()

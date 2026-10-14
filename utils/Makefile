@@ -17,9 +17,9 @@ LDFLAGS += -pie
 VPATH = ../src:../include/tinyalsa
 
 .PHONY: all
-all: -ltinyalsa tinyplay tinycap tinymix tinypcminfo
+all: -ltinyalsa tinyplay tinycap tinymix tinypcminfo tinyhostless
 
-tinyplay tinycap tinypcminfo tinymix: LDLIBS+=-ldl
+tinyplay tinycap tinypcminfo tinymix tinyhostless: LDLIBS+=-ldl
 
 tinyplay: tinyplay.o libtinyalsa.a
 
@@ -37,23 +37,30 @@ tinypcminfo: tinypcminfo.o libtinyalsa.a
 
 tinypcminfo.o: tinypcminfo.c pcm.h mixer.h asoundlib.h optparse.h
 
+tinyhostless: tinyhostless.o libtinyalsa.a
+
+tinyhostless.o: tinyhostless.c pcm.h mixer.h asoundlib.h optparse.h
+
 .PHONY: clean
 clean:
 	$(RM) tinyplay tinyplay.o
 	$(RM) tinycap tinycap.o
 	$(RM) tinymix tinymix.o
 	$(RM) tinypcminfo tinypcminfo.o
+	$(RM) tinyhostless tinyhostless.o
 
 .PHONY: install
-install: tinyplay tinycap tinymix tinypcminfo
+install: tinyplay tinycap tinymix tinypcminfo tinyhostless
 	install -d $(DESTDIR)$(BINDIR)
 	install tinyplay $(DESTDIR)$(BINDIR)/
 	install tinycap $(DESTDIR)$(BINDIR)/
 	install tinymix $(DESTDIR)$(BINDIR)/
 	install tinypcminfo $(DESTDIR)$(BINDIR)/
+	install tinyhostless $(DESTDIR)$(BINDIR)/
 	install -d $(DESTDIR)$(MANDIR)/man1
 	install tinyplay.1 $(DESTDIR)$(MANDIR)/man1/
 	install tinycap.1 $(DESTDIR)$(MANDIR)/man1/
 	install tinymix.1 $(DESTDIR)$(MANDIR)/man1/
 	install tinypcminfo.1 $(DESTDIR)$(MANDIR)/man1/
+	install tinyhostless.1 $(DESTDIR)$(MANDIR)/man1/
 
