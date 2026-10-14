@@ -46,6 +46,7 @@ struct cmd {
     struct pcm_config config;
     unsigned int bits;
     bool is_float;
+    int eos;
 };
 
 void cmd_init(struct cmd *cmd)
@@ -66,6 +67,7 @@ void cmd_init(struct cmd *cmd)
     cmd->config.start_threshold = cmd->config.period_size;
     cmd->bits = 16;
     cmd->is_float = false;
+    cmd->eos = 0;
 }
 
 #define ID_RIFF 0x46464952
@@ -249,6 +251,11 @@ static int close = 0;
 
 int play_sample(struct ctx *ctx);
 
+int drain_sample(struct ctx *ctx)
+{
+    return pcm_drain(ctx->pcm);
+}
+
 void stream_close(int sig)
 {
     /* allow the stream to be closed gracefully */
@@ -270,6 +277,7 @@ void print_usage(const char *argv0)
     fprintf(stderr, "-b | --bits <bit-count>        The number of bits in one sample\n");
     fprintf(stderr, "-f | --float                   The frames are in floating-point PCM\n");
     fprintf(stderr, "-M | --mmap                    Use memory mapped IO to play audio\n");
+    fprintf(stderr, "-E | --eos                     play to the end of the audio stream\n");
 }
 
 int main(int argc, char **argv)
@@ -289,6 +297,7 @@ int main(int argc, char **argv)
         { "bits",         'b', OPTPARSE_REQUIRED },
         { "float",        'f', OPTPARSE_NONE     },
         { "mmap",         'M', OPTPARSE_NONE     },
+        { "eos",          'E', OPTPARSE_NONE     },
         { "help",         'h', OPTPARSE_NONE     },
         { 0, 0, 0 }
     };
@@ -353,6 +362,9 @@ int main(int argc, char **argv)
         case 'M':
             cmd.flags |= PCM_MMAP;
             break;
+        case 'E':
+            cmd.eos = 1;
+            break;
         case 'h':
             print_usage(argv[0]);
             return EXIT_SUCCESS;
@@ -387,6 +399,10 @@ int main(int argc, char **argv)
     if (play_sample(&ctx) < 0) {
         ctx_free(&ctx);
         return EXIT_FAILURE;
+    }
+
+    if (cmd.eos) {
+        drain_sample(&ctx);
     }
 
     ctx_free(&ctx);
