@@ -220,7 +220,7 @@ int play_sample(unsigned int card, unsigned int p_device,
                 int do_loopback)
 {
     struct pcm_config config;
-    struct pcm *pcm_play =NULL, *pcm_cap=NULL;
+    struct pcm *pcm_play = NULL, *pcm_cap = NULL;
     char *buffer = NULL;
     int size = 0;
     int rc = 0;
@@ -242,7 +242,7 @@ int play_sample(unsigned int card, unsigned int p_device,
     config.stop_threshold = 0;
     config.avail_min = 0;
 
-    if(p_device < TINYHOSTLESS_DEVICE_UNDEFINED )  {
+    if(p_device < TINYHOSTLESS_DEVICE_UNDEFINED)  {
         if (!check_params(card, p_device, PCM_OUT, &config))
             return EINVAL;
         pcm_play = pcm_open(card, p_device, PCM_OUT, &config);
@@ -253,7 +253,7 @@ int play_sample(unsigned int card, unsigned int p_device,
         }
     }
 
-    if (c_device < TINYHOSTLESS_DEVICE_UNDEFINED ) {
+    if (c_device < TINYHOSTLESS_DEVICE_UNDEFINED) {
         if (!check_params(card, c_device, PCM_IN, &config))
             return EINVAL;
         pcm_cap = pcm_open(card, c_device, PCM_IN, &config);
