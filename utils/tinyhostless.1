@@ -1,0 +1,88 @@
+.TH TINYHOSTLESS 1 "September 30, 2026" "tinyhostless" "TinyALSA"
+
+.SH NAME
+tinyhostless \- enable hostless mode or loopback between PCM devices
+
+.SH SYNOPSIS
+.B tinyhostless\fR [ \fIoptions\fR ]
+
+.SH Description
+
+\fBtinyhostless\fR enables 'hostless' mode for audio devices with a DSP back-end,
+where audio is routed between the front-end and back-end without host involvement.
+Alternatively, in loopback mode (\fB\-l\fR) it reads from the capture device and
+writes the samples to the playback device.
+Options can be used to specify various hardware parameters to open the PCM with.
+At least one of \fB\-P\fR (playback device) or \fB\-C\fR (capture device) must be specified.
+
+.SH OPTIONS
+
+.TP
+\fB\-D\fR \fIcard\fR
+Card number of the PCM.
+The default is 0.
+
+.TP
+\fB\-P\fR \fIplayback_device\fR
+Device number of the playback PCM.
+
+.TP
+\fB\-C\fR \fIcapture_device\fR
+Device number of the capture PCM.
+
+.TP
+\fB\-p\fR \fIperiod_size\fR
+Number of frames in a period.
+The default is 192.
+
+.TP
+\fB\-n\fR \fIn_periods\fR
+Number of periods the PCM will have.
+The default is 4.
+
+.TP
+\fB\-c\fR \fInum_channels\fR
+Number of channels the PCM will have.
+The default is 2.
+
+.TP
+\fB\-r\fR \fIsample_rate\fR
+Number of frames per second of the PCM.
+The default is 48000.
+
+.TP
+\fB\-l\fR
+Enable loopback mode.
+Read from the capture device and write to the playback device.
+Both playback and capture devices must be specified.
+
+.TP
+\fB\-T\fR \fIseconds\fR
+Number of seconds to play/capture audio.
+If not specified, the program runs until an interrupt signal is caught.
+
+.SH SIGNALS
+
+While running, SIGINT, SIGHUP or SIGTERM will stop the stream and close the devices gracefully.
+
+.SH EXAMPLES
+
+.TP
+\fBtinyhostless -D 0 -P 1 -C 2 -l\fR
+Loops back audio from capture device 2 to playback device 1 on card 0 until an interrupt signal is caught.
+
+.SH BUGS
+
+Please report bugs to https://github.com/tinyalsa/tinyalsa/issues.
+
+.SH SEE ALSO
+
+.BR tinyplay(1),
+.BR tinycap(1),
+.BR tinymix(1),
+.BR tinypcminfo(1)
+
+.SH AUTHORS
+Jiazai Wu
+.P
+For a complete list of authors, visit the project page at https://github.com/tinyalsa/tinyalsa.
