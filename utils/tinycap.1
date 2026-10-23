@@ -29,6 +29,10 @@ Use memory-mapped I/O method.
 If this option is not specified, then read and write I/O method will be used.
 
 .TP
+\fB\-W\fR
+Wait indefinitely for PCM data before each read. This is useful for keyword-gated WoV capture PCMs.
+
+.TP
 \fB\-c\fR \fIchannels\fR
 Number of channels the PCM will have.
 The default is 2.
@@ -72,6 +76,10 @@ Records a file called output.wav until an interrupt signal is caught.
 Records a file called output.wav from card 1 for two seconds or until an interrupt signal is caught.
 
 .TP
+\fBtinycap output.wav -D card -d device -c channels -r rate -W
+Waits for data from the selected PCM before capturing audio.
+
+.TP
 \fBtinycap -- -t 3
 Records to standard output for three seconds or until an interrupt signal is caught.
 
@@ -89,4 +97,3 @@ Please report bugs to https://github.com/tinyalsa/tinyalsa/issues.
 Simon Wilson
 .P
 For a complete list of authors, visit the project page at https://github.com/tinyalsa/tinyalsa.
-

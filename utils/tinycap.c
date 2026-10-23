@@ -66,9 +66,11 @@ int capturing = 1;
 int prinfo = 1;
 
 unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
-                            bool use_mmap, unsigned int channels, unsigned int rate,
+                            bool use_mmap, bool wait_for_data,
+                            unsigned int channels, unsigned int rate,
                             enum pcm_format format, unsigned int period_size,
-                            unsigned int period_count, unsigned int capture_time);
+                            unsigned int period_count, unsigned int capture_time,
+                            int *capture_error);
 
 void sigint_handler(int sig)
 {
@@ -91,13 +93,15 @@ int main(int argc, char **argv)
     unsigned int period_count = 4;
     unsigned int capture_time = UINT_MAX;
     bool use_mmap = false;
+    bool wait_for_data = false;
     enum pcm_format format;
-    int no_header = 0, c;
+    int no_header = 0, c, capture_error = 0;
     struct optparse opts;
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s {file.wav | --} [-D card] [-d device] [-M] [-c channels] "
-                "[-r rate] [-b bits] [-p period_size] [-n n_periods] [-t time_in_seconds]\n\n"
+                "[-r rate] [-b bits] [-p period_size] [-n n_periods] [-t time_in_seconds] "
+                "[-W  Wait for WoV PCM data]\n\n"
                 "Use -- for filename to send raw PCM to stdout\n", argv[0]);
         return 1;
     }
@@ -116,7 +120,7 @@ int main(int argc, char **argv)
 
     /* parse command line arguments */
     optparse_init(&opts, argv + 1);
-    while ((c = optparse(&opts, "D:d:c:r:b:p:n:t:M")) != -1) {
+    while ((c = optparse(&opts, "D:d:c:r:b:p:n:t:MW")) != -1) {
         switch (c) {
         case 'd':
             device = atoi(opts.optarg);
@@ -144,6 +148,9 @@ int main(int argc, char **argv)
             break;
         case 'M':
             use_mmap = true;
+            break;
+        case 'W':
+            wait_for_data = true;
             break;
         case '?':
             fprintf(stderr, "%s\n", opts.errmsg);
@@ -191,9 +198,10 @@ int main(int argc, char **argv)
 
     /* install signal handler and begin capturing */
     signal(SIGINT, sigint_handler);
-    frames = capture_sample(file, card, device, use_mmap,
+    frames = capture_sample(file, card, device, use_mmap, wait_for_data,
                             header.num_channels, header.sample_rate,
-                            format, period_size, period_count, capture_time);
+                            format, period_size, period_count, capture_time,
+                            &capture_error);
     if (prinfo) {
         printf("Captured %u frames\n", frames);
     }
@@ -208,13 +216,15 @@ int main(int argc, char **argv)
 
     fclose(file);
 
-    return 0;
+    return capture_error;
 }
 
 unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
-                            bool use_mmap, unsigned int channels, unsigned int rate,
+                            bool use_mmap, bool wait_for_data,
+                            unsigned int channels, unsigned int rate,
                             enum pcm_format format, unsigned int period_size,
-                            unsigned int period_count, unsigned int capture_time)
+                            unsigned int period_count, unsigned int capture_time,
+                            int *capture_error)
 {
     struct pcm_config config;
     unsigned int pcm_open_flags;
@@ -224,6 +234,8 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
     unsigned int frames_read;
     unsigned int total_frames_read;
     unsigned int bytes_per_frame;
+
+    *capture_error = 0;
 
     memset(&config, 0, sizeof(config));
     config.channels = channels;
@@ -243,6 +255,7 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
     if (!pcm || !pcm_is_ready(pcm)) {
         fprintf(stderr, "Unable to open PCM device (%s)\n",
                 pcm_get_error(pcm));
+        *capture_error = 1;
         return 0;
     }
 
@@ -251,6 +264,7 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
     if (!buffer) {
         fprintf(stderr, "Unable to allocate %u bytes\n", size);
         pcm_close(pcm);
+        *capture_error = 1;
         return 0;
     }
 
@@ -262,10 +276,30 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
     bytes_per_frame = pcm_frames_to_bytes(pcm, 1);
     total_frames_read = 0;
     while (capturing) {
+        if (wait_for_data) {
+            int ret;
+
+            do {
+                ret = pcm_wait(pcm, -1);
+            } while (capturing && (ret == 0 || ret == -EINTR));
+
+            if (!capturing)
+                break;
+            if (ret < 0) {
+                fprintf(stderr, "Error waiting for PCM data - %d (%s)\n",
+                        -ret, strerror(-ret));
+                *capture_error = 1;
+                break;
+            }
+        }
+
         int ret = pcm_readi(pcm, buffer, pcm_get_buffer_size(pcm));
         if (ret < 0) {
+            if (!capturing)
+                break;
             fprintf(stderr,"Error capturing samples - %d (%s)\n", errno,
                     strerror(errno));
+            *capture_error = 1;
             break;
         }
         frames_read = ret;
@@ -276,6 +310,7 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
         if (fwrite(buffer, bytes_per_frame, frames_read, file) != frames_read) {
             fprintf(stderr,"Error writing samples - %d (%s)\n", errno,
                     strerror(errno));
+            *capture_error = 1;
             break;
         }
     }
@@ -284,4 +319,3 @@ unsigned int capture_sample(FILE *file, unsigned int card, unsigned int device,
     pcm_close(pcm);
     return total_frames_read;
 }
-
