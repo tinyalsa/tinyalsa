@@ -67,6 +67,7 @@ class PcmOutTest : public ::testing::Test {
         .stop_threshold = kDefaultPeriodSize * kDefaultPeriodCount,
         .silence_threshold = 0,
         .silence_size = 0,
+        .avail_min = kDefaultPeriodSize,
     };
 
     pcm* pcm_object;
