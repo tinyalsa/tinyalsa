@@ -9,6 +9,10 @@ cc = meson.get_compiler('c')
 # Dependency on libdl
 dl_dep = cc.find_library('dl')
 
+if get_option('tinyalsa_uses_plugins')
+    add_project_arguments('-DTINYALSA_USES_PLUGINS', language: 'c')
+endif
+
 tinyalsa = library('tinyalsa',
   'src/mixer.c', 'src/pcm.c', 'src/pcm_hw.c', 'src/pcm_plugin.c', 'src/snd_card_plugin.c', 'src/mixer_hw.c', 'src/mixer_plugin.c',
   include_directories: tinyalsa_includes,
