@@ -420,6 +420,25 @@ const char* pcm_get_error(const struct pcm *pcm)
     return pcm->error;
 }
 
+/** Provides default values for PCM configuration.
+ * @param config A PCM config handle.
+ * @ingroup libtinyalsa-pcm
+ */
+void pcm_config_default(struct pcm_config *config) {
+    if (config == NULL) {
+        return;
+    }
+    config->channels = 2;
+    config->rate = 48000;
+    config->period_size = 1024;
+    config->period_count = 4;
+    config->format = PCM_FORMAT_S16_LE;
+    config->start_threshold = config->period_count * config->period_size;
+    config->stop_threshold = config->period_count * config->period_size;
+    config->silence_threshold = 0;
+    config->silence_size = 0;
+}
+
 /** Sets the PCM configuration.
  * @param pcm A PCM handle.
  * @param config The configuration to use for the
@@ -435,15 +454,7 @@ int pcm_set_config(struct pcm *pcm, const struct pcm_config *config)
         return -EFAULT;
     else if (config == NULL) {
         config = &pcm->config;
-        pcm->config.channels = 2;
-        pcm->config.rate = 48000;
-        pcm->config.period_size = 1024;
-        pcm->config.period_count = 4;
-        pcm->config.format = PCM_FORMAT_S16_LE;
-        pcm->config.start_threshold = config->period_count * config->period_size;
-        pcm->config.stop_threshold = config->period_count * config->period_size;
-        pcm->config.silence_threshold = 0;
-        pcm->config.silence_size = 0;
+        pcm_config_default(&pcm->config);
     } else
         pcm->config = *config;
 

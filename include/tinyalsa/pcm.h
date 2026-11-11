@@ -207,8 +207,7 @@ struct pcm_config {
     /** The sample format of a PCM */
     enum pcm_format format;
     /* Values to use for the ALSA start, stop and silence thresholds, and
-     * silence size.  Setting any one of these values to 0 will cause the
-     * default tinyalsa values to be used instead.
+     * silence size.
      * Tinyalsa defaults are as follows.
      *
      * start_threshold   : period_count * period_size
@@ -316,6 +315,8 @@ enum pcm_format pcm_get_format(const struct pcm *pcm);
 int pcm_get_file_descriptor(const struct pcm *pcm);
 
 const char *pcm_get_error(const struct pcm *pcm);
+
+void pcm_config_default(struct pcm_config *config);
 
 int pcm_set_config(struct pcm *pcm, const struct pcm_config *config);
 
