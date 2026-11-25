@@ -749,6 +749,7 @@ static int pcm_plug_open(unsigned int card, unsigned int device,
     dl_hdl = dlopen(so_name, RTLD_NOW);
     if (!dl_hdl) {
         fprintf(stderr, "%s: unable to open %s\n", __func__, so_name);
+        rc = -ENODEV;
         goto err_dl_open;
     } else {
         fprintf(stderr, "%s: dlopen successful for %s\n", __func__, so_name);
@@ -758,6 +759,7 @@ static int pcm_plug_open(unsigned int card, unsigned int device,
 
     plug_data->ops = dlsym(dl_hdl, "pcm_plugin_ops");
     if (!plug_data->ops) {
+        rc = -ENODEV;
         fprintf(stderr, "%s: dlsym to open fn failed, err = '%s'\n",
                 __func__, dlerror());
         goto err_dlsym;
